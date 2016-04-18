@@ -1,0 +1,75 @@
+// Copyright © 2015 Hansoft AB 
+// Distributed under the MIT license, see license text in LICENSE.Malterlib
+
+Import "../Core/Lib_Malterlib.MTarget"
+//Import "Malterlib_Meteor.MTarget"
+
+%Group "{Malterlib}/{Lib_Malterlib_Meteor}"
+{
+	%Group Meteor
+	{
+		%Group Include
+		{
+			Compile.Type "C++"
+			{
+				!!DocumentationEnabled true
+			}
+			//%File "Include/Mib/Meteor/^*"
+		}
+		%File "Source/*"
+		%Group Documentation
+		{
+			%File "Documentation/*"
+		}
+	}
+	%Dependency Lib_Malterlib_Web
+	{
+		Dependency.Indirect true
+	}
+}
+
+Property
+{
+	MalterlibLibrary_Meteor true
+	{
+		&
+		{
+			MalterlibLibrary_Meteor ""
+			MalterlibLibrary_All true
+		}
+	}
+	MalterlibSubLibraries "Meteor;@(MalterlibSubLibraries)"
+	{
+		!!MalterlibLibrary_Meteor true
+	}
+	MalterlibLibrarySeparate_Lib_Malterlib_Meteor true
+//	MalterlibSubLibrarySeparate_Lib_Malterlib_Meteor true
+	MalterlibIncludeRoots "@('Include'->MakeAbsolute());@(MalterlibIncludeRoots)"
+	{
+		!!MalterlibLibrary_Meteor true
+	}
+}
+
+%Group "{Test}/{Malterlib_Meteor}"
+{
+	Property
+	{
+		MalterlibLinkWithOpenSSL true
+	}
+	Compile
+	{
+		!!CompileDialect "C"
+		PrefixHeader "@('Test/PCH.h'->MakeAbsolute())"
+	}
+}
+
+Property
+{
+	!!MalterlibEnableInternalTests true
+	
+	MalterlibTests "Malterlib_Meteor;@(MalterlibTests)"
+	MalterlibTestFiles_Malterlib_Meteor "@('Test/*'->MakeAbsolute())"
+	MalterlibTestDependencies_Malterlib_Meteor "Lib_Malterlib_Meteor"
+	MalterlibTestExtraGroups_Malterlib_Meteor "{Test}/{Malterlib_Meteor}"
+}
+
