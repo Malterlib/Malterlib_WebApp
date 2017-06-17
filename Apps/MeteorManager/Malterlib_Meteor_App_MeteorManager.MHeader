@@ -1,0 +1,315 @@
+// Copyright © 2015 Hansoft AB
+// Distributed under the MIT license, see license text in LICENSE.Malterlib
+
+%Target "Tool_Malterlib_BuildMeteor"
+{
+	Property
+	{
+		MalterlibPostCopyProject "Malterlib_Meteor_MeteorManager"
+		{
+			!!MalterlibPostCopyProject ""
+		}
+		
+		MalterlibPostCopySources "@(Target.OutputDirectory)@(MalterlibMeteorToolBuildName).tar.gz;@(MalterlibPostCopySources)"
+		MalterlibBuildServerPutSources "@(Target.OutputDirectory)@(MalterlibMeteorToolBuildName).tar.gz;@(MalterlibBuildServerPutSources)"
+		MeteorBuildDirectory "@(MalterlibMeteorToolBuildDirectory->MakeAbsolute('@(MalterlibMeteorSourceRoot)'))"
+	}
+	Property
+	{
+		BuildScript ""
+		BuildScript "@('Source/Malterlib_Meteor_BuildMeteor.sh'->MakeAbsolute())"
+		{
+			&
+			{
+				BuildScript ""
+				MalterlibMeteorToolType Meteor
+			}
+		}
+		BuildScript "@('Source/Malterlib_Meteor_BuildNpm.sh'->MakeAbsolute())"
+		{
+			&
+			{
+				BuildScript ""
+				MalterlibMeteorToolType Npm
+			}
+		}
+		BuildScript "@(MalterlibMeteorCustomBuildScript)"
+		{
+			&
+			{
+				BuildScript ""
+				MalterlibMeteorToolType Custom
+			}
+		}
+		BuildScript "@(Error('Missing build script. For custom builds specify with CustomBuildScript_@(MalterlibMeteorToolBuildName)'))"
+		{
+			!!BuildScript ""
+		}
+		
+		ExcludeFiles "*/.DS_Store;*/.build.*;*/.gitignore;*/.git;*/node_modules;*/.npm;@(ExcludeFiles)"
+		MalterlibMeteorToolExcludePatterns "@(MalterlibMeteorToolExcludePatterns->Replace('`','*'))"
+		MalterlibMeteorToolExcludePatterns "@(MalterlibMeteorToolExcludePatterns->Replace('´',';'))"
+		ExcludeFiles "@(MalterlibMeteorToolExcludePatterns);@(ExcludeFiles)"
+		OutputDirectory "@(Target.OutputDirectory)"
+	}
+	Target
+	{
+		Type "Tool"
+		BaseName "BuildMeteor_@(MalterlibMeteorManagerName)_@(MalterlibMeteorToolBuildName)"
+		CommandLine_Build "@(BuildScript) Build"
+		CommandLine_ReBuild "@(BuildScript) Rebuild"
+		CommandLine_Clean "@(BuildScript) Clean"
+		
+		ExportScriptEnvironment "OutputDirectory;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment "MalterlibMeteorToolBuildName;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment "MeteorBuildDirectory;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment "MalterlibMeteorSharedPackages;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment "PlatformFamily;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment "MalterlibMeteorGitCheckout;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment "MalterlibMeteorDebugBundle;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment "MalterlibMeteorNodePackagePath;@(Target.ExportScriptEnvironment)"
+		
+		Output "@(Builtin.GeneratorStateFile)"
+		Group "Meteor/@(MalterlibMeteorManagerName)/@(MalterlibMeteorToolBuildName)"
+	}
+	%Group Build
+	{
+		%File "Source/Malterlib_Meteor_*.sh"
+	}
+	%Group SharedPackages
+	{
+		&
+		{
+			MalterlibMeteorToolType Meteor
+			!MalterlibMeteorSharedPackages ""
+		}
+		
+		%File "@(MalterlibMeteorSharedPackages)/^*"
+	}
+	%Group Source
+	{
+		Property.ExcludeFiles "*/.meteor/local;@(ExcludeFiles)"
+		%File "@(MeteorBuildDirectory)/^*"
+
+		%Group packages
+		{
+			Compile
+			{
+				!!MalterlibCompileSupportTabSetings true
+				IndentWidth 2
+				TabWidth 2
+				UsesTabs false
+			}
+			Property.ExcludeFiles "*/tests-proxy;@(ExcludeFiles)"
+			%File "@(MeteorBuildDirectory)/packages/^*"
+			{
+				Compile.AllowNonExisting true
+			}
+		}
+	}
+}
+
+%Target "Lib_Malterlib_MeteorManager"
+{
+	Property
+	{
+		MalterlibConcurrency_DistributedActors true
+		MalterlibPostCopyProject ""
+		MalterlibTargetNameType "Normal"
+	}
+	Target
+	{
+		BaseName "Malterlib_MeteorManager"
+		Type StaticLibrary
+		Group "Meteor"
+	}
+	Compile
+	{
+		!!CompileDialect "C"
+		
+		PreprocessorDefines "@(Compile.PreprocessorDefines)"
+	}
+	%Group Source
+	{
+		%File "Source/Malterlib_Meteor*"
+	}
+	
+	%Dependency "Lib_Malterlib_Cloud"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Malterlib"
+	{
+		Dependency.Indirect true
+	}
+}
+
+%Target "Malterlib_Meteor_MeteorManager"
+{
+	Property
+	{
+		MalterlibTestApp true
+		MalterlibPostCopyProject "Malterlib_Meteor_MeteorManager"
+		{
+			!!MalterlibPostCopyProject ""
+		}
+		MalterlibLinkWithOpenSSL true
+		MalterlibConcurrency_DistributedActors true
+		MalterlibTargetNameType "Normal"
+
+		MalterlibCloudVersionInfo_Application "MeteorManager-@(MalterlibMeteorManagerName)"
+		MalterlibCloudVersionInfo_Executable "MeteorManager_@(MalterlibMeteorManagerName)"
+		MalterlibCloud_EnableVersionUpload true
+		
+		MalterlibDoExeFS true
+
+		MeteorManagerCopySources "@(MeteorManagerCopySources)"
+
+		MalterlibExeFSExtraFiles "@(MeteorManagerCopySources);@(MalterlibExeFSExtraFiles)"
+		{
+			!MeteorManagerCopySources ""
+		}
+		MalterlibExeFSExtraFiles "@(NodeBinariesPath)/*;@(MalterlibExeFSExtraFiles)"
+		{
+			!NodeBinariesPath ""
+		}
+		
+		MalterlibMeteorNodePackagePath "@(NodeBinariesPath->FindFilesIn('*.tar.gz'))"
+		{
+			&
+			{
+				MalterlibMeteorNodePackagePath ""
+				!NodeBinariesPath ""
+			}
+		}
+		
+		MalterlibMeteorSettingsPath "@(GeneratedDirectory)MeteorSettings.json"
+	}
+	Target
+	{
+		BaseName "MeteorManager_@(MalterlibMeteorManagerName)"
+		DebuggerCommandArguments "--daemon-run-debug"
+		BaseFileName "MeteorManager_@(MalterlibMeteorManagerName)"
+		Group "Meteor/@(MalterlibMeteorManagerName)"
+	}
+	Compile
+	{
+		!!CompileDialect "C"
+		
+		PreprocessorDefines "DMibMeteor_ManagerName=\"@(MalterlibMeteorManagerName)\";DMibMeteor_SettingsPath=\"@(MalterlibMeteorSettingsPath)\";@(Compile.PreprocessorDefines)"
+		PreprocessorDefines "DMibMeteor_UseInternalNode;@(Compile.PreprocessorDefines)"
+		{
+			!NodeBinariesPath ""
+		}
+	}
+	%Group Source
+	{
+		%File "Source/Main.cpp"
+		%File "@(MeteorManagerExtraSources)"
+	}
+	%Group Settings
+	{
+		%GenerateFile "SettingsFile"
+		{
+			Property
+			{
+				PackageSettings_Template	"	\"@(Explodee)\": {\n"\
+											"	},\n"
+				{
+					!Explodee ""
+				}
+			
+				Name "@(MalterlibMeteorSettingsPath)"
+
+
+				Contents	"R\"-----(\n"\
+							"{\n"
+
+				Contents	"@(Contents)"\
+							"@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'PackageSettings_Template'))"
+				
+				Contents	"@(Contents)"\
+							"}\n"\
+							")-----\"\n"
+
+				Executable false
+				UnicodeBOM true
+			}
+		}
+	}
+	
+	Property
+	{
+		CheckError "@(Error('You need to specify MeteorBuilds, NpmBuilds and/or CustomBuilds'))"
+		{
+			&
+			{
+				MeteorBuilds ""
+				NpmBuilds ""
+				CustomBuilds ""
+			}
+		}
+
+		BuildDependencies_ExcludePattern "@(ExcludePatterns_@(Expand0))"
+		BuildDependencies_ExcludePattern "@(BuildDependencies_ExcludePattern->Replace('*','`'))"
+		BuildDependencies_ExcludePattern "@(BuildDependencies_ExcludePattern->Replace(';','´'))"
+		
+		BuildDependencies_CommonProperties "MalterlibMeteorManagerName=@(MalterlibMeteorManagerName)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorToolBuildName=@(Expand0)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorToolBuildDirectory=@(Expand1)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorToolExcludePatterns=@(BuildDependencies_ExcludePattern)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorSourceRoot=@(MalterlibMeteorSourceRoot)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorSharedPackages=@(MalterlibMeteorSharedPackages)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorCustomBuildScript=@(CustomBuildScript_@(Expand0))*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorGitCheckout=@(MalterlibMeteorGitCheckout)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorDebugBundle=@(MalterlibMeteorDebugBundle)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorDebugBundle=@(MalterlibMeteorDebugBundle)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorNodePackagePath=@(MalterlibMeteorNodePackagePath)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibPostCopyProject=@(MalterlibPostCopyProject)*@(BuildDependencies_CommonProperties)"
+		{
+			!MalterlibPostCopyProject ""
+		}
+		
+		BuildDependencies_Meteor_Template_Expand "Tool_Malterlib_BuildMeteor=Tool_BuildMeteor_@(MalterlibMeteorManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibMeteorToolType=Meteor"
+		BuildDependencies_Meteor_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Meteor_Template_Expand'));"
+		{
+			!Explodee ""
+		}
+		
+		BuildDependencies_Npm_Template_Expand "Tool_Malterlib_BuildMeteor=Tool_BuildMeteor_@(MalterlibMeteorManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibMeteorToolType=Npm"
+		BuildDependencies_Npm_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Npm_Template_Expand'));"
+		{
+			!Explodee ""
+		}
+
+		BuildDependencies_Custom_Template_Expand "Tool_Malterlib_BuildMeteor=Tool_BuildMeteor_@(MalterlibMeteorManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibMeteorToolType=Custom"
+		BuildDependencies_Custom_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Custom_Template_Expand'));"
+		{
+			!Explodee ""
+		}
+		
+		BuildDependencies_Meteor "@(Builtin.Function->ExplodeList('@(MeteorBuilds)', ';', 'BuildDependencies_Meteor_Template'))"
+		BuildDependencies_Npm "@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildDependencies_Npm_Template'))"
+		BuildDependencies_Custom "@(Builtin.Function->ExplodeList('@(CustomBuilds)', ';', 'BuildDependencies_Custom_Template'))"
+		BuildDependencies "@(BuildDependencies_Meteor);@(BuildDependencies_Npm);@(BuildDependencies_Custom)"
+
+		BuildPackageNames_Template_Expand "@(Expand0)"
+		BuildPackageNames_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildPackageNames_Template_Expand'));"
+		
+		BuildPackageNames_Meteor "@(Builtin.Function->ExplodeList('@(MeteorBuilds)', ';', 'BuildPackageNames_Template'))"
+		BuildPackageNames_Npm "@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildPackageNames_Template'))"
+		BuildPackageNames_Custom "@(Builtin.Function->ExplodeList('@(CustomBuilds)', ';', 'BuildPackageNames_Template'))"
+		
+		BuildPackageNames "@(BuildPackageNames_Meteor);@(BuildPackageNames_Npm);@(BuildPackageNames_Custom)"
+	}
+	
+	%Dependency Lib_Malterlib_MeteorManager
+	%Dependency "Lib_Malterlib_Cloud"
+	%Dependency "Lib_Malterlib"
+	%Dependency "@(BuildDependencies_Meteor);@(BuildDependencies_Npm);@(BuildDependencies_Custom)"
+	{
+		Dependency.Link false
+	}
+}
+
+Property.Malterlib_Meteor_App_Targets "Malterlib_Meteor_MeteorManager;@(Malterlib_Meteor_App_Targets)"

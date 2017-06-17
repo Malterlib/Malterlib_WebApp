@@ -2,7 +2,7 @@
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 Import "../Core/Lib_Malterlib.MTarget"
-//Import "Malterlib_Meteor.MTarget"
+Import "Apps/*/*.MHeader"
 
 %Group "{Malterlib}/{Lib_Malterlib_Meteor}"
 {
@@ -73,3 +73,22 @@ Property
 	MalterlibTestExtraGroups_Malterlib_Meteor "{Test}/{Malterlib_Meteor}"
 }
 
+%Workspace "Apps_Malterlib_Meteor"
+{
+	&
+	{
+		MalterlibEnableInternalWorkspaces true
+	}
+	
+	Property.MalterlibPostCopyProject "Malterlib_Meteor"
+	{
+		!!TargetIsExecutable true
+	}
+	
+	Property.MalterlibLog_Severities "Error;Critical;Warning;Info"
+	{
+		!!MalterlibLog_EnableVerboseDebugLog false
+	}
+
+	%Target "@(Malterlib_Meteor_App_Targets)"
+}
