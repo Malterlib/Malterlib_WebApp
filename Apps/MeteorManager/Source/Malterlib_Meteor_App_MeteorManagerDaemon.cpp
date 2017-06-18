@@ -10,27 +10,63 @@ namespace NMib::NMeteor::NMeteorManager
 		: CDistributedAppActor(CDistributedAppActor_Settings{fg_Format("MeteorManager_{}", _Options.m_ManagerName), false})
 		, mp_Options(_Options)
 	{
+#ifdef DPlatformFamily_OSX
+		CStr Path = fg_GetSys()->f_GetEnvironmentVariable("PATH");
+		if (Path.f_Find("/opt/local/bin") < 0)
+			fg_GetSys()->f_SetEnvironmentVariable("PATH", "/opt/local/bin:" + Path);
+#endif
+		if (mp_Options.m_bUseInternalNode)
+		{
+			CStr NodeBinDirectory = CFile::fs_GetProgramDirectory() + "/node_dist/bin";
+			CStr Path = fg_GetSys()->f_GetEnvironmentVariable("PATH");
+			fg_GetSys()->f_SetEnvironmentVariable("PATH", NodeBinDirectory + ":" + Path);
+		}
 	}
 	
 	CMeteorManagerDaemonActor::~CMeteorManagerDaemonActor()
 	{
 	}
 
+	namespace
+	{
+		mint fg_GetNginxWorkerFileLimits()
+		{
+			mint nFilesPerConnection = 2; // nginx incoming + nginx proxy -> node
+
+			return 65536*nFilesPerConnection + 8192;
+		}
+		
+		mint fg_GetNginxFileLimits(mint _nNodes)
+		{
+			return fg_GetNginxWorkerFileLimits() * _nNodes + 8192;
+		}
+		
+		mint fg_GetNodeFileLimits()
+		{
+			return 65536 + 8192;
+		}
+	}
+	
 	void CMeteorManagerDaemonActor::fp_PopulateAppInterfaceRegisterInfo(CDistributedAppInterfaceServer::CRegisterInfo &o_RegisterInfo, NEncoding::CEJSON const &_Params)
 	{
-		o_RegisterInfo.m_UpdateType = EDistributedAppUpdateType_OneAtATime;
-		
-		mint nMaxFilesNeeded = 8192;
-		//nMaxFilesNeeded += CMeteorManagerActor::fs_GetMongoFileLimits();
+		o_RegisterInfo.m_UpdateType = EDistributedAppUpdateType_AllAtOnce;
 
-		mint nFilesPerProc = 8192;
-		//nFilesPerProc = fg_Max(nFilesPerProc, CMeteorManagerActor::fs_GetMongoFileLimits());
+		mint nNodes = 0;
+		
+		for (auto &Package : mp_Options.m_Packages)
+			nNodes += Package.m_Concurrency;
+
+		mint nMaxFilesNeeded = 8192;
+		nMaxFilesNeeded += fg_GetNginxFileLimits(nNodes);
+		nMaxFilesNeeded += fg_GetNodeFileLimits() * nNodes;
+
+		mint nFilesPerProc = 0;
+		nFilesPerProc = fg_Max(nFilesPerProc, fg_GetNginxWorkerFileLimits());
+		nFilesPerProc = fg_Max(nFilesPerProc, fg_GetNodeFileLimits());
 		
 		mint nMaxThreads = 1024;
-		//nMaxThreads += CMeteorManagerActor::fs_GetMongoThreadLimits();
 
-		mint nMaxPids = 32; // Our own
-		nMaxPids += 64000; // For mongod
+		mint nMaxPids = 32 + nNodes;
 		
 		o_RegisterInfo.m_Resources_Files = nMaxFilesNeeded;
 		o_RegisterInfo.m_Resources_Threads = nMaxThreads; 

@@ -27,13 +27,14 @@ namespace NMib::NMeteor::NMeteorManager
 		return DMibNewLine + Ret;
 	}
 
-	TCContinuation<CStr> CMeteorManagerActor::fp_LaunchTool
+	TCContinuation<CStr> CMeteorManagerActor::f_LaunchTool
 		(
 			CStr const &_Executable
 			, CStr const &_WorkingDir
 			, TCVector<CStr> const &_Params
 			, CStr const &_LogCategory
 			, ELogVerbosity _LogVerbosity
+			, TCMap<CStr, CStr> const &_Environment
 			, bool _bSeparateStdErr
 			, CStr const &_Home
 			, CStr const &_User
@@ -67,6 +68,8 @@ namespace NMib::NMeteor::NMeteorManager
 		auto &LaunchParams = Launch.m_Params;
 		
 		fs_SetupEnvironment(LaunchParams);
+		
+		LaunchParams.m_Environment += _Environment;
 
 		LaunchParams.m_bSeparateStdErr = _bSeparateStdErr;
 		LaunchParams.m_bAllowExecutableLocate = true;
@@ -114,6 +117,6 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCContinuation<CStr> CMeteorManagerActor::fp_RunToolForVersionCheck(CStr const &_Tool, TCVector<CStr> const &_Arguments)
 	{
-		return fp_LaunchTool(_Tool, CFile::fs_GetProgramDirectory(), _Arguments, "VersionCheck", ELogVerbosity_None);
+		return f_LaunchTool(_Tool, CFile::fs_GetProgramDirectory(), _Arguments, "VersionCheck", ELogVerbosity_None);
 	}
 }

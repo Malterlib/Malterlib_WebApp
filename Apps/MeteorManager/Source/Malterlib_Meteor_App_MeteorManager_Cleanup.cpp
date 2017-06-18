@@ -11,8 +11,12 @@ namespace NMib::NMeteor::NMeteorManager
 		void fg_CleanupOldProcesses()
 		{
 			mint nKilled = 0;
+			// Kill old managers
+			nKilled += CProcessLaunch::fs_KillProcessesInDirectory(CFile::fs_GetFile(CFile::fs_GetProgramPath()));
 
 			// Kill individual processes
+			nKilled += CProcessLaunch::fs_KillProcessesInDirectory("nginx", "*master*");
+			nKilled += CProcessLaunch::fs_KillProcessesInDirectory("nginx");
 			nKilled += CProcessLaunch::fs_KillProcessesInDirectory("node");
 			if (nKilled)
 				DLog(Error, "Cleaned up {} old processes", nKilled);

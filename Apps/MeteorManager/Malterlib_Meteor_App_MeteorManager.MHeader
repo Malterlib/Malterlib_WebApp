@@ -132,6 +132,10 @@
 	%Group Source
 	{
 		%File "Source/Malterlib_Meteor*"
+		%File "Source/Malterlib_Meteor_App_MeteorManager_Server_DefaultCustomize.cpp"
+		{
+			Compile.Disabled true
+		}
 	}
 	
 	%Dependency "Lib_Malterlib_Cloud"
@@ -163,7 +167,7 @@
 		
 		MalterlibDoExeFS true
 
-		MeteorManagerCopySources "@(MeteorManagerCopySources)"
+		MeteorManagerCopySources "@('Source/Malterlib_Meteor_App_MeteorManager_OSSetup.sh'->MakeAbsolute())|Source;@(MeteorManagerCopySources)"
 
 		MalterlibExeFSExtraFiles "@(MeteorManagerCopySources);@(MalterlibExeFSExtraFiles)"
 		{
@@ -196,6 +200,8 @@
 	{
 		!!CompileDialect "C"
 		
+		PrefixHeader "@('Source/Malterlib_Meteor_App_MeteorManager_Server.h'->MakeAbsolute())"
+		
 		PreprocessorDefines "DMibMeteor_ManagerName=\"@(MalterlibMeteorManagerName)\";DMibMeteor_SettingsPath=\"@(MalterlibMeteorSettingsPath)\";@(Compile.PreprocessorDefines)"
 		PreprocessorDefines "DMibMeteor_UseInternalNode;@(Compile.PreprocessorDefines)"
 		{
@@ -205,6 +211,14 @@
 	%Group Source
 	{
 		%File "Source/Main.cpp"
+		%File "Source/Malterlib_Meteor_App_MeteorManager_Server_DefaultCustomize.cpp"
+		{
+			!!MeteorManagerCustomizationFile ""
+		}
+		%File "@(MeteorManagerCustomizationFile)"
+		{
+			!MeteorManagerCustomizationFile ""
+		}
 		%File "@(MeteorManagerExtraSources)"
 	}
 	%Group Settings
@@ -213,8 +227,34 @@
 		{
 			Property
 			{
-				PackageSettings_Template	"	\"@(Explodee)\": {\n"\
-											"	},\n"
+				Empty ""
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"MemoryPerNode\": @(MemoryPerNode_@(Explodee)),\n"
+				{
+					!Empty "@(MemoryPerNode_@(Explodee))"
+				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"Concurrency\": @(Concurrency_@(Explodee)),\n"
+				{
+					!Empty "@(Concurrency_@(Explodee))"
+				}
+
+				StartupDependencies_Template	"\"@(Explodee)\", "
+				{
+					!Explodee ""
+				}
+				
+				PackageSettings	"@(PackageSettings)"\
+								"			\"StartupDependencies\": [@(Builtin.Function->ExplodeList('@(StartDependencies_@(Explodee))', ';', 'StartupDependencies_Template'))],\n"
+				{
+					!Empty "@(StartDependencies_@(Explodee))"
+				}
+				
+				PackageSettings_Template	"		\"@(Explodee)\": {\n"\
+											"@(PackageSettings)"\
+											"		},\n"
 				{
 					!Explodee ""
 				}
@@ -223,10 +263,21 @@
 
 
 				Contents	"R\"-----(\n"\
-							"{\n"
+							"{\n"\
+							"	\"Packages\": {\n"
 
 				Contents	"@(Contents)"\
 							"@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'PackageSettings_Template'))"
+
+				Contents	"@(Contents)"\
+							"	},\n"
+				
+				Contents	"@(Contents)"\
+							"	\"LoopbackPrefix\": @(MeteorLoopbackPrefix),\n"
+				{
+					!MeteorLoopbackPrefix ""
+				}
+				
 				
 				Contents	"@(Contents)"\
 							"}\n"\

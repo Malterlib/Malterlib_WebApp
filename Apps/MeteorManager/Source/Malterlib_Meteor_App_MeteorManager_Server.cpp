@@ -15,12 +15,8 @@ namespace NMib::NMeteor::NMeteorManager
 		, mp_NodeUser{fg_Format("mib_node_{}", _Options.m_ManagerName)}
 		, mp_pCanDestroyTracker(fg_Construct())
 		, mp_Options(_Options)
+		, mp_pCustomization(fg_CreateMeteorManagerCustomization())
 	{
-#ifdef DPlatformFamily_OSX
-		CStr Path = fg_GetSys()->f_GetEnvironmentVariable("PATH");
-		if (Path.f_Find("/opt/local/bin") < 0)
-			fg_GetSys()->f_SetEnvironmentVariable("PATH", "/opt/local/bin:" + Path);
-#endif
 	}
 	
 	CMeteorManagerActor::~CMeteorManagerActor()
@@ -40,11 +36,14 @@ namespace NMib::NMeteor::NMeteorManager
 				fp_ExtractExeFS() > Continuation % "Failed to extract ExeFS" / [this, Continuation]
 					{
 						DLog(Info, "Done extracting ExeFS");
-						fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node)
-							+ fp_SetupPrerequisites_Node()
-							> Continuation / [this, Continuation]
+						fp_SetupPrerequisites_Node() > Continuation / [this, Continuation]
 							{
-								fp_StartApps() > Continuation;
+								fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node)
+									> Continuation / [this, Continuation]
+									{
+										fp_StartApps() > Continuation;
+									}
+								;
 							}
 						;
 					}
@@ -194,9 +193,50 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		CEJSON Settings = CEJSON::fs_FromString(_Settings, _FileName);
 		
-		for (auto &Package : Settings.f_Object())
+		for (auto &PackageJSON : Settings["Packages"].f_Object())
 		{
-			m_PackageNames.f_Insert(Package.f_Name());
+			auto &Package = m_Packages[PackageJSON.f_Name()];
+			auto &PackageSettings = PackageJSON.f_Value().f_Object();
+			
+			if (auto *pValue = PackageSettings.f_GetMember("MemoryPerNode"))
+				Package.m_MemoryPerNode = pValue->f_AsFloat(1.5);
+			
+			if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJSONType_Integer))
+				Package.m_Concurrency = pValue->f_Integer();
+			else if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJSONType_String))
+			{
+				CStr Expression = pValue->f_String();
+				Expression = Expression.f_Replace("{PhysicalMemoryGB}", fg_Format("{}", fp64(NProcess::NPlatform::fg_Process_GetPhysicalMemory()) / (1024.0*1024.0*1024.0)));
+				Expression = Expression.f_Replace("{MemoryPerNode}", fg_Format("{}", Package.m_MemoryPerNode));
+
+				Expression = fg_Format("{{xpr({})}", Expression);
+				
+				CStr EvaluatedExpression = fg_Format(Expression.f_GetStr(), 0.0);
+				
+				Package.m_Concurrency = fg_Min(fg_Max(EvaluatedExpression.f_ToFloat().f_ToInt(), 1), NSys::fg_Thread_GetVirtualCores());
+			}
+
+			if (auto *pValue = PackageSettings.f_GetMember("StartupDependencies"))
+			{
+				for (auto &Dependency : pValue->f_Array())
+					Package.m_StartupDependencies.f_Insert(Dependency.f_String());
+			}
 		}
+		
+		if (auto *pValue = Settings.f_GetMember("LoopbackPrefix"))
+			m_LoopbackPrefix = pValue->f_Integer();
+	}
+	
+	ICMeteorManagerCustomization::ICMeteorManagerCustomization() = default;
+	ICMeteorManagerCustomization::~ICMeteorManagerCustomization() = default;
+
+	void ICMeteorManagerCustomization::f_SetupNodeEnvironment
+		(
+			CSystemEnvironment &o_Environment
+			, CStr const &_PackageName
+			, CDistributedAppState const &_AppState
+			, CMeteorManagerOptions const &_Options
+		)
+	{
 	}
 }
