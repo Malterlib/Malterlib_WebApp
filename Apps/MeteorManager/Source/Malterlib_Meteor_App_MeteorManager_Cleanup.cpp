@@ -25,14 +25,10 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCContinuation<void> CMeteorManagerActor::fp_CleanupOldProcesses()
 	{
-		return fg_Dispatch
-			(
-				mp_pFileActor
-				, []
-				{
-					fg_CleanupOldProcesses();
-				}
-			)
+		return g_Dispatch(*mp_FileActors) > []
+			{
+				fg_CleanupOldProcesses();
+			}
 		;
 	}
 }

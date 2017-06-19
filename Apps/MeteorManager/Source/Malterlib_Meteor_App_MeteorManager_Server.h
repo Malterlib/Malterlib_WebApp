@@ -100,12 +100,15 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> fp_SetupPrerequisites_Node();
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
 		TCContinuation<void> fp_SetupPrerequisites_OSSetup();
+
+		static CStr fsp_GetVersionString();
+		TCContinuation<void> fp_UpdateVersionHistory();
 		
 		TCContinuation<void> fp_StartApps();
 		TCContinuation<void> fp_DestroyApps();
 		
 		CMeteorManagerOptions mp_Options;
-		TCActor<CSeparateThreadActor> mp_pFileActor;
+		TCRoundRobinActors<CSeparateThreadActor> mp_FileActors;
 		
 		TCUniquePointer<ICMeteorManagerCustomization> mp_pCustomization;
 		
@@ -114,6 +117,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		CUser mp_NodeUser;
 		CVersion mp_Version_Node{0, 10, 33};
+		TCVector<CStr> mp_VersionHistory;
 
 		bool mp_bStopped = false;
 		

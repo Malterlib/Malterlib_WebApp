@@ -16,6 +16,7 @@ namespace NMib::NMeteor::NMeteorManager
 		, mp_pCanDestroyTracker(fg_Construct())
 		, mp_Options(_Options)
 		, mp_pCustomization(fg_CreateMeteorManagerCustomization())
+		, mp_FileActors(4)
 	{
 	}
 	
@@ -25,7 +26,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCContinuation<void> CMeteorManagerActor::f_Startup()
 	{
-		mp_pFileActor = fg_ConstructActor<CSeparateThreadActor>(fg_Construct("File actor"));
+		mp_FileActors.f_Construct(fg_Construct(fg_Construct<CSeparateThreadActor>(), "File actor"));
 
 		DLog(Info, "Extracting ExeFS");
 		
@@ -36,7 +37,9 @@ namespace NMib::NMeteor::NMeteorManager
 				fp_ExtractExeFS() > Continuation % "Failed to extract ExeFS" / [this, Continuation]
 					{
 						DLog(Info, "Done extracting ExeFS");
-						fp_SetupPrerequisites_Node() > Continuation / [this, Continuation]
+						fp_SetupPrerequisites_Node()
+							+ fp_UpdateVersionHistory()
+							> Continuation / [this, Continuation]
 							{
 								fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node)
 									> Continuation / [this, Continuation]
@@ -99,6 +102,7 @@ namespace NMib::NMeteor::NMeteorManager
 						fp_DestroyApps() > [this, pCanDestroy](auto &&)
 							{
 								DLog(Debug, "Destroy apps done");
+								mp_FileActors.f_Destroy() > pCanDestroy->f_Track();
 							}
 						;
 					}
@@ -131,23 +135,19 @@ namespace NMib::NMeteor::NMeteorManager
 	
 	TCContinuation<void> CMeteorManagerActor::fp_ExtractExeFS() const
 	{
-		return fg_Dispatch
-			(
-				mp_pFileActor
-				, []
-				{
-					CExeFS ExeFS;
-					if (!fg_OpenExeFS(ExeFS))
-						DError("Failed to open ExeFS");
-					
-					CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
-					
-					CFileSystemInterface_VirtualFS MalterlibFS(ExeFS.m_FileSystem);
-					CFileSystemInterface_Disk DiskFS;
-					
-					MalterlibFS.f_CopyFilesWithAttribs("*", DiskFS, ProgramDirectory);
-				}
-			)
+		return g_Dispatch(*mp_FileActors) > []
+			{
+				CExeFS ExeFS;
+				if (!fg_OpenExeFS(ExeFS))
+					DError("Failed to open ExeFS");
+				
+				CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+				
+				CFileSystemInterface_VirtualFS MalterlibFS(ExeFS.m_FileSystem);
+				CFileSystemInterface_Disk DiskFS;
+				
+				MalterlibFS.f_CopyFilesWithAttribs("*", DiskFS, ProgramDirectory);
+			}
 		;
 	}
 	
