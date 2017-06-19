@@ -50,6 +50,8 @@ cd "${OutputDir}"
 gnutar -c "$Name" | gzip > "$OutputBundleTar"
 
 ExcludePatterns="*/bin;*/node_modules"
+ExcludePatterns="$ExcludePatterns;*/.DS_Store"
+
 MTool BuildDependencies "OutputFile=$DependencyFile" "Output:$OutputBundleTar" "Input:${BASH_SOURCE[0]}" "Find:$AppDir/*;RIF;33;$ExcludePatterns"
 
 exit 0

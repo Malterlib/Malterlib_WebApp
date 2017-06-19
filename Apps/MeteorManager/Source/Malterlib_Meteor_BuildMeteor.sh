@@ -103,6 +103,7 @@ ExcludePatterns="$ExcludePatterns;*/packages/tests-proxy"
 ExcludePatterns="$ExcludePatterns;*/node_modules"
 ExcludePatterns="$ExcludePatterns;*/.npm"
 ExcludePatterns="$ExcludePatterns;*/.git"
+ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 
 MTool BuildDependencies "OutputFile=$DependencyFile" "Output:$OutputBundleTar" "Input:${BASH_SOURCE[0]}" "Input:$ScriptDir/Malterlib_Meteor_BuildMeteorNpmInstall.sh" "Find:$MeteorDir/*;RIF;33;$ExcludePatterns" "Find:$SharedPackagesDir/*;RIF;33;$ExcludePatterns"
 

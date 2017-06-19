@@ -26,6 +26,21 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCContinuation<void> CMeteorManagerActor::f_Startup()
 	{
+		DMibLogWithCategory
+			(
+				MeteorManager
+				, Info
+				, "Meteor Manager ({}) starting, {} {}.{}{} {} {}"
+				, mp_Options.m_ManagerName
+				, DMalterlibBranch
+				, DMibStringize(DProductVersionMajor)
+				, DMibStringize(DProductVersionMinor)
+				, DMibStringize(DProductVersionRevision)
+				, DMibStringize(DPlatform)
+				, DMibStringize(DConfig)
+			)
+		;
+		
 		mp_FileActors.f_Construct(fg_Construct(fg_Construct<CSeparateThreadActor>(), "File actor"));
 
 		DLog(Info, "Extracting ExeFS");
