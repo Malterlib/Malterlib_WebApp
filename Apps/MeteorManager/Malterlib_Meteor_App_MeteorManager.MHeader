@@ -363,4 +363,4 @@
 	}
 }
 
-Property.Malterlib_Meteor_App_Targets "Malterlib_Meteor_MeteorManager;@(Malterlib_Meteor_App_Targets)"
+Property.Malterlib_Meteor_App_Targets "@(Malterlib_Meteor_App_Targets)"
