@@ -32,6 +32,14 @@ namespace NMib::NMeteor::NMeteorManager
 		f_LaunchTool(SetupOSFile, ProgramDirectory, {}, "OSSetup", ELogVerbosity_Errors, Environment) > Continuation.f_ReceiveAny();
 		return Continuation;
 	}
+	
+	CHashDigest_MD5 CMeteorManagerActor::fsp_GetFileChecksum(CStr const &_File)
+	{
+		CStr ChecksumFileName = _File + ".md5";
+		if (CFile::fs_FileExists(ChecksumFileName))
+			return CHashDigest_MD5::fs_FromString(CFile::fs_ReadStringFromFile(ChecksumFileName).f_Left(32));
+		return CFile::fs_GetFileChecksum(_File);
+	}
 
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_NodeExtract()
 	{
@@ -93,7 +101,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 						CFile::fs_SetOwnerAndGroupRecursive(NodeDirectory, NodeUser.m_Name, NodeUser.m_Name);
 
-						NewChecksum = CFile::fs_GetFileChecksum(DistFile).f_GetString();
+						NewChecksum = fsp_GetFileChecksum(DistFile).f_GetString();
 						
 						if (CFile::fs_FileExists(DistDirectory))
 						{

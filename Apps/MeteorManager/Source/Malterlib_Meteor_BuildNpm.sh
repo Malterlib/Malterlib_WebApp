@@ -49,6 +49,8 @@ cp -r . "${OutputDir}$Name"
 cd "${OutputDir}"
 gnutar -c "$Name" | gzip > "$OutputBundleTar"
 
+md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5" 
+
 ExcludePatterns="*/bin;*/node_modules"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 

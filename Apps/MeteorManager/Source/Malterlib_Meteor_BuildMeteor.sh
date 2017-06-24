@@ -96,6 +96,8 @@ else
 	"$ScriptDir/Malterlib_Meteor_BuildMeteorNpmInstall.sh" "$OutputBundleTar" "$NodePackage" "$Name"
 fi
 
+md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5" 
+
 ExcludePatterns="*/.meteor/local"
 ExcludePatterns="$ExcludePatterns;*/tests/jasmine/server/unit/package-stubs.js"
 ExcludePatterns="$ExcludePatterns;*/tests/jasmine/server/unit/packageMocksSpec.js"

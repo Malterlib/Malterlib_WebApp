@@ -26,13 +26,25 @@ namespace NMib::NMeteor::NMeteorManager
 			TCVector<CStr> m_StartupDependencies;
 		};
 		
+		struct CMongo
+		{
+			CStr m_Directory = "../MongoManager/mongo/bin";
+			CStr m_Host = NProcess::NPlatform::fg_Process_GetHostName();
+			int16 m_Port = 25017;
+			CStr m_ToolsUser = "mib_mongo";
+			CStr m_ToolsGroup = "mib_mongo";
+			CStr m_SSLDirectory;
+			CStr m_DatabaseSetupScript;
+			CStr m_DefaultDatabase;
+		};
+		
 		void f_ParseSettings(CStr const &_Settings, CStr const &_FileName);
 		
 		CStr m_ManagerName;
 		TCMap<CStr, CPackage> m_Packages;
+		CMongo m_Mongo;
 		uint8 m_LoopbackPrefix = 0;
 		bool m_bUseInternalNode = false;
-		
 	};
 	
 	struct ICMeteorManagerCustomization
@@ -95,12 +107,21 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> fp_CleanupOldProcesses();
 		CStr fp_GetNodeExecutable(CStr const &_Executable);
 		
+		CEJSON fp_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const;
+		
 		mint fp_GetNumNodes() const;
+		
+		static CHashDigest_MD5 fsp_GetFileChecksum(CStr const &_File);
 		
 		TCContinuation<void> fp_SetupPrerequisites_Node();
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
 		TCContinuation<void> fp_SetupPrerequisites_OSSetup();
-
+		
+		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
+		TCContinuation<void> fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout);
+		
+		TCContinuation<void> fp_SetupMongo();
+		
 		static CStr fsp_GetVersionString();
 		TCContinuation<void> fp_UpdateVersionHistory();
 		

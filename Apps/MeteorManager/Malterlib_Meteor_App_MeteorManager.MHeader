@@ -10,8 +10,8 @@
 			!!MalterlibPostCopyProject ""
 		}
 		
-		MalterlibPostCopySources "@(Target.OutputDirectory)@(MalterlibMeteorToolBuildName).tar.gz;@(MalterlibPostCopySources)"
-		MalterlibBuildServerPutSources "@(Target.OutputDirectory)@(MalterlibMeteorToolBuildName).tar.gz;@(MalterlibBuildServerPutSources)"
+		MalterlibPostCopySources "@(Target.OutputDirectory)@(MalterlibMeteorToolBuildName).tar.*;@(MalterlibPostCopySources)"
+		MalterlibBuildServerPutSources "@(Target.OutputDirectory)@(MalterlibMeteorToolBuildName).tar.*;@(MalterlibBuildServerPutSources)"
 		MeteorBuildDirectory "@(MalterlibMeteorToolBuildDirectory->MakeAbsolute('@(MalterlibMeteorSourceRoot)'))"
 	}
 	Property
@@ -168,6 +168,7 @@
 		MalterlibDoExeFS true
 
 		MeteorManagerCopySources "@('Source/Malterlib_Meteor_App_MeteorManager_OSSetup.sh'->MakeAbsolute())|Source;@(MeteorManagerCopySources)"
+		MeteorManagerCopySources "@(MeteorManagerMongoDatabaseSetupScript)|Source;@(MeteorManagerCopySources)"
 
 		MalterlibExeFSExtraFiles "@(MeteorManagerCopySources);@(MalterlibExeFSExtraFiles)"
 		{
@@ -268,6 +269,55 @@
 
 				Contents	"@(Contents)"\
 							"@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'PackageSettings_Template'))"
+
+				Contents	"@(Contents)"\
+							"	},\n"
+
+				Contents	"@(Contents)"\
+							"	\"Mongo\": {\n"
+
+				Contents	"@(Contents)"\
+							"		\"Directory\": \"@(MeteorManagerMongoDirectory)\",\n"
+				{
+					!MeteorManagerMongoDirectory ""
+				}
+				Contents	"@(Contents)"\
+							"		\"Host\": \"@(MeteorManagerMongoHost)\",\n"
+				{
+					!MeteorManagerMongoHost ""
+				}
+				Contents	"@(Contents)"\
+							"		\"Port\": @(MeteorManagerMongoPort),\n"
+				{
+					!MeteorManagerMongoHost ""
+				}
+				Contents	"@(Contents)"\
+							"		\"ToolsUser\": \"@(MeteorManagerMongoToolsUser)\",\n"
+				{
+					!MeteorManagerMongoToolsUser ""
+				}
+				Contents	"@(Contents)"\
+							"		\"ToolsGroup\": \"@(MeteorManagerMongoToolsGroup)\",\n"
+				{
+					!MeteorManagerMongoToolsGroup ""
+				}
+				Contents	"@(Contents)"\
+							"		\"SSLDirectory\": \"@(MeteorManagerMongoSSLDirectory)\",\n"
+				{
+					!MeteorManagerMongoSSLDirectory ""
+				}
+				Contents	"@(Contents)"\
+							"		\"DatabaseSetupScript\": \"@(MeteorManagerMongoDatabaseSetupScript->GetFile())\",\n"
+				{
+					!MeteorManagerMongoDatabaseSetupScript ""
+				}
+				Contents	"@(Contents)"\
+							"		\"DefaultDatabase\": \"@(MeteorManagerMongoDefaultDatabase)\",\n"
+				{
+					!MeteorManagerMongoDefaultDatabase ""
+				}
+				
+				
 
 				Contents	"@(Contents)"\
 							"	},\n"

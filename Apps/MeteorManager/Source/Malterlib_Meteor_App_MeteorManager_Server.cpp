@@ -43,23 +43,31 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		mp_FileActors.f_Construct(fg_Construct(fg_Construct<CSeparateThreadActor>(), "File actor"));
 
-		DLog(Info, "Extracting ExeFS");
 		
 		TCContinuation<void> Continuation;
 
+		DLog(Info, "Cleaning up old processes");
 		fp_CleanupOldProcesses() > Continuation % "Failed to clean up old processes" / [this, Continuation]
 			{
+				DLog(Info, "Done cleaning up, extracting ExeFS");
 				fp_ExtractExeFS() > Continuation % "Failed to extract ExeFS" / [this, Continuation]
 					{
-						DLog(Info, "Done extracting ExeFS");
+						DLog(Info, "Done extracting ExeFS, setting up node prerequisites and updating version history");
 						fp_SetupPrerequisites_Node()
 							+ fp_UpdateVersionHistory()
 							> Continuation / [this, Continuation]
 							{
+								DLog(Info, "Done setting up node prerequisites and updating version history, checking node version");
 								fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node)
 									> Continuation / [this, Continuation]
 									{
-										fp_StartApps() > Continuation;
+										DLog(Info, "Done checking node version, setting up mongo");
+										fp_SetupMongo() > Continuation / [this, Continuation]
+											{
+												DLog(Info, "Done setting up mongo, starting apps");
+												fp_StartApps() > Continuation;
+											}
+										;
 									}
 								;
 							}
@@ -160,8 +168,25 @@ namespace NMib::NMeteor::NMeteorManager
 				
 				CFileSystemInterface_VirtualFS MalterlibFS(ExeFS.m_FileSystem);
 				CFileSystemInterface_Disk DiskFS;
+				CTime SourceFileTime = MalterlibFS.f_GetWriteTime("");
+				
+				CTime DestinationFileTime;
+				CStr ExeFSFileTimeFile = ProgramDirectory + "/ExeFS.time";
+				
+				if (CFile::fs_FileExists(ExeFSFileTimeFile))
+				{
+					TCBinaryStreamFile<> Stream;
+					Stream.f_Open(ExeFSFileTimeFile, EFileOpen_Read | EFileOpen_ShareAll);
+					Stream >> DestinationFileTime;
+				}
+				if (SourceFileTime == DestinationFileTime)
+					return;
 				
 				MalterlibFS.f_CopyFilesWithAttribs("*", DiskFS, ProgramDirectory);
+
+				TCBinaryStreamFile<> Stream;
+				Stream.f_Open(ExeFSFileTimeFile, EFileOpen_Write | EFileOpen_ShareAll);
+				Stream << SourceFileTime;
 			}
 		;
 	}
@@ -240,6 +265,24 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		if (auto *pValue = Settings.f_GetMember("LoopbackPrefix"))
 			m_LoopbackPrefix = pValue->f_Integer();
+
+		auto &MongoJSON = Settings["Mongo"].f_Object();
+		if (auto *pValue = MongoJSON.f_GetMember("Directory"))
+			m_Mongo.m_Directory = pValue->f_String();
+		if (auto *pValue = MongoJSON.f_GetMember("Host"))
+			m_Mongo.m_Host = pValue->f_String();
+		if (auto *pValue = MongoJSON.f_GetMember("Port"))
+			m_Mongo.m_Port = pValue->f_Integer();
+		if (auto *pValue = MongoJSON.f_GetMember("ToolsUser"))
+			m_Mongo.m_ToolsUser = pValue->f_String();
+		if (auto *pValue = MongoJSON.f_GetMember("ToolsGroup"))
+			m_Mongo.m_ToolsGroup = pValue->f_String();
+		if (auto *pValue = MongoJSON.f_GetMember("SSLDirectory"))
+			m_Mongo.m_SSLDirectory = pValue->f_String();
+		if (auto *pValue = MongoJSON.f_GetMember("DatabaseSetupScript"))
+			m_Mongo.m_DatabaseSetupScript = pValue->f_String();
+		if (auto *pValue = MongoJSON.f_GetMember("DefaultDatabase"))
+			m_Mongo.m_DefaultDatabase = pValue->f_String();
 	}
 	
 	ICMeteorManagerCustomization::ICMeteorManagerCustomization() = default;
