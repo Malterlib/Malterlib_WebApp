@@ -229,6 +229,32 @@
 			Property
 			{
 				Empty ""
+				
+				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~*;@(Explodee);*" }
+				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~*;@(Explodee);*" }
+				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~*;@(Explodee);*" }
+				
+				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~@(Explodee);*" }
+				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~@(Explodee);*" }
+				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~@(Explodee);*" }
+				
+				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~*;@(Explodee)" }
+				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~*;@(Explodee)" }
+				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~*;@(Explodee)" }
+				
+				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "@(Explodee)" }
+				BuildPackageType "Npm" { !!BuildPackageNames_Npm "@(Explodee)" }
+				BuildPackageType "Custom" { !!BuildPackageNames_Custom "@(Explodee)" }
+				
+				BuildPackageType "@(Error('Package type could not be deduced for: @(Explodee)'))"
+				{
+					!!BuildPackageType ""
+				}
+		
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"Type\": \"@(BuildPackageType)\",\n"
+
 
 				PackageSettings	"@(PackageSettings)"\
 								"			\"MemoryPerNode\": @(MemoryPerNode_@(Explodee)),\n"

@@ -126,7 +126,7 @@ namespace NMib::NMeteor::NMeteorManager
 								bDoInstall = true;
 							}
 							else
-								DLog(Info, "Installed node distribution with checksum '{}' is up to date", NewChecksum, OldChecksum);
+								DLog(Info, "Installed node distribution with checksum '{}' is up to date", NewChecksum);
 						}
 						else
 						{
@@ -156,20 +156,7 @@ namespace NMib::NMeteor::NMeteorManager
 				
 				if (bDoInstall)
 				{
-					ThisActor
-						(
-							&CMeteorManagerActor::f_LaunchTool
-							, CStr{"tar"}
-							, ProgramDirectory
-							, fg_CreateVector<CStr>("--no-same-owner", "-xf", DistFile)
-							, CStr{"ExtractNode"}
-							, ELogVerbosity_All
-							, fg_Default()
-							, true
-							, fg_Default()
-							, fg_Default()
-						)
-						> Continuation / [=]
+					ThisActor(&CMeteorManagerActor::f_ExtractTar, DistFile, ProgramDirectory) > Continuation / [=]
 						{
 							try
 							{
@@ -213,6 +200,203 @@ namespace NMib::NMeteor::NMeteorManager
 			> Continuation / [this, Continuation](CNodeInfo const &_NodeInfo)
 			{
 				mp_NodeUser = _NodeInfo.m_User;
+				mp_bForceAppsReinstall = _NodeInfo.m_bForceAppReinstall;
+				Continuation.f_SetResult();
+			}
+		;
+
+		return Continuation;
+	}
+
+	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Packages()
+	{
+		TCActorResultVector<void> Results;
+		
+		for (auto &Package : mp_Options.m_Packages)
+			fp_SetupPrerequisites_Package(Package.f_GetName(), Package.m_Type) > Results.f_AddResult();
+	
+		TCContinuation<void> Continuation;
+		Results.f_GetResults() > Continuation / [Continuation]
+			{
+				Continuation.f_SetResult();
+			}
+		;
+		
+		return Continuation;
+	}
+
+	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Package(CStr const &_BundleName, CMeteorManagerOptions::EPackageType _Type)
+	{
+		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+
+		TCContinuation<void> Continuation;
+
+		g_Dispatch(*mp_FileActors) >
+			[
+				_BundleName
+				, _Type
+				, ProgramDirectory
+				, ThisActor = fg_ThisActor(this)
+				, NodeUserName = mp_NodeUser.m_Name
+				, bForceAppsReinstall = mp_bForceAppsReinstall
+			]
+			() mutable -> TCContinuation<void>
+			{
+				TCContinuation<void> Continuation;
+				
+				try
+				{
+					DMibLogCategoryStr(_BundleName);
+					DLog(Info, "Setting up bundle");
+
+					CStr BundleDirectory = ProgramDirectory + "/" + _BundleName;
+					CStr MeteorBundleFileName = ProgramDirectory + "/" + _BundleName + ".tar.gz";
+					CStr NewChecksum = fsp_GetFileChecksum(MeteorBundleFileName).f_GetString();
+					CStr MeteorBundleChecksumFileName = ProgramDirectory + "/" + _BundleName + ".tar.gz.installed.md5";
+					bool bDoInstall = false;
+
+					if (bForceAppsReinstall)
+						bDoInstall = true;
+					else if (CFile::fs_FileExists(BundleDirectory))
+					{
+						CStr OldChecksum;
+
+						if (CFile::fs_FileExists(MeteorBundleChecksumFileName))
+							OldChecksum = CFile::fs_ReadStringFromFile(MeteorBundleChecksumFileName, true);
+
+						if (NewChecksum != OldChecksum)
+						{
+							DLog(Info, "New bundle detected with checksum '{}' that differs from installed checksum '{}'. Installing new bundle", NewChecksum, OldChecksum);
+							bDoInstall = true;
+						}
+						else
+							DLog(Info, "Installed bundle with checksum '{}' is up to date", NewChecksum, OldChecksum);
+					}
+					else
+					{
+						DLog(Info, "No bundle installed, installing bundle with checksum '{}'", NewChecksum);
+						bDoInstall = true;
+					}
+					
+					TCContinuation<void> InstallContinuation;
+
+					if (bDoInstall)
+					{
+						if (CFile::fs_FileExists(MeteorBundleChecksumFileName))
+							CFile::fs_DeleteFile(MeteorBundleChecksumFileName); // Make sure to retry the next time if failure below
+						if (CFile::fs_FileExists(BundleDirectory))
+							CFile::fs_DeleteDirectoryRecursive(BundleDirectory);
+
+						ThisActor(&CMeteorManagerActor::f_ExtractTar, MeteorBundleFileName, ProgramDirectory) > InstallContinuation / [=]
+							{
+								TCActorResultVector<CStr> Results;
+								try
+								{
+									if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
+									{
+										auto Files = CFile::fs_FindFiles(BundleDirectory + "/programs/web.browser/*.css");
+										Files.f_Insert(CFile::fs_FindFiles(BundleDirectory+ "/programs/web.browser/*.js"));
+										for (auto &File : Files)
+										{
+											ThisActor
+												(
+													&CMeteorManagerActor::f_LaunchTool
+													, "gzip"
+													, BundleDirectory
+													, fg_CreateVector<CStr>("-k", "-9", File)
+													, CStr{"GZipStatic"}
+													, ELogVerbosity_Errors
+													, fg_Default()
+													, true
+													, fg_Default()
+													, fg_Default()
+												)
+												> Results.f_AddResult()
+											;
+										}
+										
+										if (!CFile::fs_FileExists(BundleDirectory + "/.installed"))
+										{
+											CFile::fs_SetOwnerAndGroupRecursive(BundleDirectory, NodeUserName, NodeUserName);
+
+											ThisActor
+												(
+													&CMeteorManagerActor::f_LaunchTool
+													, ProgramDirectory + "/node_dist/bin/npm"
+													, BundleDirectory + "/programs/server"
+													, fg_CreateVector<CStr>("install", "--silent")
+													, CStr{"GZipStatic"}
+													, ELogVerbosity_Errors
+													, fg_Default()
+													, true
+													, ProgramDirectory + "/node"
+													, NodeUserName
+												)
+												> Results.f_AddResult()
+											;
+										}
+									}
+								}
+								catch (NException::CException const &)
+								{
+									InstallContinuation.f_SetCurrentException();
+									return;
+								}
+
+								
+								Results.f_GetResults() > [=](TCAsyncResult<TCVector<TCAsyncResult<CStr>>> &&_Results)
+									{
+										if (!fg_CombineResults(InstallContinuation, fg_Move(_Results)))
+											return;
+
+										// Make bundle directory read only for node process
+										DMibLogCategoryStr(_BundleName);
+										DLog
+											(
+												Info
+												, "Setting owner on bundle directory: {} ({}) - {} ({})"
+												, NSys::fg_UserManagement_GetProcessRealUserName()
+												, NSys::fg_UserManagement_GetProcessRealUser()
+												, NSys::fg_UserManagement_GetProcessRealGroupName()
+												, NSys::fg_UserManagement_GetProcessRealGroup()
+											)
+										;
+										try
+										{
+											CFile::fs_SetOwnerAndGroupRecursive(BundleDirectory, NSys::fg_UserManagement_GetProcessRealUserName(), NSys::fg_UserManagement_GetProcessRealGroupName());
+											CFile::fs_WriteStringToFile(MeteorBundleChecksumFileName, NewChecksum, false);
+										}
+										catch (NException::CException const &)
+										{
+											InstallContinuation.f_SetCurrentException();
+											return;
+										}
+									}
+								;
+							}
+						;
+					}
+					else
+						InstallContinuation.f_SetResult();
+					
+					InstallContinuation > Continuation / [_BundleName, Continuation]
+						{
+							DMibLogCategoryStr(_BundleName);
+							DLog(Info, "Setting up bundle was successful");
+							Continuation.f_SetResult();
+						}
+					;
+				}
+				catch (NException::CException const &)
+				{
+					Continuation.f_SetCurrentException();
+					return Continuation;
+				}
+				
+				return Continuation;
+			}
+			> Continuation / [this, Continuation]()
+			{
 				Continuation.f_SetResult();
 			}
 		;
@@ -225,9 +409,9 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> Continuation;
 		fp_SetupPrerequisites_OSSetup()
 			+ fp_SetupPrerequisites_NodeExtract()
-			> Continuation / [Continuation]
+			> Continuation / [Continuation, this]
 			{
-				Continuation.f_SetResult();
+				fp_SetupPrerequisites_Packages() > Continuation;
 			}
 		;
 		return Continuation;

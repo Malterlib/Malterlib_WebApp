@@ -27,6 +27,23 @@ namespace NMib::NMeteor::NMeteorManager
 		return DMibNewLine + Ret;
 	}
 
+	TCContinuation<CStr> CMeteorManagerActor::f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir)
+	{
+		return f_LaunchTool
+			(
+				"tar"
+				, _DestinationDir
+				, fg_CreateVector<CStr>("--no-same-owner", "-xf", _TarFile)
+				, CStr{"ExtractArchive"}
+				, ELogVerbosity_Errors
+				, {}
+				, true
+				, {}
+				, {}
+			)
+		;
+	}
+
 	TCContinuation<CStr> CMeteorManagerActor::f_LaunchTool
 		(
 			CStr const &_Executable

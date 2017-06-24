@@ -229,6 +229,11 @@ namespace NMib::NMeteor::NMeteorManager
 		return CFile::fs_AppendPath(CFile::fs_GetProgramDirectory(), _Path);
 	}
 	
+	CMeteorManagerOptions::CMeteorManagerOptions(CStr const &_ManagerName)
+		: m_ManagerName(_ManagerName)
+	{
+	}
+
 	void CMeteorManagerOptions::f_ParseSettings(CStr const &_Settings, CStr const &_FileName)
 	{
 		CEJSON Settings = CEJSON::fs_FromString(_Settings, _FileName);
@@ -237,6 +242,16 @@ namespace NMib::NMeteor::NMeteorManager
 		{
 			auto &Package = m_Packages[PackageJSON.f_Name()];
 			auto &PackageSettings = PackageJSON.f_Value().f_Object();
+			
+			auto &PackageType = PackageJSON.f_Value()["Type"].f_String();
+			if (PackageType == "Meteor")
+				Package.m_Type = EPackageType_Meteor;
+			else if (PackageType == "Npm")
+				Package.m_Type = EPackageType_Npm;
+			else if (PackageType == "Custom")
+				Package.m_Type = EPackageType_Custom;
+			else
+				DMibError(fg_Format("Unknown package type: {}", PackageType));
 			
 			if (auto *pValue = PackageSettings.f_GetMember("MemoryPerNode"))
 				Package.m_MemoryPerNode = pValue->f_AsFloat(1.5);

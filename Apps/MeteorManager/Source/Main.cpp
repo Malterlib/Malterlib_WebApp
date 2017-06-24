@@ -19,8 +19,7 @@ class CMeteorManagerApp : public CApplication
 {
 	aint f_Main()
 	{
-		CMeteorManagerOptions Options;
-		Options.m_ManagerName = DMibMeteor_ManagerName;
+		CMeteorManagerOptions Options{DMibMeteor_ManagerName};
 #ifdef DMibMeteor_UseInternalNode
 		Options.m_bUseInternalNode = true;
 #endif

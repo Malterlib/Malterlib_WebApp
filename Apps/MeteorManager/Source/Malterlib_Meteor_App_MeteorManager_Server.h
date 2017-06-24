@@ -19,8 +19,21 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	struct CMeteorManagerOptions
 	{
+		enum EPackageType
+		{
+			EPackageType_Meteor
+			, EPackageType_Npm
+			, EPackageType_Custom
+		};
+		
 		struct CPackage
 		{
+			CStr const &f_GetName() const
+			{
+				return TCMap<CStr, CPackage>::fs_GetKey(*this);
+			}
+			
+			EPackageType m_Type = EPackageType_Meteor;
 			mint m_Concurrency = 1;
 			fp64 m_MemoryPerNode = 1.5;
 			TCVector<CStr> m_StartupDependencies;
@@ -38,6 +51,7 @@ namespace NMib::NMeteor::NMeteorManager
 			CStr m_DefaultDatabase;
 		};
 		
+		CMeteorManagerOptions(CStr const &_ManagerName);
 		void f_ParseSettings(CStr const &_Settings, CStr const &_FileName);
 		
 		CStr m_ManagerName;
@@ -89,6 +103,7 @@ namespace NMib::NMeteor::NMeteorManager
 				, CStr const &_User = {}
 			)
 		;
+		TCContinuation<CStr> f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir);
 		
 	private:
 		TCContinuation<void> fp_Destroy() override;
@@ -115,6 +130,8 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		TCContinuation<void> fp_SetupPrerequisites_Node();
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
+		TCContinuation<void> fp_SetupPrerequisites_Packages();
+		TCContinuation<void> fp_SetupPrerequisites_Package(CStr const &_BundleName, CMeteorManagerOptions::EPackageType _Type);
 		TCContinuation<void> fp_SetupPrerequisites_OSSetup();
 		
 		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
@@ -141,6 +158,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCVector<CStr> mp_VersionHistory;
 
 		bool mp_bStopped = false;
+		bool mp_bForceAppsReinstall = false;
 		
 		// Tool launches
 		TCLinkedList<CToolLaunch> mp_ToolLaunches;
