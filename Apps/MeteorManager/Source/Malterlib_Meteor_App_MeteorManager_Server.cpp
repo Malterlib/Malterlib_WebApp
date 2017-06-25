@@ -310,17 +310,83 @@ namespace NMib::NMeteor::NMeteorManager
 			m_Mongo.m_DatabaseSetupScript = pValue->f_String();
 		if (auto *pValue = MongoJSON.f_GetMember("DefaultDatabase"))
 			m_Mongo.m_DefaultDatabase = pValue->f_String();
+		
+		TCSet<CStr> DefaultReqiredTags;
+		TCSet<CStr> DefaultForbiddenTags;
+
+		if (auto *pValue = Settings.f_GetMember("EnvironmentDefaultTags"))
+		{
+			for (auto &TagJSON : pValue->f_Array())
+			{
+				auto &Tag = TagJSON.f_String();
+				if (Tag.f_StartsWith("!"))
+					DefaultForbiddenTags[Tag.f_Extract(1)];
+				else
+					DefaultReqiredTags[Tag];
+			}
+		}
+		if (auto *pValue = Settings.f_GetMember("Environment"))
+		{
+			for (auto &EnvVarJSON : fg_Const(pValue->f_Object()))
+			{
+				auto &EnvVar = m_Environment[EnvVarJSON.f_Name()];
+				EnvVar.m_Setting = EnvVarJSON.f_Value()["Setting"].f_String();
+				if (auto *pValue = EnvVarJSON.f_Value().f_GetMember("Default"))
+					EnvVar.m_Default = pValue->f_String();
+				
+				EnvVar.m_RequiredTags = DefaultReqiredTags;
+				EnvVar.m_ForbiddenTags = DefaultForbiddenTags;
+
+				if (auto *pValue = EnvVarJSON.f_Value().f_GetMember("Tags"))
+				{
+					for (auto &TagJSON : pValue->f_Array())
+					{
+						CStr Tag = TagJSON.f_String();
+						
+						bool bAdd = true;
+						if (Tag.f_StartsWith("-"))
+						{
+							bAdd = false;
+							Tag = Tag.f_Extract(1);
+						}
+						
+						bool bReqired = true;
+						if (Tag.f_StartsWith("!"))
+						{
+							bReqired = false;
+							Tag = Tag.f_Extract(1);
+						}
+						
+						if (bAdd)
+						{
+							if (bReqired)
+								EnvVar.m_RequiredTags[Tag];
+							else
+								EnvVar.m_ForbiddenTags[Tag];
+						}
+						else
+						{
+							if (bReqired)
+								EnvVar.m_RequiredTags.f_Remove(Tag);
+							else
+								EnvVar.m_ForbiddenTags.f_Remove(Tag);
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	ICMeteorManagerCustomization::ICMeteorManagerCustomization() = default;
 	ICMeteorManagerCustomization::~ICMeteorManagerCustomization() = default;
 
-	void ICMeteorManagerCustomization::f_SetupNodeEnvironment
+	void ICMeteorManagerCustomization::f_CalculateSettings
 		(
-			CSystemEnvironment &o_Environment
+			TCMap<CStr, CStr> &o_Settings
 			, CStr const &_PackageName
 			, CDistributedAppState const &_AppState
 			, CMeteorManagerOptions const &_Options
+			, CMeteorManagerOptions::CPackage const &_PackageOptions
 		)
 	{
 	}

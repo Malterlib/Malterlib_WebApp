@@ -317,9 +317,7 @@
 							"	\"Packages\": {\n"
 
 				Contents	"@(Contents)"\
-							"@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'PackageSettings_Template'))"
-
-				Contents	"@(Contents)"\
+							"@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'PackageSettings_Template'))"\
 							"	},\n"
 
 				Contents	"@(Contents)"\
@@ -366,8 +364,6 @@
 					!MeteorManagerMongoDefaultDatabase ""
 				}
 				
-				
-
 				Contents	"@(Contents)"\
 							"	},\n"
 				
@@ -377,6 +373,69 @@
 					!MeteorLoopbackPrefix ""
 				}
 				
+
+				
+				EnvironmentDefaultTags_Template	"\"@(Explodee)\", "
+				{
+					!Explodee ""
+				}
+				
+				Contents	"@(Contents)"\
+							"	\"EnvironmentDefaultTags\": [@(Builtin.Function->ExplodeList('@(MeteorManagerEnvironmentDefaultTags)', ';', 'EnvironmentDefaultTags_Template'))],\n"
+				{
+					!MeteorManagerEnvironmentDefaultTags ""
+				}
+				
+				NodeEnvironment_Variable "@(Explodee->ParseFormatString('{}({})={}', '{0}'))"
+				NodeEnvironment_Variable "@(Explodee->ParseFormatString('{}={}', '{0}'))"
+				{
+					!!NodeEnvironment_Variable ""
+				}
+				NodeEnvironment_Variable "@(Error('Environment variable and setting has to be specified in the formmat x=x'))"
+				{
+					!!NodeEnvironment_Variable ""
+				}
+
+				NodeEnvironment_Tags "@(Explodee->ParseFormatString('{}({})={}', '{1}'))"
+
+				NodeEnvironment_Setting "@(Explodee->ParseFormatString('{}={}|{}', '{1}'))"
+				NodeEnvironment_Setting "@(Explodee->ParseFormatString('{}={}', '{1}'))"
+				{
+					!!NodeEnvironment_Setting ""
+				}
+
+				NodeEnvironment_Default "@(Explodee->ParseFormatString('{}={}|{}', '{2}'))"
+				
+				NodeEnvironment "@(NodeEnvironment)"\
+								"			\"Setting\": \"@(NodeEnvironment_Setting)\",\n"
+
+				NodeEnvironment "@(NodeEnvironment)"\
+								"			\"Default\": \"@(NodeEnvironment_Default)\",\n"
+				{
+					!NodeEnvironment_Default ""
+				}
+
+				NodeEnvironment_Tags_Template "\"@(Explodee)\", "
+				{
+				}
+				
+				NodeEnvironment "@(NodeEnvironment)"\
+								"			\"Tags\": [@(Builtin.Function->ExplodeList('@(NodeEnvironment_Tags)', ';', 'NodeEnvironment_Tags_Template'))],\n"
+				{
+					!NodeEnvironment_Tags ""
+				}
+				
+				NodeEnvironment_Template	"		\"@(NodeEnvironment_Variable)\": {\n"\
+											"@(NodeEnvironment)"\
+											"		},\n"
+				{
+					!Explodee ""
+				}
+
+				Contents	"@(Contents)"\
+							"	\"Environment\": {\n"\
+							"@(Builtin.Function->ExplodeList('@(MeteorManagerEnvironmment)', ';', 'NodeEnvironment_Template'))"\
+							"	},\n"
 				
 				Contents	"@(Contents)"\
 							"}\n"\

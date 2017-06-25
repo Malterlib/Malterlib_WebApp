@@ -116,6 +116,68 @@ namespace NMib::NMeteor::NMeteorManager
 		o_Arguments.f_Insert(_PackageOptions.m_CustomParams);
 	}
 
+	void CMeteorManagerActor::fp_PopulateNodeEnvironment
+		(
+			CSystemEnvironment &o_Environment
+			, TCMap<CStr, CStr> const &_CalculatedSettings
+			, CAppLaunch const &_AppLaunch
+			, CMeteorManagerOptions::CPackage const &_PackageOptions
+		)
+	{
+		TCSet<CStr> Tags;
+		Tags[_PackageOptions.f_GetName()];
+		
+		switch(_PackageOptions.m_Type)
+		{
+		case CMeteorManagerOptions::EPackageType_Meteor: Tags["Meteor"]; break;
+		case CMeteorManagerOptions::EPackageType_Npm: Tags["Npm"]; break;
+		case CMeteorManagerOptions::EPackageType_Custom: Tags["Custom"]; break;
+		}
+		
+		if (auto *pValue = mp_AppState.m_StateDatabase.m_Data.f_GetMember("Tags", EJSONType_Object))
+		{
+			for (auto &Tag : pValue->f_Object())
+				Tags[Tag.f_Name()];
+		}
+		
+		for (auto &EnvVar : mp_Options.m_Environment)
+		{
+			bool bPassAllTags = true;
+
+			for (auto &Tag : EnvVar.m_RequiredTags)
+			{
+				if (!Tags.f_FindEqual(Tag))
+					bPassAllTags = false;
+			}
+
+			for (auto &Tag : EnvVar.m_ForbiddenTags)
+			{
+				if (Tags.f_FindEqual(Tag))
+					bPassAllTags = false;
+			}
+
+			if (!bPassAllTags)
+				continue;
+			
+			if (auto *pSetting = _CalculatedSettings.f_FindEqual(EnvVar.m_Setting))
+			{
+				o_Environment[EnvVar.f_GetName()] = *pSetting;
+				continue;
+			}
+			
+			CEJSON Value;
+			if (EnvVar.m_Default)
+				Value = fp_GetConfigValue(EnvVar.m_Setting, *EnvVar.m_Default);
+			else
+				Value = fp_GetConfigValue(EnvVar.m_Setting, nullptr);
+			
+			if (Value.f_IsNull())
+				continue;
+			
+			o_Environment[EnvVar.f_GetName()] = Value.f_AsString();
+		}
+	}
+	
 	void CMeteorManagerActor::fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch)
 	{
 		if (_AppLaunch.m_Launch || mp_bStopped || mp_bDestroyed)
@@ -256,6 +318,27 @@ namespace NMib::NMeteor::NMeteorManager
 		Params.m_bMergeEnvironment = true;
 		Params.m_Environment["HOME"] = NodeHomePath;
 		Params.m_Environment["TMPDIR"] = NodeHomePath + "/.tmp";
+		
+		if (auto *pValue = mp_AppState.m_ConfigDatabase.m_Data.f_GetMember("NodeEnvironment", EJSONType_Object))
+		{
+			for (auto &EnvVar : pValue->f_Object())
+			{
+				if (!EnvVar.f_Value().f_IsString())
+					continue;
+				Params.m_Environment[EnvVar.f_Name()] = EnvVar.f_Value().f_String();
+			}
+		}
+		
+		TCMap<CStr, CStr> CalculatedSettings;
+		CalculatedSettings["Home"] = NodeHomePath;
+		CalculatedSettings["TmpDir"] = NodeHomePath + "/.tmp";
+		CalculatedSettings["PackageName"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_PackageName);
+		CalculatedSettings["Sequence"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_iAppSequence);
+		
+		if (mp_pCustomization)
+			mp_pCustomization->f_CalculateSettings(CalculatedSettings, _AppLaunch.f_GetKey().m_PackageName, mp_AppState, mp_Options, PackageOptions);
+		
+		fp_PopulateNodeEnvironment(Params.m_Environment, CalculatedSettings, _AppLaunch, PackageOptions);
 		
 		_AppLaunch.m_Launch = fg_ConstructActor<CProcessLaunchActor>();
 		

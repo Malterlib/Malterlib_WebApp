@@ -10,7 +10,7 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	CStr CMeteorManagerActor::fp_GetMongoExecutable(CStr const &_ExecutableName) const
 	{
-		auto MongoDirectory = fp_GetConfigValue("MongoDirectory", "");
+		auto MongoDirectory = fp_GetConfigValue("MongoDirectory", {});
 		if (!MongoDirectory.f_String().f_IsEmpty())
 			return CFile::fs_AppendPath(CFile::fs_GetExpandedPath(MongoDirectory.f_String(), CFile::fs_GetProgramDirectory()), _ExecutableName);
 		return _ExecutableName;
@@ -24,7 +24,7 @@ namespace NMib::NMeteor::NMeteorManager
 		return fp_RunMongoScript
 			(
 				fg_Format("{}/Source/{}", CFile::fs_GetProgramDirectory(), mp_Options.m_Mongo.m_DatabaseSetupScript)
-				, fp_GetConfigValue("MongoDefaultDatabase", "").f_String()
+				, fp_GetConfigValue("MongoDefaultDatabase", {}).f_String()
 				, 120.0
 			)
 		;
@@ -32,7 +32,7 @@ namespace NMib::NMeteor::NMeteorManager
 	
 	CStr CMeteorManagerActor::fp_GetMongoSSLDirectory() const
 	{
-		CStr MongoSSLDirectory = fp_GetConfigValue("MongoSSLDirectory", "").f_String();
+		CStr MongoSSLDirectory = fp_GetConfigValue("MongoSSLDirectory", {}).f_String();
 
 		if (!MongoSSLDirectory.f_IsEmpty())
 			MongoSSLDirectory = CFile::fs_GetExpandedPath(MongoSSLDirectory, CFile::fs_GetProgramDirectory());
@@ -48,11 +48,11 @@ namespace NMib::NMeteor::NMeteorManager
 		fs_SetupEnvironment(Params);
 		Params.m_bAllowExecutableLocate = true;
 		Params.m_bMergeEnvironment = true;
-		Params.m_RunAsUser = fp_GetConfigValue("MongoToolsUser", "").f_String();
-		Params.m_RunAsGroup = fp_GetConfigValue("MongoToolsGrop", "").f_String();
+		Params.m_RunAsUser = fp_GetConfigValue("MongoToolsUser", {}).f_String();
+		Params.m_RunAsGroup = fp_GetConfigValue("MongoToolsGroup", {}).f_String();
 
-		CStr MongoHost = fp_GetConfigValue("MongoHost", "").f_String();
-		int64 MongoPort = fp_GetConfigValue("MongoPort", 0).f_Integer();
+		CStr MongoHost = fp_GetConfigValue("MongoHost", {}).f_String();
+		int64 MongoPort = fp_GetConfigValue("MongoPort", {}).f_Integer();
 
 		if (MongoHost.f_IsEmpty())
 			return DMibErrorInstance(fg_Format("Failed to launch mongo for running {}: {}", ScriptName, "Hostname is empty"));

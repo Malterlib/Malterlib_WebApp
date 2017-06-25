@@ -26,6 +26,19 @@ namespace NMib::NMeteor::NMeteorManager
 			, EPackageType_Custom
 		};
 		
+		struct CEnvironmentVariable
+		{
+			CStr const &f_GetName() const
+			{
+				return TCMap<CStr, CEnvironmentVariable>::fs_GetKey(*this);
+			}
+			
+			CStr m_Setting;
+			TCOptional<CStr> m_Default;
+			TCSet<CStr> m_RequiredTags;
+			TCSet<CStr> m_ForbiddenTags;
+		};
+		
 		struct CPackage
 		{
 			CStr const &f_GetName() const
@@ -60,6 +73,7 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		CStr m_ManagerName;
 		TCMap<CStr, CPackage> m_Packages;
+		TCMap<CStr, CEnvironmentVariable> m_Environment;
 		CMongo m_Mongo;
 		uint8 m_LoopbackPrefix = 0;
 		bool m_bUseInternalNode = false;
@@ -69,7 +83,15 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		ICMeteorManagerCustomization();
 		virtual ~ICMeteorManagerCustomization();
-		virtual void f_SetupNodeEnvironment(CSystemEnvironment &o_Environment, CStr const &_PackageName, CDistributedAppState const &_AppState, CMeteorManagerOptions const &_Options);
+		virtual void f_CalculateSettings
+			(
+				TCMap<CStr, CStr> &o_Settings
+				, CStr const &_PackageName
+				, CDistributedAppState const &_AppState
+				, CMeteorManagerOptions const &_Options
+				, CMeteorManagerOptions::CPackage const &_PackageOptions
+			)
+		;
 	};
 	
 	TCUniquePointer<ICMeteorManagerCustomization> fg_CreateMeteorManagerCustomization();
@@ -178,6 +200,14 @@ namespace NMib::NMeteor::NMeteorManager
 		void fp_UpdateAppLaunch(CExceptionPointer const &_pException);
 		void fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch);
 		void fp_SetupNodeArguments(TCVector<CStr> &o_Arguments, CAppLaunch const &_AppLaunch, CMeteorManagerOptions::CPackage const &_PackageOptions);
+		void fp_PopulateNodeEnvironment
+			(
+				CSystemEnvironment &o_Environment
+				, TCMap<CStr, CStr> const &_CalculatedSettings
+				, CAppLaunch const &_AppLaunch
+				, CMeteorManagerOptions::CPackage const &_PackageOptions
+			)
+		;
 		
 		TCContinuation<void> fp_StartApps();
 		TCContinuation<void> fp_DestroyApps();

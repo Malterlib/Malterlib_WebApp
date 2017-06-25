@@ -7,6 +7,16 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	CEJSON CMeteorManagerActor::fp_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const
 	{
+		if (_Default.f_IsValid())
+			return mp_AppState.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, _Default);
+		else if (_Default.f_IsNull())
+		{
+			auto pValue = mp_AppState.m_ConfigDatabase.m_Data.f_GetMember(_Name);
+			if (pValue)
+				return *pValue;
+			return nullptr;
+		}
+		
 		if (_Name == "MongoDirectory")
 			return mp_AppState.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, mp_Options.m_Mongo.m_Directory);
 		if (_Name == "MongoHost")
@@ -21,7 +31,8 @@ namespace NMib::NMeteor::NMeteorManager
 			return mp_AppState.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, mp_Options.m_Mongo.m_SSLDirectory);
 		if (_Name == "MongoDefaultDatabase")
 			return mp_AppState.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, mp_Options.m_Mongo.m_DefaultDatabase);
-		
-		return mp_AppState.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, _Default);
+
+		DNeverGetHere;
+		return mp_AppState.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, "");
 	}
 }
