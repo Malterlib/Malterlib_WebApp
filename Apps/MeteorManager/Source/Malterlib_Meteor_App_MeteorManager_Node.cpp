@@ -157,6 +157,19 @@ namespace NMib::NMeteor::NMeteorManager
 			
 			fp_LaunchApp(Launch, true);
 		}
+		
+		bool bAllDone = true;
+		for (auto &Outstanding : mp_OutstandingLaunches)
+		{
+			if (Outstanding)
+			{
+				bAllDone = false;
+				break;
+			}
+		}
+
+		if (bAllDone && !mp_AppLaunchesContinuation.f_IsSet())
+			mp_AppLaunchesContinuation.f_SetResult();
 	}
 	
 	void CMeteorManagerActor::fp_SetupNodeArguments(TCVector<CStr> &o_Arguments, CAppLaunch const &_AppLaunch, CMeteorManagerOptions::CPackage const &_PackageOptions)
