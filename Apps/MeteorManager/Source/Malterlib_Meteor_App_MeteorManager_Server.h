@@ -135,6 +135,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> fp_SetupPrerequisites_OSSetup();
 		
 		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
+		CStr fp_GetMongoSSLDirectory() const;
 		TCContinuation<void> fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout);
 		
 		TCContinuation<void> fp_SetupMongo();

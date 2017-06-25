@@ -53,8 +53,9 @@ namespace NMib::NMeteor::NMeteorManager
 		};
 	
 		TCContinuation<void> Continuation;
-
-		g_Dispatch(*mp_FileActors) > [ProgramDirectory, NodeDirectory, ThisActor = fg_ThisActor(this), NodeUser = mp_NodeUser]() mutable -> TCContinuation<CNodeInfo>
+		g_Dispatch(*mp_FileActors)
+			> [ProgramDirectory, NodeDirectory, ThisActor = fg_ThisActor(this), NodeUser = mp_NodeUser, MongoSSLDirectory = fp_GetMongoSSLDirectory()]
+			() mutable -> TCContinuation<CNodeInfo>
 			{
 				DLog(Info, "Extracting node distribution");
 				
@@ -87,6 +88,28 @@ namespace NMib::NMeteor::NMeteorManager
 						CFile::fs_CreateDirectory(TmpDirectory);
 
 						CStr NodeCertificateDirectory = NodeDirectory + "/certificates";
+						
+						if (!MongoSSLDirectory.f_IsEmpty() && CFile::fs_FileExists(MongoSSLDirectory))
+						{
+							CFile::fs_DiffCopyFileOrDirectory
+								(
+									MongoSSLDirectory
+									, NodeCertificateDirectory
+									, [](CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link) -> CFile::EDiffCopyChangeAction
+									{
+										if (_Change == CFile::EDiffCopyChange_FileDeleted)
+											return CFile::EDiffCopyChangeAction_Skip;
+										if (_Change == CFile::EDiffCopyChange_LinkDeleted)
+											return CFile::EDiffCopyChangeAction_Skip;
+										if (_Change == CFile::EDiffCopyChange_DirectoryDeleted)
+											return CFile::EDiffCopyChangeAction_Skip;
+										
+										return CFile::EDiffCopyChangeAction_Perform;
+									}
+									, 0.0f
+								)
+							;
+						}
 						
 						if (CFile::fs_FileExists(NodeCertificateDirectory))
 						{

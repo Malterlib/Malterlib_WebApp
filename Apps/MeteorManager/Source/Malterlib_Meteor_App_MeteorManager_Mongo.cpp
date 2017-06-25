@@ -30,6 +30,16 @@ namespace NMib::NMeteor::NMeteorManager
 		;
 	}
 	
+	CStr CMeteorManagerActor::fp_GetMongoSSLDirectory() const
+	{
+		CStr MongoSSLDirectory = fp_GetConfigValue("MongoSSLDirectory", "").f_String();
+
+		if (!MongoSSLDirectory.f_IsEmpty())
+			MongoSSLDirectory = CFile::fs_GetExpandedPath(MongoSSLDirectory, CFile::fs_GetProgramDirectory());
+		
+		return MongoSSLDirectory;
+	}
+
 	TCContinuation<void> CMeteorManagerActor::fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout)
 	{
 		CStr ScriptName = CFile::fs_GetFile(_Script);
@@ -56,14 +66,12 @@ namespace NMib::NMeteor::NMeteorManager
 			)
 		;
 		
-		CStr MongoSSLDirectory = fp_GetConfigValue("MongoSSLDirectory", "").f_String();
+		CStr MongoSSLDirectory = fp_GetMongoSSLDirectory();
 
 		if (!MongoSSLDirectory.f_IsEmpty())
 		{
-			MongoSSLDirectory = CFile::fs_GetExpandedPath(MongoSSLDirectory, CFile::fs_GetProgramDirectory());
-			
-			CStr CACertificatePath = MongoSSLDirectory + "/certificates/MongoCA.crt";
-			CStr ClientCertificatePath = MongoSSLDirectory + "/certificates/admin.pem";
+			CStr CACertificatePath = MongoSSLDirectory + "/MongoCA.crt";
+			CStr ClientCertificatePath = MongoSSLDirectory + "/admin.pem";
 			CStr UserName;
 
 			try
