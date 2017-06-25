@@ -5,7 +5,7 @@
 
 namespace NMib::NMeteor::NMeteorManager
 {
-	TCUniquePointer<ICMeteorManagerCustomization> fg_CreateMeteorManagerCustomization()
+	TCSharedPointer<ICMeteorManagerCustomization> fg_CreateMeteorManagerCustomization()
 	{
 		return nullptr;
 	}

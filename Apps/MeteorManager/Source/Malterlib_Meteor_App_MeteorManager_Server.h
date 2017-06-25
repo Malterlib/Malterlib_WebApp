@@ -35,7 +35,7 @@ namespace NMib::NMeteor::NMeteorManager
 			
 			CStr m_Setting;
 			TCOptional<CStr> m_Default;
-			TCSet<CStr> m_RequiredTags;
+			TCSet<TCSet<CStr>> m_RequiredTags;
 			TCSet<CStr> m_ForbiddenTags;
 		};
 		
@@ -50,6 +50,7 @@ namespace NMib::NMeteor::NMeteorManager
 			CStr m_CustomExecutable;
 			TCVector<CStr> m_CustomParams;
 			CUser m_User{""};
+			CStr m_DomainPrefix;
 			fp64 m_MemoryPerNode = 1.5;
 			mint m_Concurrency = 1;
 			EPackageType m_Type = EPackageType_Meteor;
@@ -66,6 +67,7 @@ namespace NMib::NMeteor::NMeteorManager
 			CStr m_SSLDirectory;
 			CStr m_DatabaseSetupScript;
 			CStr m_DefaultDatabase;
+			CStr m_DefaultReplicaName = "DefaultReplica";
 		};
 		
 		CMeteorManagerOptions(CStr const &_ManagerName);
@@ -75,6 +77,9 @@ namespace NMib::NMeteor::NMeteorManager
 		TCMap<CStr, CPackage> m_Packages;
 		TCMap<CStr, CEnvironmentVariable> m_Environment;
 		CMongo m_Mongo;
+		CStr m_DefaultDomain;
+		uint16 m_DefaultWebPort = 3000;
+		uint16 m_DefaultWebSSLPort = 3443;
 		uint8 m_LoopbackPrefix = 0;
 		bool m_bUseInternalNode = false;
 	};
@@ -83,6 +88,7 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		ICMeteorManagerCustomization();
 		virtual ~ICMeteorManagerCustomization();
+		virtual void f_SetupPrerequisites(TCSet<CStr> const &_Tags);
 		virtual void f_CalculateSettings
 			(
 				TCMap<CStr, CStr> &o_Settings
@@ -90,11 +96,12 @@ namespace NMib::NMeteor::NMeteorManager
 				, CDistributedAppState const &_AppState
 				, CMeteorManagerOptions const &_Options
 				, CMeteorManagerOptions::CPackage const &_PackageOptions
+				, TCFunction<CEJSON (CStr const &_Name, CEJSON const &_Default)> const &_fGetConfigValue
 			)
 		;
 	};
 	
-	TCUniquePointer<ICMeteorManagerCustomization> fg_CreateMeteorManagerCustomization();
+	TCSharedPointer<ICMeteorManagerCustomization> fg_CreateMeteorManagerCustomization();
 	
 	struct CMeteorManagerActor : public CActor
 	{
@@ -156,10 +163,14 @@ namespace NMib::NMeteor::NMeteorManager
 			TCActor<CProcessLaunchActor> m_Launch;
 			CActorSubscription m_LaunchSubscription;
 			CStr m_LogCategory;
+			CStr m_BackendIdentifier;
 			bool m_bInitialLaunched = false;
 		};
 		
 		TCContinuation<void> fp_Destroy() override;
+		
+		void fp_ParseConfig_DDPSelf();
+		void fp_ParseConfig();
 		
 		CStr fp_GetDataPath(CStr const &_Path) const;
 		CStr fp_ConcatOutput(CStr const &_StdOut, CStr const &_StdErr) const;
@@ -183,6 +194,7 @@ namespace NMib::NMeteor::NMeteorManager
 		static void fsp_SetupPrerequisites_NodeUser(CUser &_User, CStr const &_Directory, CStr const &_SSLDirectory);
 		
 		TCContinuation<void> fp_SetupPrerequisites_Node();
+		TCContinuation<void> fp_SetupPrerequisites_Customization();
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
 		TCContinuation<void> fp_SetupPrerequisites_Packages();
 		TCContinuation<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type);
@@ -197,6 +209,11 @@ namespace NMib::NMeteor::NMeteorManager
 		static CStr fsp_GetVersionString();
 		TCContinuation<void> fp_UpdateVersionHistory();
 
+		CStr fp_GetPackageHostname(CStr const &_PackageName) const;
+		CStr fp_GetPackageLocalURL(CStr const &_PackageName) const;
+		CStr fp_GetRootURL(CStr const &_Hostname) const;
+		CStr fp_GetAppIPAddress(CAppLaunch const &_AppLaunch) const;
+		CStr fp_GetAppLocalURL(CAppLaunch const &_AppLaunch) const;
 		void fp_UpdateAppLaunch(CExceptionPointer const &_pException);
 		void fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch);
 		void fp_SetupNodeArguments(TCVector<CStr> &o_Arguments, CAppLaunch const &_AppLaunch, CMeteorManagerOptions::CPackage const &_PackageOptions);
@@ -209,13 +226,15 @@ namespace NMib::NMeteor::NMeteorManager
 			)
 		;
 		
+		void fp_CreateAppLaunches();
+		
 		TCContinuation<void> fp_StartApps();
 		TCContinuation<void> fp_DestroyApps();
 		
 		CMeteorManagerOptions mp_Options;
 		TCRoundRobinActors<CSeparateThreadActor> mp_FileActors;
 		
-		TCUniquePointer<ICMeteorManagerCustomization> mp_pCustomization;
+		TCSharedPointer<ICMeteorManagerCustomization> mp_pCustomization;
 		
 		TCSharedPointer<CCanDestroyTracker> mp_pCanDestroyTracker;
 		CDistributedAppState &mp_AppState;
@@ -223,6 +242,7 @@ namespace NMib::NMeteor::NMeteorManager
 		CUser mp_NodeUser;
 		CVersion mp_Version_Node{0, 10, 33};
 		TCVector<CStr> mp_VersionHistory;
+		TCSet<CStr> mp_Tags;
 
 		bool mp_bStopped = false;
 		bool mp_bForceAppsReinstall = false;
@@ -231,8 +251,31 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		TCMap<CAppLaunchKey, CAppLaunch> mp_AppLaunches;
 		TCMap<CStr, zmint> mp_OutstandingLaunches;
+		mutable TCMap<CStr, zmint> mp_CurrentPackageLocalURL;
+		TCMap<CStr, TCVector<CStr>> mp_PackageLocalURLs;
 		mint mp_AppSequence = 0;
 		TCContinuation<void> mp_AppLaunchesContinuation;
+		
+		CStr mp_InstanceId;
+		
+		// Precalculated config
+		
+		CStr mp_Domain;
+		CStr mp_DDPSelf;
+		
+		CStr mp_MongoDirectory;
+		CStr mp_MongoHost;
+		uint16 mp_MongoPort;
+		CStr mp_MongoToolsUser;
+		CStr mp_MongoToolsGroup;
+		CStr mp_MongoSSLDirectory;
+		CStr mp_MongoDatabase;
+		CStr mp_MongoReplicaName;
+		
+		uint64 mp_WebPort = 3000;
+		uint64 mp_WebSSLPort = 3443;
+		bool mp_bIsStaging = false;
+		
 	};
 }
 

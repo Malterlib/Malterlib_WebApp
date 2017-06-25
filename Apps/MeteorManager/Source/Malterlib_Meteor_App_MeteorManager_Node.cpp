@@ -4,6 +4,7 @@
 #include "Malterlib_Meteor_App_MeteorManager_Server.h"
 
 #include <Mib/Concurrency/Actor/Timer>
+#include <Mib/Network/SSL>
 
 namespace NMib::NMeteor::NMeteorManager
 {
@@ -19,8 +20,54 @@ namespace NMib::NMeteor::NMeteorManager
 		else
 			return "node";
 	}
+	
+	CStr CMeteorManagerActor::fp_GetPackageHostname(CStr const &_PackageName) const
+	{
+		auto &Package = mp_Options.m_Packages[_PackageName];
+		if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
+			DMibError("Cannot get package name for non-meteor package");
+		
+		CStr Hostname;
+		if (!Package.m_DomainPrefix.f_IsEmpty())
+			Hostname = fg_Format("{}.{}", Package.m_DomainPrefix, mp_Domain);
+		else
+			Hostname = mp_Domain;
+		
+		return Hostname;
+	}
+	
+	CStr CMeteorManagerActor::fp_GetRootURL(CStr const &_Hostname) const
+	{
+		if (mp_WebSSLPort == 443)
+			return fg_Format("https://{}/", _Hostname);
+		else
+			return fg_Format("https://{}:{}/", _Hostname, mp_WebSSLPort);
+	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_StartApps()
+	CStr CMeteorManagerActor::fp_GetAppIPAddress(CAppLaunch const &_AppLaunch) const
+	{
+		return fg_Format("127.{}.{}.1", mp_Options.m_LoopbackPrefix, 2 + _AppLaunch.f_GetKey().m_iAppSequence);
+	}
+
+	CStr CMeteorManagerActor::fp_GetAppLocalURL(CAppLaunch const &_AppLaunch) const
+	{
+		return fg_Format("http://{}:8080/", fp_GetAppIPAddress(_AppLaunch));
+	}
+
+	CStr CMeteorManagerActor::fp_GetPackageLocalURL(CStr const &_PackageName) const
+	{
+		auto &CurrentURL = mp_CurrentPackageLocalURL[_PackageName];
+		mint iURL = CurrentURL;
+		
+		auto &Package = mp_Options.m_Packages[_PackageName];
+		++CurrentURL;
+		if (CurrentURL >= Package.m_Concurrency)
+			CurrentURL = 0;
+		
+		return mp_PackageLocalURLs[_PackageName][iURL];
+	}
+
+	void CMeteorManagerActor::fp_CreateAppLaunches()
 	{
 		for (auto &Package : mp_Options.m_Packages)
 		{
@@ -38,11 +85,17 @@ namespace NMib::NMeteor::NMeteorManager
 					AppLaunch.m_LogCategory = fg_Format("{}-{}", LaunchKey.m_PackageName, i);
 				else
 					AppLaunch.m_LogCategory = LaunchKey.m_PackageName;
+				
+				AppLaunch.m_BackendIdentifier = fg_Format("{}_{}", LaunchKey.m_PackageName, fg_RandomID());
+				
+				mp_PackageLocalURLs[LaunchKey.m_PackageName].f_Insert(fp_GetAppLocalURL(AppLaunch));
 			}
 		}
-		
-		fp_UpdateAppLaunch(nullptr);
+	}
 
+	TCContinuation<void> CMeteorManagerActor::fp_StartApps()
+	{
+		fp_UpdateAppLaunch(nullptr);
 		return mp_AppLaunchesContinuation;
 	}
 	
@@ -124,8 +177,9 @@ namespace NMib::NMeteor::NMeteorManager
 			, CMeteorManagerOptions::CPackage const &_PackageOptions
 		)
 	{
-		TCSet<CStr> Tags;
+		TCSet<CStr> Tags = mp_Tags;
 		Tags[_PackageOptions.f_GetName()];
+		Tags[fg_Format("{}_{}", _PackageOptions.f_GetName(), _AppLaunch.f_GetKey().m_iAppSequence)];
 		
 		switch(_PackageOptions.m_Type)
 		{
@@ -134,19 +188,19 @@ namespace NMib::NMeteor::NMeteorManager
 		case CMeteorManagerOptions::EPackageType_Custom: Tags["Custom"]; break;
 		}
 		
-		if (auto *pValue = mp_AppState.m_StateDatabase.m_Data.f_GetMember("Tags", EJSONType_Object))
-		{
-			for (auto &Tag : pValue->f_Object())
-				Tags[Tag.f_Name()];
-		}
-		
 		for (auto &EnvVar : mp_Options.m_Environment)
 		{
 			bool bPassAllTags = true;
 
-			for (auto &Tag : EnvVar.m_RequiredTags)
+			for (auto &Tags : EnvVar.m_RequiredTags)
 			{
-				if (!Tags.f_FindEqual(Tag))
+				bool bFoundOne = false;
+				for (auto &Tag : Tags)
+				{
+					if (Tags.f_FindEqual(Tag))
+						bFoundOne = true;
+				}
+				if (!bFoundOne)
 					bPassAllTags = false;
 			}
 
@@ -192,7 +246,7 @@ namespace NMib::NMeteor::NMeteorManager
 		auto &LaunchKey = _AppLaunch.f_GetKey();
 		
 		CStr LaunchExecutable;
-		CStr WorkingDirectory = fg_Format("{}/{}", ProgramDirectory, _AppLaunch.f_GetKey().m_PackageName);
+		CStr PackageDirectory = fg_Format("{}/{}", ProgramDirectory, _AppLaunch.f_GetKey().m_PackageName);
 
 		auto &PackageOptions = fg_Const(mp_Options.m_Packages)[LaunchKey.m_PackageName];
 		
@@ -234,7 +288,7 @@ namespace NMib::NMeteor::NMeteorManager
 			(
 				LaunchExecutable
 				, Arguments
-				, WorkingDirectory
+				, PackageDirectory
 				, [this, Continuation, pAppLaunch, _bInitialLaunch](CProcessLaunchStateChangeVariant const &_Change, fp64 _TimeSinceStart)
 				{
 					auto &AppLaunch = *pAppLaunch;
@@ -319,27 +373,126 @@ namespace NMib::NMeteor::NMeteorManager
 		Params.m_Environment["HOME"] = NodeHomePath;
 		Params.m_Environment["TMPDIR"] = NodeHomePath + "/.tmp";
 		
-		if (auto *pValue = mp_AppState.m_ConfigDatabase.m_Data.f_GetMember("NodeEnvironment", EJSONType_Object))
+		try
 		{
-			for (auto &EnvVar : pValue->f_Object())
+			if (auto *pValue = mp_AppState.m_ConfigDatabase.m_Data.f_GetMember("NodeEnvironment"))
 			{
-				if (!EnvVar.f_Value().f_IsString())
-					continue;
-				Params.m_Environment[EnvVar.f_Name()] = EnvVar.f_Value().f_String();
+				for (auto &EnvVar : pValue->f_Object())
+				{
+					if (!EnvVar.f_Value().f_IsString())
+						continue;
+					Params.m_Environment[EnvVar.f_Name()] = EnvVar.f_Value().f_String();
+				}
 			}
+			
+			TCMap<CStr, CStr> CalculatedSettings;
+			CalculatedSettings["Home"] = NodeHomePath;
+			CalculatedSettings["TmpDir"] = NodeHomePath + "/.tmp";
+
+			CalculatedSettings["PackageDirectory"] = PackageDirectory;
+			
+			CalculatedSettings["ManagerInstanceID"] = mp_InstanceId;
+			CalculatedSettings["NodeInstanceID"] = fg_RandomID();
+			CalculatedSettings["NodeSequence"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_iAppSequence);
+			
+			CalculatedSettings["PackageName"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_PackageName);
+			CalculatedSettings["BackendIdentifier"] = _AppLaunch.m_BackendIdentifier;
+			CalculatedSettings["LocalIP"] = fp_GetAppIPAddress(_AppLaunch);
+			
+			if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Meteor)
+			{
+				CStr Hostname = fp_GetPackageHostname(_AppLaunch.f_GetKey().m_PackageName);
+				CalculatedSettings["Hostname"] = Hostname;
+				CalculatedSettings["RootURL"] = fp_GetRootURL(Hostname);
+			}
+			for (auto &Package : mp_Options.m_Packages)
+			{
+				if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
+					continue;
+				CStr Hostname = fp_GetPackageHostname(Package.f_GetName());
+				CalculatedSettings[fg_Format("Hostname_{}", Package.f_GetName())] = Hostname;
+				CalculatedSettings[fg_Format("RootURL_{}", Package.f_GetName())] = fp_GetRootURL(Hostname);
+				CalculatedSettings[fg_Format("LocalURL_{}", Package.f_GetName())] = fp_GetPackageLocalURL(Package.f_GetName());
+			}
+			
+			CStr MongoSSLDirectory = fp_GetMongoSSLDirectory();
+			if (!MongoSSLDirectory.f_IsEmpty())
+			{
+				CalculatedSettings["IsMultiHost"] = "true";
+				CalculatedSettings["DDPSelf"] = mp_DDPSelf;
+				
+				CStr CaCertificatePath = NodeHomePath + "/certificates/MongoCA.crt";
+				CStr ClientCertificatePath = NodeHomePath + "/certificates/admin.pem";
+				CStr UserNameEncoded;
+
+				try
+				{
+					CStr UserName = CSSLContext::fs_GetCertificateDistinguishedName_RFC2253(CFile::fs_ReadFile(ClientCertificatePath));
+					NHTTP::CURL::fs_PercentEncode(UserNameEncoded, UserName);
+				}
+				catch (CException const &_Error)
+				{
+					DMibError(fg_Format("Failed to extract user name from Mongo certificate file: {}", _Error));
+				}
+				
+				CalculatedSettings["MongoHost"] = mp_MongoHost;
+				CalculatedSettings["MongoURL"] = fg_Format
+					(
+						"mongodb://{}@{}:{}/{}?replicaSet={}&authMechanism=MONGODB-X509"
+						, UserNameEncoded
+						, mp_MongoHost
+						, mp_MongoPort
+						, mp_MongoReplicaName
+						, mp_MongoDatabase
+					)
+				;
+				
+				CalculatedSettings["MongoOplogURL"] = fg_Format
+					(
+						"mongodb://{}@{}:{}/local?authMechanism=MONGODB-X509"
+						, UserNameEncoded
+						, mp_MongoHost
+						, mp_MongoPort
+					)
+				;
+
+				CalculatedSettings["MongoSSLCaFile"] = CaCertificatePath;
+				CalculatedSettings["MongoSSLClientCertFile"] = ClientCertificatePath;
+				CalculatedSettings["MongoSelfID"] = fg_Format("{}_{}", mp_MongoHost, mp_MongoPort).f_ReplaceChar('.', '_');
+			}
+			else
+			{
+				CalculatedSettings["MongoHost"] = "localhost";
+				CalculatedSettings["MongoURL"] = fg_Format("mongodb://localhost:{}/{}", mp_MongoPort, mp_MongoDatabase);
+				CalculatedSettings["MongoOplogURL"] = fg_Format("mongodb://localhost:{}/local", mp_MongoPort);
+			}
+			
+			if (mp_pCustomization)
+			{
+				mp_pCustomization->f_CalculateSettings
+					(
+						CalculatedSettings
+						, _AppLaunch.f_GetKey().m_PackageName
+						, mp_AppState
+						, mp_Options
+						, PackageOptions
+						, [&](CStr const &_Name, CEJSON const &_Default) -> CEJSON
+						{
+							return fp_GetConfigValue(_Name, _Default);
+						}
+					)
+				;
+			}
+			
+			fp_PopulateNodeEnvironment(Params.m_Environment, CalculatedSettings, _AppLaunch, PackageOptions);
 		}
-		
-		TCMap<CStr, CStr> CalculatedSettings;
-		CalculatedSettings["Home"] = NodeHomePath;
-		CalculatedSettings["TmpDir"] = NodeHomePath + "/.tmp";
-		CalculatedSettings["PackageName"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_PackageName);
-		CalculatedSettings["Sequence"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_iAppSequence);
-		
-		if (mp_pCustomization)
-			mp_pCustomization->f_CalculateSettings(CalculatedSettings, _AppLaunch.f_GetKey().m_PackageName, mp_AppState, mp_Options, PackageOptions);
-		
-		fp_PopulateNodeEnvironment(Params.m_Environment, CalculatedSettings, _AppLaunch, PackageOptions);
-		
+		catch (NException::CException const &_Exception)
+		{
+			if (_bInitialLaunch)
+				fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Failed to setup node launch environment: {}", _Exception))));
+			return;
+		}
+	
 		_AppLaunch.m_Launch = fg_ConstructActor<CProcessLaunchActor>();
 		
 		_AppLaunch.m_Launch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this))

@@ -290,32 +290,32 @@ namespace NMib::NMeteor::NMeteorManager
 					if (bSeparateUser)
 						fsp_SetupPrerequisites_NodeUser(User, HomeDirectory, MongoSSLDirectory);
 					
-					CStr BundleDirectory = ProgramDirectory + "/" + _PackageName;
-					CStr MeteorBundleFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz";
-					CStr NewChecksum = fsp_GetFileChecksum(MeteorBundleFileName).f_GetString();
-					CStr MeteorBundleChecksumFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz.installed.md5";
+					CStr PackageDirectory = ProgramDirectory + "/" + _PackageName;
+					CStr MeteorPackageFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz";
+					CStr NewChecksum = fsp_GetFileChecksum(MeteorPackageFileName).f_GetString();
+					CStr MeteorPackageChecksumFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz.installed.md5";
 					bool bDoInstall = false;
 
 					if (bForceAppsReinstall)
 						bDoInstall = true;
-					else if (CFile::fs_FileExists(BundleDirectory))
+					else if (CFile::fs_FileExists(PackageDirectory))
 					{
 						CStr OldChecksum;
 
-						if (CFile::fs_FileExists(MeteorBundleChecksumFileName))
-							OldChecksum = CFile::fs_ReadStringFromFile(MeteorBundleChecksumFileName, true);
+						if (CFile::fs_FileExists(MeteorPackageChecksumFileName))
+							OldChecksum = CFile::fs_ReadStringFromFile(MeteorPackageChecksumFileName, true);
 
 						if (NewChecksum != OldChecksum)
 						{
-							DLog(Info, "New bundle detected with checksum '{}' that differs from installed checksum '{}'. Installing new bundle", NewChecksum, OldChecksum);
+							DLog(Info, "New package detected with checksum '{}' that differs from installed checksum '{}'. Installing new package", NewChecksum, OldChecksum);
 							bDoInstall = true;
 						}
 						else
-							DLog(Info, "Installed bundle with checksum '{}' is up to date", NewChecksum, OldChecksum);
+							DLog(Info, "Installed package with checksum '{}' is up to date", NewChecksum, OldChecksum);
 					}
 					else
 					{
-						DLog(Info, "No bundle installed, installing bundle with checksum '{}'", NewChecksum);
+						DLog(Info, "No package installed, installing package with checksum '{}'", NewChecksum);
 						bDoInstall = true;
 					}
 					
@@ -323,27 +323,27 @@ namespace NMib::NMeteor::NMeteorManager
 
 					if (bDoInstall)
 					{
-						if (CFile::fs_FileExists(MeteorBundleChecksumFileName))
-							CFile::fs_DeleteFile(MeteorBundleChecksumFileName); // Make sure to retry the next time if failure below
-						if (CFile::fs_FileExists(BundleDirectory))
-							CFile::fs_DeleteDirectoryRecursive(BundleDirectory);
+						if (CFile::fs_FileExists(MeteorPackageChecksumFileName))
+							CFile::fs_DeleteFile(MeteorPackageChecksumFileName); // Make sure to retry the next time if failure below
+						if (CFile::fs_FileExists(PackageDirectory))
+							CFile::fs_DeleteDirectoryRecursive(PackageDirectory);
 
-						ThisActor(&CMeteorManagerActor::f_ExtractTar, MeteorBundleFileName, ProgramDirectory) > InstallContinuation / [=]
+						ThisActor(&CMeteorManagerActor::f_ExtractTar, MeteorPackageFileName, ProgramDirectory) > InstallContinuation / [=]
 							{
 								TCActorResultVector<CStr> Results;
 								try
 								{
 									if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
 									{
-										auto Files = CFile::fs_FindFiles(BundleDirectory + "/programs/web.browser/*.css");
-										Files.f_Insert(CFile::fs_FindFiles(BundleDirectory+ "/programs/web.browser/*.js"));
+										auto Files = CFile::fs_FindFiles(PackageDirectory + "/programs/web.browser/*.css");
+										Files.f_Insert(CFile::fs_FindFiles(PackageDirectory+ "/programs/web.browser/*.js"));
 										for (auto &File : Files)
 										{
 											ThisActor
 												(
 													&CMeteorManagerActor::f_LaunchTool
 													, "gzip"
-													, BundleDirectory
+													, PackageDirectory
 													, fg_CreateVector<CStr>("-k", "-9", File)
 													, CStr{"GZipStatic"}
 													, ELogVerbosity_Errors
@@ -356,15 +356,15 @@ namespace NMib::NMeteor::NMeteorManager
 											;
 										}
 										
-										if (!CFile::fs_FileExists(BundleDirectory + "/.installed"))
+										if (!CFile::fs_FileExists(PackageDirectory + "/.installed"))
 										{
-											CFile::fs_SetOwnerAndGroupRecursive(BundleDirectory, NodeUserName, NodeUserName);
+											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, NodeUserName, NodeUserName);
 
 											ThisActor
 												(
 													&CMeteorManagerActor::f_LaunchTool
 													, ProgramDirectory + "/node_dist/bin/npm"
-													, BundleDirectory + "/programs/server"
+													, PackageDirectory + "/programs/server"
 													, fg_CreateVector<CStr>("install", "--silent")
 													, CStr{"GZipStatic"}
 													, ELogVerbosity_Errors
@@ -390,12 +390,12 @@ namespace NMib::NMeteor::NMeteorManager
 										if (!fg_CombineResults(InstallContinuation, fg_Move(_Results)))
 											return;
 
-										// Make bundle directory read only for node process
+										// Make package directory read only for node process
 										DMibLogCategoryStr(_PackageName);
 										DLog
 											(
 												Info
-												, "Setting owner on bundle directory: {} ({}) - {} ({})"
+												, "Setting owner on package directory: {} ({}) - {} ({})"
 												, NSys::fg_UserManagement_GetProcessRealUserName()
 												, NSys::fg_UserManagement_GetProcessRealUser()
 												, NSys::fg_UserManagement_GetProcessRealGroupName()
@@ -404,8 +404,8 @@ namespace NMib::NMeteor::NMeteorManager
 										;
 										try
 										{
-											CFile::fs_SetOwnerAndGroupRecursive(BundleDirectory, NSys::fg_UserManagement_GetProcessRealUserName(), NSys::fg_UserManagement_GetProcessRealGroupName());
-											CFile::fs_WriteStringToFile(MeteorBundleChecksumFileName, NewChecksum, false);
+											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, NSys::fg_UserManagement_GetProcessRealUserName(), NSys::fg_UserManagement_GetProcessRealGroupName());
+											CFile::fs_WriteStringToFile(MeteorPackageChecksumFileName, NewChecksum, false);
 										}
 										catch (NException::CException const &)
 										{
@@ -423,7 +423,7 @@ namespace NMib::NMeteor::NMeteorManager
 					InstallContinuation > Continuation / [_PackageName, Continuation, User]
 						{
 							DMibLogCategoryStr(_PackageName);
-							DLog(Info, "Setting up bundle was successful");
+							DLog(Info, "Setting up package was successful");
 							CPackageInfo PackageInfo;
 							PackageInfo.m_User = User;
 							Continuation.f_SetResult();
@@ -448,6 +448,18 @@ namespace NMib::NMeteor::NMeteorManager
 		;
 
 		return Continuation;
+	}
+
+	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Customization()
+	{
+		if (!mp_pCustomization)
+			return fg_Explicit();
+		
+		return g_Dispatch(*mp_FileActors) > [pCustomization = mp_pCustomization, Tags = mp_Tags]
+			{
+				pCustomization->f_SetupPrerequisites(Tags);
+			}
+		;
 	}
 	
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Node()

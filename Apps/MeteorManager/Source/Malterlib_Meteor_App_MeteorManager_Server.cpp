@@ -17,6 +17,7 @@ namespace NMib::NMeteor::NMeteorManager
 		, mp_Options(_Options)
 		, mp_pCustomization(fg_CreateMeteorManagerCustomization())
 		, mp_FileActors(4)
+		, mp_InstanceId(fg_RandomID())
 	{
 	}
 	
@@ -43,39 +44,45 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		mp_FileActors.f_Construct(fg_Construct(fg_Construct<CSeparateThreadActor>(), "File actor"));
 
+		try
+		{
+			fp_ParseConfig();
+		}
+		catch (NException::CException const &_Exception)
+		{
+			return DMibErrorInstance(fg_Format("Failed to parse config: ", _Exception));
+		}
+		
+		fp_CreateAppLaunches();
 		
 		TCContinuation<void> Continuation;
 
 		DLog(Info, "Cleaning up old processes");
 		fp_CleanupOldProcesses() > Continuation % "Failed to clean up old processes" / [this, Continuation]
+		{
+			DLog(Info, "Done cleaning up, extracting ExeFS");
+			fp_ExtractExeFS() > Continuation % "Failed to extract ExeFS" / [this, Continuation]
 			{
-				DLog(Info, "Done cleaning up, extracting ExeFS");
-				fp_ExtractExeFS() > Continuation % "Failed to extract ExeFS" / [this, Continuation]
+				DLog(Info, "Done extracting ExeFS, setting up node prerequisites and updating version history");
+				fp_SetupPrerequisites_Node() + fp_UpdateVersionHistory() > Continuation / [this, Continuation]
+				{
+					DLog(Info, "Done setting up node prerequisites and updating version history, setting up customization prerequisites");
+					fp_SetupPrerequisites_Customization() > Continuation / [this, Continuation]
 					{
-						DLog(Info, "Done extracting ExeFS, setting up node prerequisites and updating version history");
-						fp_SetupPrerequisites_Node()
-							+ fp_UpdateVersionHistory()
-							> Continuation / [this, Continuation]
+						DLog(Info, "Done setting up customization prerequisites, checking node version");
+						fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node) > Continuation / [this, Continuation]
+						{
+							DLog(Info, "Done checking node version, setting up mongo");
+							fp_SetupMongo() > Continuation / [this, Continuation]
 							{
-								DLog(Info, "Done setting up node prerequisites and updating version history, checking node version");
-								fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node)
-									> Continuation / [this, Continuation]
-									{
-										DLog(Info, "Done checking node version, setting up mongo");
-										fp_SetupMongo() > Continuation / [this, Continuation]
-											{
-												DLog(Info, "Done setting up mongo, starting apps");
-												fp_StartApps() > Continuation;
-											}
-										;
-									}
-								;
-							}
-						;
-					}
-				;
-			}
-		;
+								DLog(Info, "Done setting up mongo, starting apps");
+								fp_StartApps() > Continuation;
+							};
+						};
+					};
+				};
+			};
+		};
 		
 		return Continuation;
 	}
@@ -255,7 +262,7 @@ namespace NMib::NMeteor::NMeteorManager
 			
 			if (auto *pValue = PackageSettings.f_GetMember("MemoryPerNode"))
 				Package.m_MemoryPerNode = pValue->f_AsFloat(1.5);
-			
+
 			if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJSONType_Integer))
 				Package.m_Concurrency = pValue->f_Integer();
 			else if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJSONType_String))
@@ -271,6 +278,9 @@ namespace NMib::NMeteor::NMeteorManager
 				Package.m_Concurrency = fg_Min(fg_Max(EvaluatedExpression.f_ToFloat().f_ToInt(), 1), NSys::fg_Thread_GetVirtualCores());
 			}
 
+			if (auto *pValue = PackageSettings.f_GetMember("DomainPrefix"))
+				Package.m_DomainPrefix = pValue->f_String();
+			
 			if (auto *pValue = PackageSettings.f_GetMember("StartupDependencies"))
 			{
 				for (auto &Dependency : pValue->f_Array())
@@ -288,6 +298,29 @@ namespace NMib::NMeteor::NMeteorManager
 			
 			if (auto *pValue = PackageSettings.f_GetMember("SeparateUser"))
 				Package.m_bSeparateUser = pValue->f_Boolean();
+		}
+		
+		m_DefaultDomain = Settings["DefaultDomain"].f_String();
+
+		if (auto *pValue = Settings.f_GetMember("DefaultWebPort"))
+			m_DefaultWebPort = pValue->f_Integer();
+		if (auto *pValue = Settings.f_GetMember("DefaultWebSSLPort"))
+			m_DefaultWebSSLPort = pValue->f_Integer();
+		
+		TCMap<CStr, CStr> Hostnames;
+		for (auto &Package : m_Packages)
+		{
+			if (Package.m_Type != EPackageType_Meteor)
+				continue;
+			CStr Hostname;
+			if (Package.m_DomainPrefix.f_IsEmpty())
+				Hostname = m_DefaultDomain;
+			else
+				Hostname = fg_Format("{}.{}", Package.m_DomainPrefix, m_DefaultDomain);
+			
+			auto &PackageName = *Hostnames(Hostname, Package.f_GetName());
+			if (PackageName != Package.f_GetName())
+				DMibError(fg_Format("Package '{0}' and '{1}' resolves to the same hostname '{2}'. Set DomainPrefix_{0} or DomainPrefix_{1}", PackageName, Package.f_GetName(), Hostname));
 		}
 		
 		if (auto *pValue = Settings.f_GetMember("LoopbackPrefix"))
@@ -310,19 +343,26 @@ namespace NMib::NMeteor::NMeteorManager
 			m_Mongo.m_DatabaseSetupScript = pValue->f_String();
 		if (auto *pValue = MongoJSON.f_GetMember("DefaultDatabase"))
 			m_Mongo.m_DefaultDatabase = pValue->f_String();
+		if (auto *pValue = MongoJSON.f_GetMember("DefaultReplicaName"))
+			m_Mongo.m_DefaultReplicaName = pValue->f_String();
 		
-		TCSet<CStr> DefaultReqiredTags;
+		TCSet<TCSet<CStr>> DefaultReqiredTags;
 		TCSet<CStr> DefaultForbiddenTags;
 
 		if (auto *pValue = Settings.f_GetMember("EnvironmentDefaultTags"))
 		{
 			for (auto &TagJSON : pValue->f_Array())
 			{
-				auto &Tag = TagJSON.f_String();
+				auto Tag = TagJSON.f_String();
 				if (Tag.f_StartsWith("!"))
 					DefaultForbiddenTags[Tag.f_Extract(1)];
 				else
-					DefaultReqiredTags[Tag];
+				{
+					TCSet<CStr> TagSet;
+					while (!Tag.f_IsEmpty())
+						TagSet[fg_GetStrSep(Tag, "|")];
+					DefaultReqiredTags[TagSet];
+				}
 			}
 		}
 		if (auto *pValue = Settings.f_GetMember("Environment"))
@@ -357,17 +397,24 @@ namespace NMib::NMeteor::NMeteorManager
 							Tag = Tag.f_Extract(1);
 						}
 						
+						TCSet<CStr> TagSet;
+						if (bReqired)
+						{
+							while (!Tag.f_IsEmpty())
+								TagSet[fg_GetStrSep(Tag, "|")];
+						}
+						
 						if (bAdd)
 						{
 							if (bReqired)
-								EnvVar.m_RequiredTags[Tag];
+								EnvVar.m_RequiredTags[TagSet];
 							else
 								EnvVar.m_ForbiddenTags[Tag];
 						}
 						else
 						{
 							if (bReqired)
-								EnvVar.m_RequiredTags.f_Remove(Tag);
+								EnvVar.m_RequiredTags.f_Remove(TagSet);
 							else
 								EnvVar.m_ForbiddenTags.f_Remove(Tag);
 						}
@@ -387,7 +434,12 @@ namespace NMib::NMeteor::NMeteorManager
 			, CDistributedAppState const &_AppState
 			, CMeteorManagerOptions const &_Options
 			, CMeteorManagerOptions::CPackage const &_PackageOptions
+			, TCFunction<CEJSON (CStr const &_Name, CEJSON const &_Default)> const &_fGetConfigValue
 		)
+	{
+	}
+
+	void ICMeteorManagerCustomization::f_SetupPrerequisites(TCSet<CStr> const &_Tags)
 	{
 	}
 }

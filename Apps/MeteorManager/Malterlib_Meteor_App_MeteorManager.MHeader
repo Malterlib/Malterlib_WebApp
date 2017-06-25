@@ -148,6 +148,29 @@
 	}
 }
 
+Property
+{
+	MeteorManagerEnvironmment "ROOT_URL(Meteor)=RootURL;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "PORT(Meteor)=LocalPort|8080;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "BIND_IP(Meteor)=LocalIP;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "HTTP_FORWARDED_COUNT(Meteor)=HttpForwardedCount|1;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "MAIL_URL(!Staging)=SMTP;@(MeteorManagerEnvironmment)"
+	
+	MeteorManagerEnvironmment "BUNDLE_PATH=PackageDirectory;@(MeteorManagerEnvironmment)"
+
+	MeteorManagerEnvironmment "MONGO_URL=MongoURL;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "MONGO_OPLOG_URL=MongoOplogURL;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "MONGO_SSL_CA_FILE=MongoSSLCaFile;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "MONGO_SSL_CLIENT_CERT_FILE=MongoSSLClientCertFile;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "MONGO_SELF_ID=MongoSelfID;@(MeteorManagerEnvironmment)"
+	
+	MeteorManagerEnvironmment "METEOR_DDP_SELF=DDPSelf;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "METEOR_MANAGER_INSTANCE_ID=ManagerInstanceID;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "METEOR_MANAGER_NODE_INSTANCE_ID=NodeInstanceID;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "METEOR_MANAGER_NODE_SEQUENCE=NodeSequence;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "METEOR_MANAGER_BACKEND_IDENTIFIER=BackendIdentifier;@(MeteorManagerEnvironmment)"
+}
+
 %Target "Malterlib_Meteor_MeteorManager"
 {
 	Property
@@ -230,6 +253,11 @@
 			{
 				Empty ""
 				
+				MeteorManagerMongoDefaultReplicaName "DefaultReplica"
+				{
+					!!MeteorManagerMongoDefaultReplicaName ""
+				}
+				
 				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~*;@(Explodee);*" }
 				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~*;@(Explodee);*" }
 				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~*;@(Explodee);*" }
@@ -301,6 +329,13 @@
 				{
 					!Empty "@(StartDependencies_@(Explodee))"
 				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"DomainPrefix\": \"@(DomainPrefix_@(Explodee))\",\n"
+				{
+					!Empty "@(DomainPrefix_@(Explodee))"
+				}
+
 				
 				PackageSettings_Template	"		\"@(Explodee)\": {\n"\
 											"@(PackageSettings)"\
@@ -359,10 +394,20 @@
 					!MeteorManagerMongoDatabaseSetupScript ""
 				}
 				Contents	"@(Contents)"\
+							"		\"DefaultReplicaName\": \"@(MeteorManagerMongoDefaultReplicaName)\",\n"
+				{
+					!MeteorManagerMongoDefaultReplicaName ""
+				}
+				Contents	"@(Contents)"\
 							"		\"DefaultDatabase\": \"@(MeteorManagerMongoDefaultDatabase)\",\n"
 				{
 					!MeteorManagerMongoDefaultDatabase ""
 				}
+				Contents	"@(Error('You need to specify MeteorManagerMongoDefaultDatabase'))"
+				{
+					!!MeteorManagerMongoDefaultDatabase ""
+				}
+				
 				
 				Contents	"@(Contents)"\
 							"	},\n"
@@ -372,8 +417,26 @@
 				{
 					!MeteorLoopbackPrefix ""
 				}
-				
+				Contents	"@(Contents)"\
+							"	\"DefaultDomain\": \"@(MeteorManagerDefaultDomain)\",\n"
+				{
+					!MeteorManagerDefaultDomain ""
+				}
+				Contents	"@(Error('You need to specify MeteorManagerDefaultDomain'))"
+				{
+					!!MeteorManagerDefaultDomain ""
+				}
 
+				Contents	"@(Contents)"\
+							"	\"DefaultWebPort\": @(MeteorManagerDefaultWebPort),\n"
+				{
+					!MeteorManagerDefaultWebPort ""
+				}
+				Contents	"@(Contents)"\
+							"	\"DefaultWebSSLPort\": @(MeteorManagerDefaultWebSSLPort),\n"
+				{
+					!MeteorManagerDefaultWebSSLPort ""
+				}
 				
 				EnvironmentDefaultTags_Template	"\"@(Explodee)\", "
 				{
@@ -386,23 +449,13 @@
 					!MeteorManagerEnvironmentDefaultTags ""
 				}
 				
-				NodeEnvironment_Variable "@(Explodee->ParseFormatString('{}({})={}', '{0}'))"
 				NodeEnvironment_Variable "@(Explodee->ParseFormatString('{}={}', '{0}'))"
-				{
-					!!NodeEnvironment_Variable ""
-				}
-				NodeEnvironment_Variable "@(Error('Environment variable and setting has to be specified in the formmat x=x'))"
-				{
-					!!NodeEnvironment_Variable ""
-				}
+				NodeEnvironment_Variable "@(NodeEnvironment_Variable->ParseFormatString('{}({})', '{0}'))"
 
 				NodeEnvironment_Tags "@(Explodee->ParseFormatString('{}({})={}', '{1}'))"
 
-				NodeEnvironment_Setting "@(Explodee->ParseFormatString('{}={}|{}', '{1}'))"
 				NodeEnvironment_Setting "@(Explodee->ParseFormatString('{}={}', '{1}'))"
-				{
-					!!NodeEnvironment_Setting ""
-				}
+				NodeEnvironment_Setting "@(NodeEnvironment_Setting->ParseFormatString('{}|{}', '{0}'))"
 
 				NodeEnvironment_Default "@(Explodee->ParseFormatString('{}={}|{}', '{2}'))"
 				
