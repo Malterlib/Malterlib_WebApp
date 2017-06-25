@@ -92,6 +92,7 @@ namespace NMib::NMeteor::NMeteorManager
 		virtual void f_CalculateSettings
 			(
 				TCMap<CStr, CStr> &o_Settings
+				, CJSON &o_MeteorSettings
 				, CStr const &_PackageName
 				, CDistributedAppState const &_AppState
 				, CMeteorManagerOptions const &_Options

@@ -388,6 +388,9 @@ namespace NMib::NMeteor::NMeteorManager
 			TCMap<CStr, CStr> CalculatedSettings;
 			CalculatedSettings["Home"] = NodeHomePath;
 			CalculatedSettings["TmpDir"] = NodeHomePath + "/.tmp";
+			
+			if (mp_bIsStaging)
+				CalculatedSettings["Staging"] = "true";
 
 			CalculatedSettings["PackageDirectory"] = PackageDirectory;
 			
@@ -398,6 +401,8 @@ namespace NMib::NMeteor::NMeteorManager
 			CalculatedSettings["PackageName"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_PackageName);
 			CalculatedSettings["BackendIdentifier"] = _AppLaunch.m_BackendIdentifier;
 			CalculatedSettings["LocalIP"] = fp_GetAppIPAddress(_AppLaunch);
+			CalculatedSettings["WebSSLPort"] = CStr::fs_ToStr(mp_WebSSLPort);
+			CalculatedSettings["WebPort"] = CStr::fs_ToStr(mp_WebPort);
 			
 			if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Meteor)
 			{
@@ -467,11 +472,35 @@ namespace NMib::NMeteor::NMeteorManager
 				CalculatedSettings["MongoOplogURL"] = fg_Format("mongodb://localhost:{}/local", mp_MongoPort);
 			}
 			
+			CJSON MeteorSettings;
+			{
+				auto &PublicMeteorSettings = MeteorSettings["public"];
+
+				CStr Branch;
+				CStr Version;
+				CStr Platform;
+				CStr Config;
+				
+				CStr VersionString = fsp_GetVersionString();
+				(CStr::CParse("{} {} {} {}") >> Branch >> Version >> Platform >> Config).f_Parse(VersionString);
+				PublicMeteorSettings["appVersion"] = fg_Format("#{} | {}", Version, Branch);
+
+				{
+					auto &VersionHistory = (PublicMeteorSettings["appVersionHistory"] = EJSONType_Array).f_Array();
+					for (auto const &HistoryEntry : mp_VersionHistory)
+						VersionHistory.f_Insert(CJSON(HistoryEntry));
+				}
+
+				if (mp_bIsStaging)
+					PublicMeteorSettings["stagingServer"] = true;
+			}
+			
 			if (mp_pCustomization)
 			{
 				mp_pCustomization->f_CalculateSettings
 					(
 						CalculatedSettings
+						, MeteorSettings
 						, _AppLaunch.f_GetKey().m_PackageName
 						, mp_AppState
 						, mp_Options
@@ -485,6 +514,8 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 			
 			fp_PopulateNodeEnvironment(Params.m_Environment, CalculatedSettings, _AppLaunch, PackageOptions);
+
+			Params.m_Environment["METEOR_SETTINGS"] = MeteorSettings.f_ToString();
 		}
 		catch (NException::CException const &_Exception)
 		{
