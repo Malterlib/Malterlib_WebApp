@@ -33,10 +33,14 @@ namespace NMib::NMeteor::NMeteorManager
 				return TCMap<CStr, CPackage>::fs_GetKey(*this);
 			}
 			
-			EPackageType m_Type = EPackageType_Meteor;
-			mint m_Concurrency = 1;
-			fp64 m_MemoryPerNode = 1.5;
 			TCVector<CStr> m_StartupDependencies;
+			CStr m_CustomExecutable;
+			TCVector<CStr> m_CustomParams;
+			CUser m_User{""};
+			fp64 m_MemoryPerNode = 1.5;
+			mint m_Concurrency = 1;
+			EPackageType m_Type = EPackageType_Meteor;
+			bool m_bSeparateUser = false;
 		};
 		
 		struct CMongo
@@ -89,6 +93,8 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> f_PreStop();
 		
 		static void fs_SetupEnvironment(CProcessLaunchParams &_Params);
+		
+		static mint fs_GetNodeFileLimits();
 
 		TCContinuation<CStr> f_LaunchTool
 			(
@@ -106,6 +112,31 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<CStr> f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir);
 		
 	private:
+		
+		struct CAppLaunchKey
+		{
+			CStr m_PackageName;
+			mint m_iAppSequence = 0;
+			
+			bool operator < (CAppLaunchKey const &_Right) const
+			{
+				return fg_TupleReferences(m_PackageName, m_iAppSequence) < fg_TupleReferences(_Right.m_PackageName, _Right.m_iAppSequence);
+			}
+		};
+		
+		struct CAppLaunch
+		{
+			CAppLaunchKey const &f_GetKey() const
+			{
+				return TCMap<CAppLaunchKey, CAppLaunch>::fs_GetKey(*this);
+			}
+			
+			TCActor<CProcessLaunchActor> m_Launch;
+			CActorSubscription m_LaunchSubscription;
+			CStr m_LogCategory;
+			bool m_bInitialLaunched = false;
+		};
+		
 		TCContinuation<void> fp_Destroy() override;
 		
 		CStr fp_GetDataPath(CStr const &_Path) const;
@@ -127,11 +158,12 @@ namespace NMib::NMeteor::NMeteorManager
 		mint fp_GetNumNodes() const;
 		
 		static CHashDigest_MD5 fsp_GetFileChecksum(CStr const &_File);
+		static void fsp_SetupPrerequisites_NodeUser(CUser &_User, CStr const &_Directory, CStr const &_SSLDirectory);
 		
 		TCContinuation<void> fp_SetupPrerequisites_Node();
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
 		TCContinuation<void> fp_SetupPrerequisites_Packages();
-		TCContinuation<void> fp_SetupPrerequisites_Package(CStr const &_BundleName, CMeteorManagerOptions::EPackageType _Type);
+		TCContinuation<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type);
 		TCContinuation<void> fp_SetupPrerequisites_OSSetup();
 		
 		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
@@ -142,6 +174,10 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		static CStr fsp_GetVersionString();
 		TCContinuation<void> fp_UpdateVersionHistory();
+
+		void fp_UpdateAppLaunch(CExceptionPointer const &_pException);
+		void fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch);
+		void fp_SetupNodeArguments(TCVector<CStr> &o_Arguments, CAppLaunch const &_AppLaunch, CMeteorManagerOptions::CPackage const &_PackageOptions);
 		
 		TCContinuation<void> fp_StartApps();
 		TCContinuation<void> fp_DestroyApps();
@@ -161,8 +197,12 @@ namespace NMib::NMeteor::NMeteorManager
 		bool mp_bStopped = false;
 		bool mp_bForceAppsReinstall = false;
 		
-		// Tool launches
 		TCLinkedList<CToolLaunch> mp_ToolLaunches;
+		
+		TCMap<CAppLaunchKey, CAppLaunch> mp_AppLaunches;
+		TCMap<CStr, zmint> mp_OutstandingLaunches;
+		mint mp_AppSequence = 0;
+		TCContinuation<void> mp_AppLaunchesContinuation;
 	};
 }
 

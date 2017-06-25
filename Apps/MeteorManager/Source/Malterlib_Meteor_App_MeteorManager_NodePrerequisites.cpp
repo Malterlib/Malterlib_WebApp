@@ -41,6 +41,56 @@ namespace NMib::NMeteor::NMeteorManager
 		return CFile::fs_GetFileChecksum(_File);
 	}
 
+	void CMeteorManagerActor::fsp_SetupPrerequisites_NodeUser(CUser &_User, CStr const &_Directory, CStr const &_SSLDirectory)
+	{
+		fsp_SetupUser(_User);
+
+		CStr TmpDirectory = _Directory + "/.tmp";
+		CFile::fs_CreateDirectory(_Directory);
+
+		if (CFile::fs_FileExists(TmpDirectory))
+			CFile::fs_DeleteDirectoryRecursive(TmpDirectory);
+
+		CFile::fs_CreateDirectory(TmpDirectory);
+
+		CStr NodeCertificateDirectory = _Directory + "/certificates";
+		
+		if (!_SSLDirectory.f_IsEmpty() && CFile::fs_FileExists(_SSLDirectory))
+		{
+			CFile::fs_DiffCopyFileOrDirectory
+				(
+					_SSLDirectory
+					, NodeCertificateDirectory
+					, [](CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link) -> CFile::EDiffCopyChangeAction
+					{
+						if (_Change == CFile::EDiffCopyChange_FileDeleted)
+							return CFile::EDiffCopyChangeAction_Skip;
+						if (_Change == CFile::EDiffCopyChange_LinkDeleted)
+							return CFile::EDiffCopyChangeAction_Skip;
+						if (_Change == CFile::EDiffCopyChange_DirectoryDeleted)
+							return CFile::EDiffCopyChangeAction_Skip;
+						
+						return CFile::EDiffCopyChangeAction_Perform;
+					}
+					, 0.0f
+				)
+			;
+		}
+		
+		if (CFile::fs_FileExists(NodeCertificateDirectory))
+		{
+			CFile::fs_SetUnixAttributesRecursive
+				(
+					NodeCertificateDirectory
+					, NFile::EFileAttrib_UserRead, NFile::EFileAttrib_UserRead | NFile::EFileAttrib_UserExecute
+					, false
+				)
+			;
+		}
+
+		CFile::fs_SetOwnerAndGroupRecursive(_Directory, _User.m_Name, _User.m_Name);
+	}
+
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_NodeExtract()
 	{
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
@@ -71,59 +121,13 @@ namespace NMib::NMeteor::NMeteorManager
 
 				try
 				{
-					fsp_SetupUser(NodeUser);
+					fsp_SetupPrerequisites_NodeUser(NodeUser, NodeDirectory, MongoSSLDirectory);
 					
 					auto Files = CFile::fs_FindFiles(ProgramDirectory + "/node-*");
 					
 					if (!Files.f_IsEmpty())
 					{
 						DistFile = Files[0];
-
-						CStr TmpDirectory = NodeDirectory + "/.tmp";
-						CFile::fs_CreateDirectory(NodeDirectory);
-
-						if (CFile::fs_FileExists(TmpDirectory))
-							CFile::fs_DeleteDirectoryRecursive(TmpDirectory);
-
-						CFile::fs_CreateDirectory(TmpDirectory);
-
-						CStr NodeCertificateDirectory = NodeDirectory + "/certificates";
-						
-						if (!MongoSSLDirectory.f_IsEmpty() && CFile::fs_FileExists(MongoSSLDirectory))
-						{
-							CFile::fs_DiffCopyFileOrDirectory
-								(
-									MongoSSLDirectory
-									, NodeCertificateDirectory
-									, [](CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link) -> CFile::EDiffCopyChangeAction
-									{
-										if (_Change == CFile::EDiffCopyChange_FileDeleted)
-											return CFile::EDiffCopyChangeAction_Skip;
-										if (_Change == CFile::EDiffCopyChange_LinkDeleted)
-											return CFile::EDiffCopyChangeAction_Skip;
-										if (_Change == CFile::EDiffCopyChange_DirectoryDeleted)
-											return CFile::EDiffCopyChangeAction_Skip;
-										
-										return CFile::EDiffCopyChangeAction_Perform;
-									}
-									, 0.0f
-								)
-							;
-						}
-						
-						if (CFile::fs_FileExists(NodeCertificateDirectory))
-						{
-							CFile::fs_SetUnixAttributesRecursive
-								(
-									NodeCertificateDirectory
-									, NFile::EFileAttrib_UserRead, NFile::EFileAttrib_UserRead | NFile::EFileAttrib_UserExecute
-									, false
-								)
-							;
-						}
-
-						CFile::fs_SetOwnerAndGroupRecursive(NodeDirectory, NodeUser.m_Name, NodeUser.m_Name);
-
 						NewChecksum = fsp_GetFileChecksum(DistFile).f_GetString();
 						
 						if (CFile::fs_FileExists(DistDirectory))
@@ -248,34 +252,48 @@ namespace NMib::NMeteor::NMeteorManager
 		return Continuation;
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Package(CStr const &_BundleName, CMeteorManagerOptions::EPackageType _Type)
+	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type)
 	{
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
 		TCContinuation<void> Continuation;
 
+		struct CPackageInfo
+		{
+			CUser m_User = {""};
+		};
+		
+		auto &PackageOptions = fg_Const(mp_Options.m_Packages)[_PackageName];
+
 		g_Dispatch(*mp_FileActors) >
 			[
-				_BundleName
+				_PackageName
 				, _Type
 				, ProgramDirectory
 				, ThisActor = fg_ThisActor(this)
 				, NodeUserName = mp_NodeUser.m_Name
+				, User = CUser{fg_Format("mib_node_{}_{}", mp_Options.m_ManagerName, _PackageName)}
+				, HomeDirectory = fg_Format("{}/node_{}", ProgramDirectory, _PackageName)
+				, MongoSSLDirectory = fp_GetMongoSSLDirectory()
+				, bSeparateUser = PackageOptions.m_bSeparateUser
 				, bForceAppsReinstall = mp_bForceAppsReinstall
 			]
-			() mutable -> TCContinuation<void>
+			() mutable -> TCContinuation<CPackageInfo>
 			{
-				TCContinuation<void> Continuation;
+				TCContinuation<CPackageInfo> Continuation;
 				
 				try
 				{
-					DMibLogCategoryStr(_BundleName);
-					DLog(Info, "Setting up bundle");
+					DMibLogCategoryStr(_PackageName);
+					DLog(Info, "Setting up package");
 
-					CStr BundleDirectory = ProgramDirectory + "/" + _BundleName;
-					CStr MeteorBundleFileName = ProgramDirectory + "/" + _BundleName + ".tar.gz";
+					if (bSeparateUser)
+						fsp_SetupPrerequisites_NodeUser(User, HomeDirectory, MongoSSLDirectory);
+					
+					CStr BundleDirectory = ProgramDirectory + "/" + _PackageName;
+					CStr MeteorBundleFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz";
 					CStr NewChecksum = fsp_GetFileChecksum(MeteorBundleFileName).f_GetString();
-					CStr MeteorBundleChecksumFileName = ProgramDirectory + "/" + _BundleName + ".tar.gz.installed.md5";
+					CStr MeteorBundleChecksumFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz.installed.md5";
 					bool bDoInstall = false;
 
 					if (bForceAppsReinstall)
@@ -373,7 +391,7 @@ namespace NMib::NMeteor::NMeteorManager
 											return;
 
 										// Make bundle directory read only for node process
-										DMibLogCategoryStr(_BundleName);
+										DMibLogCategoryStr(_PackageName);
 										DLog
 											(
 												Info
@@ -402,10 +420,12 @@ namespace NMib::NMeteor::NMeteorManager
 					else
 						InstallContinuation.f_SetResult();
 					
-					InstallContinuation > Continuation / [_BundleName, Continuation]
+					InstallContinuation > Continuation / [_PackageName, Continuation, User]
 						{
-							DMibLogCategoryStr(_BundleName);
+							DMibLogCategoryStr(_PackageName);
 							DLog(Info, "Setting up bundle was successful");
+							CPackageInfo PackageInfo;
+							PackageInfo.m_User = User;
 							Continuation.f_SetResult();
 						}
 					;
@@ -418,8 +438,11 @@ namespace NMib::NMeteor::NMeteorManager
 				
 				return Continuation;
 			}
-			> Continuation / [this, Continuation]()
+			> Continuation / [this, Continuation, _PackageName](CPackageInfo const &_PackageInfo)
 			{
+				auto &Package = mp_Options.m_Packages[_PackageName];
+				Package.m_User = _PackageInfo.m_User;
+				
 				Continuation.f_SetResult();
 			}
 		;

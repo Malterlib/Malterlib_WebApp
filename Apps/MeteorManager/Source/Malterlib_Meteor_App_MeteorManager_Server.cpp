@@ -276,6 +276,18 @@ namespace NMib::NMeteor::NMeteorManager
 				for (auto &Dependency : pValue->f_Array())
 					Package.m_StartupDependencies.f_Insert(Dependency.f_String());
 			}
+			
+			if (auto *pValue = PackageSettings.f_GetMember("CustomExecutable"))
+				Package.m_CustomExecutable = pValue->f_String();
+
+			if (auto *pValue = PackageSettings.f_GetMember("CustomParams"))
+			{
+				for (auto &Dependency : pValue->f_Array())
+					Package.m_CustomParams.f_Insert(Dependency.f_String());
+			}
+			
+			if (auto *pValue = PackageSettings.f_GetMember("SeparateUser"))
+				Package.m_bSeparateUser = pValue->f_Boolean();
 		}
 		
 		if (auto *pValue = Settings.f_GetMember("LoopbackPrefix"))
