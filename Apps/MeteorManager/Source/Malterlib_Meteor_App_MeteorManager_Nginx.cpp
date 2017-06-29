@@ -122,22 +122,25 @@ ch8 const *g_pServerTemplate = R"---(
 
 				Results.m_CertificateFile = NginxDirectory + "/certificates/web.pem";
 				Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web.key";
+				CStr CertificateRequestFile = NginxDirectory + "/certificates/web.csr";
 
 				if (bIsStaging)
 				{
 					Results.m_CertificateFile = NginxDirectory + "/certificates/web-staging.pem";
 					Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web-staging.key";
+					CertificateRequestFile = NginxDirectory + "/certificates/web-staging.csr";
 				}
 
 				if (!CFile::fs_FileExists(Results.m_CertificateFile))
 				{
 					TCVector<uint8> CertData;
+					TCVector<uint8> CertRequestData;
 					TCVector<uint8, CAllocator_HeapSecure> KeyData;
 
 					TCVector<CStr> Subjects = fg_CreateVector<CStr>(Domain, "*." + Domain);
 
 					CSSLContext::CCertificateOptions Options;
-					Options.m_Subject = fg_Format("Favro Self Signed {nfh,sj16,sf0}", fg_GetHighEntropyRandomInteger<uint64>());
+					Options.m_Subject = Domain;
 					Options.m_Hostnames = Subjects;
 					Options.m_KeySetting = CSSLKeySettings_EC_secp384r1();
 
@@ -148,8 +151,11 @@ ch8 const *g_pServerTemplate = R"---(
 							, KeyData
 						)
 					;
+					CSSLContext::fs_GenerateClientCertificateRequest(Options, CertRequestData, KeyData);
+					
 					CFile::fs_WriteFile(CertData, Results.m_CertificateFile);
 					CFile::fs_WriteFile(KeyData, Results.m_CertificateKeyFile);
+					CFile::fs_WriteFile(CertRequestData, CertificateRequestFile);
 				}
 
 				if (CFile::fs_FileExists(DhParamFile))
