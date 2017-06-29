@@ -193,6 +193,9 @@ Property
 		MeteorManagerCopySources "@('Source/Malterlib_Meteor_App_MeteorManager_OSSetup.sh'->MakeAbsolute())|Source;@(MeteorManagerCopySources)"
 		MeteorManagerCopySources "@('Source/Malterlib_Meteor_App_MeteorManager_Nginx.conf'->MakeAbsolute())|Source;@(MeteorManagerCopySources)"
 		MeteorManagerCopySources "@(MeteorManagerMongoDatabaseSetupScript)|Source;@(MeteorManagerCopySources)"
+		{
+			!MeteorManagerMongoDatabaseSetupScript ""
+		}
 
 		MalterlibExeFSExtraFiles "@(MeteorManagerCopySources);@(MalterlibExeFSExtraFiles)"
 		{
