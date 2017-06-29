@@ -142,7 +142,7 @@ ch8 const *g_pServerTemplate = R"---(
 					CSSLContext::CCertificateOptions Options;
 					Options.m_Subject = Domain;
 					Options.m_Hostnames = Subjects;
-					Options.m_KeySetting = CSSLKeySettings_EC_secp384r1();
+					Options.m_KeySetting = CSSLKeySettings_RSA{8192};
 
 					CSSLContext::fs_GenerateSelfSignedCertAndKey
 						(
