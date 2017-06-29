@@ -622,6 +622,19 @@ Property
 	{
 		Dependency.Link false
 	}
+	
+	Property
+	{
+		CloudUploadSources_Template "@(Builtin.Function->GetProperty('Property', 'MalterlibBuildServerPutSources', 'Group:@(Explodee).Target:Tool_Malterlib_BuildMeteor.Target:Tool_Malterlib_BuildMeteor'));"
+		{
+			!Explodee ""
+		}
+		CloudUploadSources "@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'CloudUploadSources_Template'));@(CloudUploadSources)"
+		
+		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_nginx.Target:Exe_nginx'))|/nginx_exe;@(CloudUploadSources)"
+
+		MalterlibCloud_VersionUploadSources "@(CloudUploadSources);@(MalterlibCloud_VersionUploadSources)"
+	}
 }
 
 Property.Malterlib_Meteor_App_Targets "@(Malterlib_Meteor_App_Targets)"
