@@ -26,21 +26,6 @@ namespace NMib::NMeteor::NMeteorManager
 	CMeteorManagerDaemonActor::~CMeteorManagerDaemonActor()
 	{
 	}
-
-	namespace
-	{
-		mint fg_GetNginxWorkerFileLimits()
-		{
-			mint nFilesPerConnection = 2; // nginx incoming + nginx proxy -> node
-
-			return 65536*nFilesPerConnection + 8192;
-		}
-		
-		mint fg_GetNginxFileLimits(mint _nNodes)
-		{
-			return fg_GetNginxWorkerFileLimits() * _nNodes + 8192;
-		}
-	}
 	
 	void CMeteorManagerDaemonActor::fp_PopulateAppInterfaceRegisterInfo(CDistributedAppInterfaceServer::CRegisterInfo &o_RegisterInfo, NEncoding::CEJSON const &_Params)
 	{
@@ -52,11 +37,11 @@ namespace NMib::NMeteor::NMeteorManager
 			nNodes += Package.m_Concurrency;
 
 		mint nMaxFilesNeeded = 8192;
-		nMaxFilesNeeded += fg_GetNginxFileLimits(nNodes);
+		nMaxFilesNeeded += CMeteorManagerActor::fs_GetNginxFileLimits(nNodes);
 		nMaxFilesNeeded += CMeteorManagerActor::fs_GetNodeFileLimits() * nNodes;
 
 		mint nFilesPerProc = 0;
-		nFilesPerProc = fg_Max(nFilesPerProc, fg_GetNginxWorkerFileLimits());
+		nFilesPerProc = fg_Max(nFilesPerProc, CMeteorManagerActor::fs_GetNginxWorkerFileLimits());
 		nFilesPerProc = fg_Max(nFilesPerProc, CMeteorManagerActor::fs_GetNodeFileLimits());
 		
 		mint nMaxThreads = 1024;

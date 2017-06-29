@@ -132,6 +132,11 @@ namespace NMib::NMeteor::NMeteorManager
 			]
 			(TCContinuation<void> const &_Continuation) mutable
 			{
+				if (_Continuation.f_IsSet())
+				{
+					pDoLaunch.f_Clear();
+					return;
+				}
 				f_LaunchTool
 					(
 						MongoExecutable
@@ -144,7 +149,7 @@ namespace NMib::NMeteor::NMeteorManager
 						, {}
 						, {}
 					)
-					> [ScriptName, _Continuation, Clock, _Timeout, pDoLaunch = fg_Move(pDoLaunch)](TCAsyncResult<CStr> const &_StdOut)
+					> [ScriptName, _Continuation, Clock, _Timeout, pDoLaunch](TCAsyncResult<CStr> const &_StdOut)
 					{
 						if (!_StdOut)
 						{
@@ -158,10 +163,12 @@ namespace NMib::NMeteor::NMeteorManager
 								return;
 							}
 							_Continuation.f_SetException(_StdOut);
+							(*pDoLaunch)(_Continuation);
 							return;
 						}
 						DLog(Info, "{}:\n{}", ScriptName, (*_StdOut).f_Trim());
 						_Continuation.f_SetResult();
+						(*pDoLaunch)(_Continuation);
 					}
 				;
 			}

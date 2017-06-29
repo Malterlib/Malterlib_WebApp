@@ -13,6 +13,7 @@ namespace NMib::NMeteor::NMeteorManager
 	CMeteorManagerActor::CMeteorManagerActor(CDistributedAppState &_AppState, CMeteorManagerOptions const &_Options)
 		: mp_AppState(_AppState)
 		, mp_NodeUser{fg_Format("mib_node_{}", _Options.m_ManagerName)}
+		, mp_NginxUser{fg_Format("mib_nginx_{}", _Options.m_ManagerName)}
 		, mp_pCanDestroyTracker(fg_Construct())
 		, mp_Options(_Options)
 		, mp_pCustomization(fg_CreateMeteorManagerCustomization())
@@ -69,14 +70,22 @@ namespace NMib::NMeteor::NMeteorManager
 					DLog(Info, "Done setting up node prerequisites and updating version history, setting up customization prerequisites");
 					fp_SetupPrerequisites_Customization() > Continuation / [this, Continuation]
 					{
-						DLog(Info, "Done setting up customization prerequisites, checking node version");
-						fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node) > Continuation / [this, Continuation]
+						DLog(Info, "Done setting up customization prerequisites, setting up nginx prerequisites");
+						fp_SetupPrerequisites_Nginx() > Continuation / [this, Continuation]
 						{
-							DLog(Info, "Done checking node version, setting up mongo");
-							fp_SetupMongo() > Continuation / [this, Continuation]
+							DLog(Info, "Done setting up nginx prerequisites, checking node version");
+							fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node) > Continuation / [this, Continuation]
 							{
-								DLog(Info, "Done setting up mongo, starting apps");
-								fp_StartApps() > Continuation;
+								DLog(Info, "Done checking node version, setting up mongo");
+								fp_SetupMongo() > Continuation / [this, Continuation]
+								{
+									DLog(Info, "Done setting up mongo, starting apps");
+									fp_StartApps() > Continuation / [this, Continuation]
+									{
+										DLog(Info, "Done stating apps, starting nginx");
+										fp_StartNginx() > Continuation;
+									};
+								};
 							};
 						};
 					};
@@ -103,8 +112,19 @@ namespace NMib::NMeteor::NMeteorManager
 			{
 				fp_DestroyApps() > [this, Continuation](auto &&)
 					{
-						DLog(Debug, "Pre-stop server done");
-						Continuation.f_SetResult();
+						if (!mp_NginxLaunch)
+						{
+							DLog(Debug, "Pre-stop server done");
+							Continuation.f_SetResult();
+							return;
+						}
+						mp_NginxLaunch->f_Destroy() > [this, Continuation](auto &&)
+							{
+								DLog(Debug, "Pre-stop server done");
+								Continuation.f_SetResult();
+								return;
+							}
+						;
 					}
 				;
 			}
@@ -131,8 +151,18 @@ namespace NMib::NMeteor::NMeteorManager
 					{
 						fp_DestroyApps() > [this, pCanDestroy](auto &&)
 							{
-								DLog(Debug, "Destroy apps done");
-								mp_FileActors.f_Destroy() > pCanDestroy->f_Track();
+								if (!mp_NginxLaunch)
+								{
+									DLog(Debug, "Destroy apps done");
+									mp_FileActors.f_Destroy() > pCanDestroy->f_Track();
+									return;
+								}
+								mp_NginxLaunch->f_Destroy() > [this, pCanDestroy](auto &&)
+									{
+										DLog(Debug, "Destroy apps done");
+										mp_FileActors.f_Destroy() > pCanDestroy->f_Track();
+									}
+								;
 							}
 						;
 					}
@@ -280,6 +310,15 @@ namespace NMib::NMeteor::NMeteorManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("DomainPrefix"))
 				Package.m_DomainPrefix = pValue->f_String();
+
+			if (auto *pValue = PackageSettings.f_GetMember("RedirectsFile"))
+				Package.m_RedirectsFile = pValue->f_String();
+			
+			if (auto *pValue = PackageSettings.f_GetMember("StickyCookie"))
+				Package.m_StickyCookie = pValue->f_String();
+			
+			if (auto *pValue = PackageSettings.f_GetMember("StickyHeader"))
+				Package.m_StickyHeader = pValue->f_String();
 			
 			if (auto *pValue = PackageSettings.f_GetMember("StartupDependencies"))
 			{
@@ -298,6 +337,12 @@ namespace NMib::NMeteor::NMeteorManager
 			
 			if (auto *pValue = PackageSettings.f_GetMember("SeparateUser"))
 				Package.m_bSeparateUser = pValue->f_Boolean();
+
+			if (auto *pValue = PackageSettings.f_GetMember("StaticPath"))
+				Package.m_StaticPath = pValue->f_String();
+
+			if (auto *pValue = PackageSettings.f_GetMember("AllowRobots"))
+				Package.m_bAllowRobots = pValue->f_Boolean();
 		}
 		
 		m_DefaultDomain = Settings["DefaultDomain"].f_String();
@@ -306,6 +351,12 @@ namespace NMib::NMeteor::NMeteorManager
 			m_DefaultWebPort = pValue->f_Integer();
 		if (auto *pValue = Settings.f_GetMember("DefaultWebSSLPort"))
 			m_DefaultWebSSLPort = pValue->f_Integer();
+		
+		if (auto *pValue = Settings.f_GetMember("HTTPRedirectReferrerCookie"))
+			m_HTTPRedirectReferrerCookie = pValue->f_String();
+
+		if (auto *pValue = Settings.f_GetMember("RedirectWWW"))
+			m_bRedirectWWW = pValue->f_Boolean();
 		
 		TCMap<CStr, CStr> Hostnames;
 		for (auto &Package : m_Packages)
@@ -439,7 +490,18 @@ namespace NMib::NMeteor::NMeteorManager
 		)
 	{
 	}
-
+	
+	void ICMeteorManagerCustomization::f_ManipulateNginxConfig
+		(
+			CStr &o_Config
+			, CDistributedAppState const &_AppState
+			, CMeteorManagerOptions const &_Options
+			, TCFunction<CEJSON (CStr const &_Name, CEJSON const &_Default)> const &_fGetConfigValue
+			, TCSet<CStr> const &_Tags
+		)
+	{
+	}
+	
 	void ICMeteorManagerCustomization::f_SetupPrerequisites(TCSet<CStr> const &_Tags)
 	{
 	}

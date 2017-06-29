@@ -113,7 +113,7 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		TCContinuation<CStr> Continuation;
 		pToolLaunch->m_ProcessLaunch(&CProcessLaunchActor::f_LaunchSimple, fg_Move(Launch))
-			> Continuation / [this, pCleanup, Continuation, _bSeparateStdErr](CProcessLaunchActor::CSimpleLaunchResult &&_Result)
+			> Continuation / [this, pCleanup, Continuation, _bSeparateStdErr, _LogCategory](CProcessLaunchActor::CSimpleLaunchResult &&_Result)
 			{
 				if (_Result.m_ExitCode != 0)
 				{
@@ -122,7 +122,7 @@ namespace NMib::NMeteor::NMeteorManager
 						ErrorOut = _Result.f_GetErrorOut().f_TrimRight();
 					else
 						ErrorOut = _Result.f_GetStdOut().f_TrimRight();
-					Continuation.f_SetException(DErrorInstance(fg_Format("Tool exited with: {}\n{}", _Result.m_ExitCode, ErrorOut)));
+					Continuation.f_SetException(DErrorInstance(fg_Format("Tool '{}' exited with: {}\n{}", _LogCategory, _Result.m_ExitCode, ErrorOut)));
 					return;
 				}
 				Continuation.f_SetResult(_Result.f_GetStdOut());

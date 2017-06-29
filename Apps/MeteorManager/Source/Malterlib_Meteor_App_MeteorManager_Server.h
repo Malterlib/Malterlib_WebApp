@@ -51,10 +51,15 @@ namespace NMib::NMeteor::NMeteorManager
 			TCVector<CStr> m_CustomParams;
 			CUser m_User{""};
 			CStr m_DomainPrefix;
+			CStr m_RedirectsFile;
+			CStr m_StickyCookie;
+			CStr m_StickyHeader;
+			CStr m_StaticPath;
 			fp64 m_MemoryPerNode = 1.5;
 			mint m_Concurrency = 1;
 			EPackageType m_Type = EPackageType_Meteor;
 			bool m_bSeparateUser = false;
+			bool m_bAllowRobots = true;
 		};
 		
 		struct CMongo
@@ -78,10 +83,12 @@ namespace NMib::NMeteor::NMeteorManager
 		TCMap<CStr, CEnvironmentVariable> m_Environment;
 		CMongo m_Mongo;
 		CStr m_DefaultDomain;
+		CStr m_HTTPRedirectReferrerCookie;
 		uint16 m_DefaultWebPort = 3000;
 		uint16 m_DefaultWebSSLPort = 3443;
 		uint8 m_LoopbackPrefix = 0;
 		bool m_bUseInternalNode = false;
+		bool m_bRedirectWWW = false;
 	};
 	
 	struct ICMeteorManagerCustomization
@@ -98,6 +105,15 @@ namespace NMib::NMeteor::NMeteorManager
 				, CMeteorManagerOptions const &_Options
 				, CMeteorManagerOptions::CPackage const &_PackageOptions
 				, TCFunction<CEJSON (CStr const &_Name, CEJSON const &_Default)> const &_fGetConfigValue
+			)
+		;
+		virtual void f_ManipulateNginxConfig
+			(
+				CStr &o_Config
+				, CDistributedAppState const &_AppState
+				, CMeteorManagerOptions const &_Options
+				, TCFunction<CEJSON (CStr const &_Name, CEJSON const &_Default)> const &_fGetConfigValue
+				, TCSet<CStr> const &_Tags
 			)
 		;
 	};
@@ -125,6 +141,8 @@ namespace NMib::NMeteor::NMeteorManager
 		static void fs_SetupEnvironment(CProcessLaunchParams &_Params);
 		
 		static mint fs_GetNodeFileLimits();
+		static mint fs_GetNginxWorkerFileLimits();
+		static mint fs_GetNginxFileLimits(mint _nNodes);
 
 		TCContinuation<CStr> f_LaunchTool
 			(
@@ -195,6 +213,7 @@ namespace NMib::NMeteor::NMeteorManager
 		static void fsp_SetupPrerequisites_NodeUser(CUser &_User, CStr const &_Directory, CStr const &_SSLDirectory);
 		
 		TCContinuation<void> fp_SetupPrerequisites_Node();
+		TCContinuation<void> fp_SetupPrerequisites_Nginx();
 		TCContinuation<void> fp_SetupPrerequisites_Customization();
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
 		TCContinuation<void> fp_SetupPrerequisites_Packages();
@@ -229,6 +248,7 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		void fp_CreateAppLaunches();
 		
+		TCContinuation<void> fp_StartNginx();
 		TCContinuation<void> fp_StartApps();
 		TCContinuation<void> fp_DestroyApps();
 		
@@ -241,6 +261,7 @@ namespace NMib::NMeteor::NMeteorManager
 		CDistributedAppState &mp_AppState;
 
 		CUser mp_NodeUser;
+		CUser mp_NginxUser;
 		CVersion mp_Version_Node{0, 10, 33};
 		TCVector<CStr> mp_VersionHistory;
 		TCSet<CStr> mp_Tags;
@@ -258,6 +279,9 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> mp_AppLaunchesContinuation;
 		
 		CStr mp_InstanceId;
+		
+		TCActor<CProcessLaunchActor> mp_NginxLaunch;
+		CActorSubscription mp_NginxLaunchSubscription;
 		
 		// Precalculated config
 		

@@ -39,7 +39,9 @@ namespace NMib::NMeteor::NMeteorManager
 			if (iLastDomain < 0)
 				DMibError("Failed to manipulate domain for staging");
 			
-			mp_Domain.f_Insert(iLastDomain, "staging");
+			mp_Domain = mp_Domain.f_Insert(iLastDomain, "staging");
+			
+			DMibLog(Info, "Running in STAGING mode");
 		}
 		
 		mp_WebPort = fp_GetConfigValue("WebPort", mp_Options.m_DefaultWebPort).f_Integer();

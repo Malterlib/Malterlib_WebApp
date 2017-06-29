@@ -191,6 +191,7 @@ Property
 		MalterlibDoExeFS true
 
 		MeteorManagerCopySources "@('Source/Malterlib_Meteor_App_MeteorManager_OSSetup.sh'->MakeAbsolute())|Source;@(MeteorManagerCopySources)"
+		MeteorManagerCopySources "@('Source/Malterlib_Meteor_App_MeteorManager_Nginx.conf'->MakeAbsolute())|Source;@(MeteorManagerCopySources)"
 		MeteorManagerCopySources "@(MeteorManagerMongoDatabaseSetupScript)|Source;@(MeteorManagerCopySources)"
 
 		MalterlibExeFSExtraFiles "@(MeteorManagerCopySources);@(MalterlibExeFSExtraFiles)"
@@ -303,9 +304,21 @@ Property
 				}
 
 				PackageSettings	"@(PackageSettings)"\
+								"			\"StaticPath\": \"@(StaticPath_@(Explodee))\",\n"
+				{
+					!Empty "@(StaticPath_@(Explodee))"
+				}
+
+				PackageSettings	"@(PackageSettings)"\
 								"			\"SeparateUser\": @(SeparateUser_@(Explodee)),\n"
 				{
 					!Empty "@(SeparateUser_@(Explodee))"
+				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"AllowRobots\": @(AllowRobots_@(Explodee)),\n"
+				{
+					!Empty "@(AllowRobots_@(Explodee))"
 				}
 
 				Params_Template	"\"@(Explodee)\", "
@@ -334,6 +347,24 @@ Property
 								"			\"DomainPrefix\": \"@(DomainPrefix_@(Explodee))\",\n"
 				{
 					!Empty "@(DomainPrefix_@(Explodee))"
+				}
+				
+				PackageSettings	"@(PackageSettings)"\
+								"			\"RedirectsFile\": \"@(RedirectsFile_@(Explodee))\",\n"
+				{
+					!Empty "@(RedirectsFile_@(Explodee))"
+				}
+				
+				PackageSettings	"@(PackageSettings)"\
+								"			\"StickyCookie\": \"@(StickyCookie_@(Explodee))\",\n"
+				{
+					!Empty "@(StickyCookie_@(Explodee))"
+				}
+				
+				PackageSettings	"@(PackageSettings)"\
+								"			\"StickyHeader\": \"@(StickyHeader_@(Explodee))\",\n"
+				{
+					!Empty "@(StickyHeader_@(Explodee))"
 				}
 
 				
@@ -436,6 +467,18 @@ Property
 							"	\"DefaultWebSSLPort\": @(MeteorManagerDefaultWebSSLPort),\n"
 				{
 					!MeteorManagerDefaultWebSSLPort ""
+				}
+				
+				Contents	"@(Contents)"\
+							"	\"HTTPRedirectReferrerCookie\": \"@(MeteorManagerHTTPRedirectReferrerCookie)\",\n"
+				{
+					!MeteorManagerHTTPRedirectReferrerCookie ""
+				}
+				
+				Contents	"@(Contents)"\
+							"	\"RedirectWWW\": @(MeteorManagerRedirectWWW),\n"
+				{
+					!MeteorManagerRedirectWWW ""
 				}
 				
 				EnvironmentDefaultTags_Template	"\"@(Explodee)\", "
@@ -569,6 +612,10 @@ Property
 	%Dependency "Lib_Malterlib_Cloud"
 	%Dependency "Lib_Malterlib"
 	%Dependency "@(BuildDependencies_Meteor);@(BuildDependencies_Npm);@(BuildDependencies_Custom)"
+	{
+		Dependency.Link false
+	}
+	%Dependency "Exe_nginx=Com_nginx_@(MalterlibMeteorManagerName)*NgnixTargetBaseName=nginx_@(MalterlibMeteorManagerName)*NgnixTargetGroup=Meteor/@(MalterlibMeteorManagerName)*HTTP_SSL=true*HTTP_V2=true*NGX_USER=mib_nginx_@(MalterlibMeteorManagerName)*NGX_GROUP=mib_nginx_@(MalterlibMeteorManagerName)*HTTP_GZIP_STATIC=true*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=nginx_exe/"
 	{
 		Dependency.Link false
 	}

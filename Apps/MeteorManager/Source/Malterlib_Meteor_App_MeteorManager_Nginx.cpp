@@ -1,0 +1,596 @@
+
+#include "Malterlib_Meteor_App_MeteorManager_Server.h"
+
+#include <Mib/Web/HTTP/URL>
+#include <Mib/Network/SSL>
+#include <Mib/Concurrency/Actor/Timer>
+
+namespace NMib::NMeteor::NMeteorManager
+{
+	mint CMeteorManagerActor::fs_GetNginxWorkerFileLimits()
+	{
+		mint nFilesPerConnection = 2; // nginx incoming + nginx proxy -> node
+
+		return 65536*nFilesPerConnection + 8192;
+	}
+	
+	mint CMeteorManagerActor::fs_GetNginxFileLimits(mint _nNodes)
+	{
+		return fs_GetNginxWorkerFileLimits() * _nNodes + 8192;
+	}
+
+ch8 const *g_pServerTemplate = R"---(
+	server
+	{
+		listen {SSLPort} {ListenOptions};
+		listen [::]:{SSLPort} {ListenOptionsIPV6};
+		server_name {ServerName} {ServerNameExtra_{PackageName}};
+		access_log logs/access_{PackageName}.log upstreamlog;
+		client_max_body_size 10M;
+
+{ServerAccessCheck_{PackageName}}
+
+		# If your application is not compatible with IE <= 10, this will redirect visitors to a page advising a browser update
+		# This works because IE 11 does not present itself as MSIE anymore
+		if ($http_user_agent ~ "MSIE" )
+		{
+			return 303 https://browser-update.org/update.html;
+		}
+
+		location ~* "^/[a-z0-9]{40}\.(css|js)$"
+		{
+			gzip_static always;
+			expires max;
+			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Cache-Control public;
+			root {StaticRoot};
+			access_log logs/static_access_{PackageName}.log;
+		}
+
+{ServerRedirect_{PackageName}}
+
+{StaticPackages}
+
+		# pass all requests to Meteor
+		location /
+		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+			error_page 502 = @{PackageName}_Fallback;
+			proxy_pass http://{UpstreamSticky};
+			proxy_http_version 1.1;
+			proxy_set_header Upgrade $http_upgrade; # allow websockets
+			proxy_set_header Connection $connection_upgrade;
+			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+		}
+		location @{PackageName}_Fallback
+		{
+			proxy_pass http://{Upstream};
+			proxy_http_version 1.1;
+			proxy_set_header Upgrade $http_upgrade; # allow websockets
+			proxy_set_header Connection $connection_upgrade;
+			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+		}
+
+		location /robots.txt {
+			return 200 "{AllowRobots}";
+		}
+	}
+)---";
+	
+	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Nginx()
+	{
+		TCContinuation<void> Continuation;
+		
+		struct CResults
+		{
+			CStr m_ConfigContents;
+			TCMap<CStr, CStr> m_Redirects;
+			CStr m_CertificateFile;
+			CStr m_CertificateKeyFile;
+			CUser m_User{""};
+			bool m_bHasDHParamFile = false;
+		};
+		
+		CStr NginxDirectory = fp_GetDataPath("nginx");
+		CStr DhParamFile = NginxDirectory + "/certificates/dhparam.pem";
+		CStr ConfigFile = NginxDirectory + "/nginx.conf";
+		
+		g_Dispatch(*mp_FileActors)
+			>
+			[
+				ProgramDirectory = CFile::fs_GetProgramDirectory()
+				, NginxDirectory
+				, bIsStaging = mp_bIsStaging
+				, Domain = mp_Domain
+				, Packages = mp_Options.m_Packages
+				, DhParamFile
+				, ConfigFile
+				, User = mp_NginxUser
+			]
+			() mutable -> CResults
+			{
+				CResults Results;
+				
+				Results.m_User = User;
+				fsp_SetupUser(Results.m_User);
+				
+				CFile::fs_CreateDirectory(NginxDirectory + "/root");
+				CFile::fs_CreateDirectory(NginxDirectory + "/logs");
+				CFile::fs_CreateDirectory(NginxDirectory + "/.tmp");
+				CFile::fs_CreateDirectory(NginxDirectory + "/certificates");
+
+				Results.m_CertificateFile = NginxDirectory + "/certificates/web.pem";
+				Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web.key";
+
+				if (bIsStaging)
+				{
+					Results.m_CertificateFile = NginxDirectory + "/certificates/web-staging.pem";
+					Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web-staging.key";
+				}
+
+				if (!CFile::fs_FileExists(Results.m_CertificateFile))
+				{
+					TCVector<uint8> CertData;
+					TCVector<uint8, CAllocator_HeapSecure> KeyData;
+
+					TCVector<CStr> Subjects = fg_CreateVector<CStr>(Domain, "*." + Domain);
+
+					CSSLContext::CCertificateOptions Options;
+					Options.m_Subject = fg_Format("Favro Self Signed {nfh,sj16,sf0}", fg_GetHighEntropyRandomInteger<uint64>());
+					Options.m_Hostnames = Subjects;
+					Options.m_KeySetting = CSSLKeySettings_EC_secp384r1();
+
+					CSSLContext::fs_GenerateSelfSignedCertAndKey
+						(
+							Options
+							, CertData
+							, KeyData
+						)
+					;
+					CFile::fs_WriteFile(CertData, Results.m_CertificateFile);
+					CFile::fs_WriteFile(KeyData, Results.m_CertificateKeyFile);
+				}
+
+				if (CFile::fs_FileExists(DhParamFile))
+					Results.m_bHasDHParamFile = true;
+				
+				CFile::fs_SetUnixAttributesRecursive(NginxDirectory + "/certificates", EFileAttrib_UserRead, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute); 
+
+				Results.m_ConfigContents = CFile::fs_ReadStringFromFile(ProgramDirectory + "/Source/Malterlib_Meteor_App_MeteorManager_Nginx.conf");
+
+				{
+					for (auto &Package : Packages)
+					{
+						if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
+							continue;
+						
+						if (Package.m_RedirectsFile.f_IsEmpty())
+							continue;
+						
+						CStr RedirectPath = fg_Format("{}/{}/{}", CFile::fs_GetProgramDirectory(), Package.f_GetName(), Package.m_RedirectsFile);
+
+						CStr RedirectContents;
+						try
+						{
+							CJSON const RedirectJSON = CJSON::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath), RedirectPath);
+
+							for (auto const &Redirect : RedirectJSON["redirects"].f_Array())
+							{
+								CStr Path = Redirect["path"].f_String();
+								CStr RedirectTo = Redirect["redirectTo"].f_String();
+								CStr Campaign = Redirect["campaign"].f_String();
+								CStr ReferrerCookie = Redirect["referrerCookie"].f_String();
+								CStr CampaignPercentEncoded;
+								CURL::fs_PercentEncode(CampaignPercentEncoded, Campaign);
+								RedirectContents += fg_Format
+									(
+										"			if ($uri ~* ^/{}$) {{\n"
+										"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/\";\n"
+										"				return 302 {}?campaign={};\n"
+										"			}\n"
+										, Path
+										, ReferrerCookie
+										, RedirectTo
+										, CampaignPercentEncoded
+									)
+								;
+							}
+						}
+						catch (CException const &_Exception)
+						{
+							DMibError(fg_Format("Failed to generate redirects: {}", _Exception));
+						}
+						
+						Results.m_Redirects[Package.f_GetName()] = fg_Move(RedirectContents);
+					}
+
+				}
+				
+				return Results;
+			}
+			> Continuation / [=](CResults &&_Results)
+			{
+				CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+				
+				mp_NginxUser = _Results.m_User;
+				
+				CStr ConfigContents = _Results.m_ConfigContents;
+
+				CStr PidFile = NginxDirectory + "/nginx.pid";
+
+				TCSet<CStr> VariablesToRemove;
+				VariablesToRemove["{HTTPDefaultServerLocations}"];
+				VariablesToRemove["{HTTPDefaultServerLocations_www}"];
+				VariablesToRemove["{HTTPSDefaultServerLocations_www}"];
+
+				CStr UpstreamServers;
+				TCMap<CStr, CStr> Upstreams;
+				{
+					for (auto &Package : mp_Options.m_Packages)
+					{
+						if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
+							continue;
+						
+						auto &UpstreamName = Upstreams[Package.f_GetName()];
+						
+						UpstreamName = "upstream_{}"_f << Package.f_GetName();
+
+						UpstreamServers += "\n	# {} Upstream\n\n"_f << Package.f_GetName();
+						UpstreamServers += "	upstream {}\n"_f << UpstreamName;
+						UpstreamServers += "	{\n";
+						
+						if (Package.m_StickyHeader.f_IsEmpty() && Package.m_StickyCookie.f_IsEmpty())
+							UpstreamServers += "		ip_hash; # for sticky sessions\n";
+						
+						for (auto &AppLaunch : mp_AppLaunches)
+						{
+							if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
+								continue;
+							UpstreamServers += "\t\tserver {}:8080 max_fails=30 fail_timeout=30s;\n"_f << fp_GetAppIPAddress(AppLaunch);
+						}
+						
+						UpstreamServers += "	}\n\n";
+						
+						if (!Package.m_StickyHeader.f_IsEmpty())
+						{
+							CStr PreviousUpstream = UpstreamName;
+							UpstreamName = "$upstreamStickyHeader_{}"_f << Package.f_GetName();
+
+							UpstreamServers += "	map $http_{} {}\n"_f << Package.m_StickyHeader << UpstreamName;
+							UpstreamServers += "	{\n";
+							UpstreamServers += "		default {};\n"_f << PreviousUpstream;
+							
+							for (auto &AppLaunch : mp_AppLaunches)
+							{
+								if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
+									continue;
+								UpstreamServers += "		{} {}:8080;\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch);
+							}
+							
+							UpstreamServers += "	}\n\n";
+						}
+						if (!Package.m_StickyCookie.f_IsEmpty())
+						{
+							CStr PreviousUpstream = UpstreamName;
+							UpstreamName = "$upstreamStickyCookie_{}"_f << Package.f_GetName();
+
+							UpstreamServers += "	map $cookie_{} {}\n"_f << Package.m_StickyCookie << UpstreamName;
+							UpstreamServers += "	{\n";
+							UpstreamServers += "		default {};\n"_f << PreviousUpstream;
+							
+							for (auto &AppLaunch : mp_AppLaunches)
+							{
+								if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
+									continue;
+								UpstreamServers += "		{} {}:8080;\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch);
+							}
+							
+							UpstreamServers += "	}\n\n";
+						}
+					}
+					UpstreamServers += "{MeteorManagerUpstream}\n";
+					VariablesToRemove["{MeteorManagerUpstream}"];
+				}
+
+				ConfigContents = ConfigContents.f_Replace("{MeteorManagerUpstream}", UpstreamServers);
+				
+				VariablesToRemove["{MeteorManagerHTTPServers}"];
+				if (mp_Options.m_bRedirectWWW)
+				{
+					CStr Section = R"---(
+	server
+	{
+		listen {Port};
+		server_name www.{DomainName};
+
+{HTTPDefaultServerLocations_www}
+
+		location /
+		{
+			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/";
+			return 302 https://$host{SSLPortRewrite}$request_uri;
+		}
+	}
+{MeteorManagerHTTPServers}
+)---";
+
+					ConfigContents = ConfigContents.f_Replace("{MeteorManagerHTTPServers}", Section);
+				}
+				
+				CStr Servers;
+				TCMap<CStr, CStr> VariablesToReplace;
+				{
+					for (auto &Package : mp_Options.m_Packages)
+					{
+						if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
+							continue;
+						
+						auto &UpstreamName = Upstreams[Package.f_GetName()];
+						
+						CStr Server = g_pServerTemplate;
+						
+						CStr ServerName = mp_Domain;
+						
+						if (!Package.m_DomainPrefix.f_IsEmpty())
+							ServerName = fg_Format("{}.{}", Package.m_DomainPrefix, ServerName);
+
+						bool bIsMainServer = ServerName == mp_Domain;
+						
+						Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
+						Server = Server.f_Replace("{ServerName}", ServerName);
+						Server = Server.f_Replace("{PackageName}", Package.f_GetName());
+						Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
+						Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
+						Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()));
+						
+						if (bIsMainServer)
+						{
+							Server = Server.f_Replace("{ListenOptions}", "default_server ssl http2 backlog=1024");
+							Server = Server.f_Replace("{ListenOptionsIPV6}", "default_server ssl http2 ipv6only=on backlog=1024");
+						}
+						else
+						{
+							Server = Server.f_Replace("{ListenOptions}", "");
+							Server = Server.f_Replace("{ListenOptionsIPV6}", "");
+						}
+						
+						
+						VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
+						VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");
+						
+						VariablesToRemove[("{{ServerNameExtra_{}}"_f << Package.f_GetName()).f_GetStr()];
+						VariablesToRemove[("{{ServerAccessCheck_{}}"_f << Package.f_GetName()).f_GetStr()];
+						VariablesToRemove[("{{ServerRedirect_{}}"_f << Package.f_GetName()).f_GetStr()];
+						VariablesToRemove[("{{ServerRootOptions_{}}"_f << Package.f_GetName()).f_GetStr()];
+						
+						CStr StaticPackages;
+						
+						if (bIsMainServer)
+						{
+							for (auto &Package : mp_Options.m_Packages)
+							{
+								if (Package.m_Type == CMeteorManagerOptions::EPackageType_Meteor || Package.m_StaticPath.f_IsEmpty())
+									continue;
+
+								StaticPackages += "		location {}\n"_f << Package.m_StaticPath;
+								StaticPackages += "		{\n";
+								StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
+								StaticPackages += "			access_log logs/static_access_{}.log;\n"_f << Package.f_GetName();
+								StaticPackages += "		}\n";
+							}
+						}
+						
+						Server = Server.f_Replace("{StaticPackages}", StaticPackages);
+						Server = Server.f_Replace("{PathRedirect}",  _Results.m_Redirects[Package.f_GetName()]);
+						
+						if (bIsMainServer && mp_Options.m_bRedirectWWW)
+						{
+							Server += R"---(
+	server
+	{
+		listen {SSLPort};
+		listen [::]:{SSLPort};
+		server_name www.{DomainName};
+
+{HTTPSDefaultServerLocations_www}
+
+		location /
+		{
+			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/";
+			return 302 https://{DomainName}{SSLPortRewrite}$request_uri;
+		}
+		return 302 https://{DomainName}{SSLPortRewrite}$request_uri;
+	}
+)---";
+						}
+						
+						if (bIsMainServer)
+						{
+							Server += "\n";
+							Servers = Server + Servers;
+						}
+						else
+						{
+							Servers += "\n";
+							Servers += Server;
+						}
+					}
+					Servers += "{MeteorManagerServers}\n";
+					VariablesToRemove["{MeteorManagerServers}"];
+				}
+				ConfigContents = ConfigContents.f_Replace("{MeteorManagerServers}", Servers);
+				
+				if (mp_pCustomization)
+				{
+					mp_pCustomization->f_ManipulateNginxConfig
+						(
+							ConfigContents
+							, mp_AppState
+							, mp_Options
+							, [&](CStr const &_Name, CEJSON const &_Default) -> CEJSON
+							{
+								return fp_GetConfigValue(_Name, _Default);
+							}
+							, mp_Tags
+						)
+					;
+				}
+				
+				for (auto &ToRemove : VariablesToRemove)
+					ConfigContents = ConfigContents.f_Replace(ToRemove, "");
+
+				{
+					CStr RedirectReferrerCookie = mp_Options.m_HTTPRedirectReferrerCookie.f_IsEmpty() ? "RedirectReferrer" : mp_Options.m_HTTPRedirectReferrerCookie;
+					ConfigContents = ConfigContents.f_Replace("{HTTPRedirectReferrerCookie}", RedirectReferrerCookie);
+				}
+				
+				for (auto &ReplaceWith : VariablesToReplace)
+					ConfigContents = ConfigContents.f_Replace(VariablesToReplace.fs_GetKey(ReplaceWith), ReplaceWith);
+				
+				ConfigContents = ConfigContents.f_Replace("{DomainName}", mp_Domain);
+				ConfigContents = ConfigContents.f_Replace("{Root}", NginxDirectory + "/root");
+				ConfigContents = ConfigContents.f_Replace("{Port}", CStr::fs_ToStr(mp_WebPort));
+				ConfigContents = ConfigContents.f_Replace("{SSLPort}", CStr::fs_ToStr(mp_WebSSLPort));
+				if (mp_WebSSLPort == 443)
+					ConfigContents = ConfigContents.f_Replace("{SSLPortRewrite}", "");
+				else
+					ConfigContents = ConfigContents.f_Replace("{SSLPortRewrite}", ":" + CStr::fs_ToStr(mp_WebSSLPort));
+				ConfigContents = ConfigContents.f_Replace("{Certificate}", _Results.m_CertificateFile);
+				ConfigContents = ConfigContents.f_Replace("{CertificateKey}", _Results.m_CertificateKeyFile);
+				ConfigContents = ConfigContents.f_Replace("{PidFile}", PidFile);
+				ConfigContents = ConfigContents.f_Replace("{WorkerMaxOpenedFiles}", CStr::fs_ToStr(fs_GetNginxWorkerFileLimits()));
+
+				{
+					if (_Results.m_bHasDHParamFile)
+						ConfigContents = ConfigContents.f_Replace("{ssl_dhparam}", fg_Format("ssl_dhparam {};", DhParamFile));
+					else
+						ConfigContents = ConfigContents.f_Replace("{ssl_dhparam}", "");
+				}
+
+				{
+					CStr RobotsTxtContents;
+
+					if (fp_GetConfigValue("AllowRobots", false).f_Boolean())
+						RobotsTxtContents = "User-agent: *\\nAllow: /";
+					else
+						RobotsTxtContents = "User-agent: *\\nDisallow: /";
+
+					ConfigContents = ConfigContents.f_Replace("{AllowRobots}", RobotsTxtContents);
+				}
+
+				g_Dispatch(*mp_FileActors) >[ConfigFile, ConfigContents, UserName = mp_NginxUser.m_Name, NginxDirectory]()
+					{
+						CFile::fs_WriteStringToFile(ConfigFile, ConfigContents, false);
+
+						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, UserName);
+						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", UserName);
+					}
+					> Continuation
+				;
+			}
+		;
+		return Continuation;
+	}
+
+	TCContinuation<void> CMeteorManagerActor::fp_StartNginx()
+	{
+		if (mp_NginxLaunch || mp_bStopped || mp_bDestroyed)
+			return fg_Explicit(); // Launch already in progress
+		
+		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+		CStr NginxDirectory = fp_GetDataPath("nginx");
+		CStr NginxConfig = NginxDirectory + "/nginx.conf";
+
+		TCVector<CStr> Arguments;
+		Arguments.f_Insert("-c");
+		Arguments.f_Insert(NginxConfig);
+		
+		TCContinuation<void> Continuation;
+		
+		CProcessLaunchActor::CLaunch Launch = CProcessLaunchParams::fs_LaunchExecutable
+			(
+				ProgramDirectory + "/nginx_exe/nginx"
+				, Arguments
+				, NginxDirectory
+				, [this, Continuation](CProcessLaunchStateChangeVariant const &_Change, fp64 _TimeSinceStart)
+				{
+					switch (_Change.f_GetTypeID())
+					{
+					case EProcessLaunchState_Launched:
+						{
+							if (mp_bStopped || mp_bDestroyed)
+							{
+								if (mp_NginxLaunch)
+									mp_NginxLaunch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
+								Continuation.f_SetException(DMibErrorInstance("Application is being destroyed"));
+							}
+							else
+								Continuation.f_SetResult();
+						}
+						break;
+					case EProcessLaunchState_Exited:
+						{
+							if (!mp_bStopped && !mp_bDestroyed)
+							{
+								DLogWithCategory(nginx, Info, "Scheduling relaunch of nginx in 10 seconds");
+								fg_Timeout(10.0) > [this](auto &&)
+									{
+										if (!mp_bStopped && !mp_bDestroyed)
+											fp_StartNginx();
+									}
+								;
+							}
+							mp_NginxLaunch.f_Clear();
+							mp_NginxLaunchSubscription.f_Clear();
+						}
+						break;
+					case EProcessLaunchState_LaunchFailed:
+						{
+							Continuation.f_SetException(DMibErrorInstance(fg_Format("nginx launch failed: {}", _Change.f_Get<EProcessLaunchState_LaunchFailed>())));
+							mp_NginxLaunch.f_Clear();
+							mp_NginxLaunchSubscription.f_Clear();
+						}
+						break;
+					}
+				}
+			)
+		;
+		
+		Launch.m_ToLog = CProcessLaunchActor::ELogFlag_All;
+		Launch.m_LogName = "nginx";
+		Launch.m_Params.m_bCreateNewProcessGroup = true;
+		
+		auto &Params = Launch.m_Params;
+
+		Params.m_bAllowExecutableLocate = false;
+		{
+			auto &Limit = Params.m_Limits[EProcessLimit_OpenedFiles];
+			Limit.m_Value = fs_GetNginxFileLimits(mp_AppLaunches.f_GetLen());
+			Limit.m_MaxValue = Limit.m_Value;
+		}
+		
+		fs_SetupEnvironment(Params);
+		Params.m_bMergeEnvironment = true;
+		
+		Params.m_Environment["HOME"] = NginxDirectory;
+		Params.m_Environment["TMPDIR"] = NginxDirectory + "/.tmp";
+		
+		mp_NginxLaunch = fg_ConstructActor<CProcessLaunchActor>();
+		
+		mp_NginxLaunch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this)) > [this, Continuation](TCAsyncResult<CActorSubscription> &&_Subscription)
+			{
+				if (!_Subscription)
+				{
+					Continuation.f_SetException(fg_Move(_Subscription));
+					mp_NginxLaunch.f_Clear();
+					return;
+				}
+				mp_NginxLaunchSubscription = fg_Move(*_Subscription);
+			}
+		;
+		
+		return Continuation;
+	}
+}
