@@ -123,7 +123,7 @@ namespace NMib::NMeteor::NMeteorManager
 				{
 					fsp_SetupPrerequisites_NodeUser(NodeUser, NodeDirectory, MongoSSLDirectory);
 					
-					auto Files = CFile::fs_FindFiles(ProgramDirectory + "/node-*");
+					auto Files = CFile::fs_FindFiles(ProgramDirectory + "/node-*.tar.gz");
 					
 					if (!Files.f_IsEmpty())
 					{
