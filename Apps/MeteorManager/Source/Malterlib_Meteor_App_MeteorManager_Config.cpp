@@ -35,11 +35,11 @@ namespace NMib::NMeteor::NMeteorManager
 		mp_Domain = fp_GetConfigValue("Domain", mp_Options.m_DefaultDomain).f_String();
 		if (mp_bIsStaging)
 		{
-			aint iLastDomain = mp_Domain.f_FindCharReverse('.');
-			if (iLastDomain < 0)
+			aint iFirstDomain = mp_Domain.f_FindChar('.');
+			if (iFirstDomain < 0)
 				DMibError("Failed to manipulate domain for staging");
 			
-			mp_Domain = mp_Domain.f_Insert(iLastDomain, "staging");
+			mp_Domain = mp_Domain.f_Insert(iFirstDomain, "staging");
 			
 			DMibLog(Info, "Running in STAGING mode");
 		}
