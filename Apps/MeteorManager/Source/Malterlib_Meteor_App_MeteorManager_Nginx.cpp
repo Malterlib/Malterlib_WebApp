@@ -541,7 +541,7 @@ ch8 const *g_pServerTemplate = R"---(
 							if (!mp_bStopped && !mp_bDestroyed)
 							{
 								DLogWithCategory(nginx, Info, "Scheduling relaunch of nginx in 10 seconds");
-								fg_Timeout(10.0) > [this](auto &&)
+								fg_Timeout(10.0) > [this]
 									{
 										if (!mp_bStopped && !mp_bDestroyed)
 											fp_StartNginx();

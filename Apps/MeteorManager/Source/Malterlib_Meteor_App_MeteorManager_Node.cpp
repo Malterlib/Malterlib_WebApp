@@ -337,7 +337,7 @@ namespace NMib::NMeteor::NMeteorManager
 									fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Unexpected exit {}", _Change.f_Get<EProcessLaunchState_Exited>()))));
 								
 								DLog(Info, "Unexpected exit {}, scheduling relaunch in 10 seconds", _Change.f_Get<EProcessLaunchState_Exited>());
-								fg_Timeout(10.0) > [this, pAppLaunch](TCAsyncResult<void> &&)
+								fg_Timeout(10.0) > [this, pAppLaunch]
 									{
 										if (!mp_pCanDestroyTracker.f_IsEmpty() && !mp_bStopped)
 											fp_LaunchApp(*pAppLaunch, false);
