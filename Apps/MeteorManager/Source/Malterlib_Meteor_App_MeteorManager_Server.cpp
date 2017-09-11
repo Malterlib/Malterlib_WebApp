@@ -118,7 +118,7 @@ namespace NMib::NMeteor::NMeteorManager
 							Continuation.f_SetResult();
 							return;
 						}
-						mp_NginxLaunch->f_Destroy() > [this, Continuation](auto &&)
+						mp_NginxLaunch->f_Destroy() > [Continuation](auto &&)
 							{
 								DLog(Debug, "Pre-stop server done");
 								Continuation.f_SetResult();
