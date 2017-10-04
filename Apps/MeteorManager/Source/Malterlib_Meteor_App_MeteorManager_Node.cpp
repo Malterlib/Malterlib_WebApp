@@ -460,8 +460,8 @@ namespace NMib::NMeteor::NMeteorManager
 						, UserNameEncoded
 						, mp_MongoHost
 						, mp_MongoPort
-						, mp_MongoReplicaName
 						, mp_MongoDatabase
+						, mp_MongoReplicaName
 					)
 				;
 				
