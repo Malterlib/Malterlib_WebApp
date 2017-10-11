@@ -151,6 +151,7 @@
 Property
 {
 	MeteorManagerEnvironmment "ROOT_URL(Meteor)=RootURL;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "STATIC_ROOT_URL(Meteor)=StaticRootURL;@(MeteorManagerEnvironmment)"
 	MeteorManagerEnvironmment "PORT(Meteor)=LocalPort|8080;@(MeteorManagerEnvironmment)"
 	MeteorManagerEnvironmment "BIND_IP(Meteor)=LocalIP;@(MeteorManagerEnvironmment)"
 	MeteorManagerEnvironmment "HTTP_FORWARDED_COUNT(Meteor)=HttpForwardedCount|1;@(MeteorManagerEnvironmment)"

@@ -21,19 +21,21 @@ namespace NMib::NMeteor::NMeteorManager
 			return "node";
 	}
 	
-	CStr CMeteorManagerActor::fp_GetPackageHostname(CStr const &_PackageName) const
+	CStr CMeteorManagerActor::fp_GetPackageHostname(CStr const &_PackageName, bool _bStatic) const
 	{
 		auto &Package = mp_Options.m_Packages[_PackageName];
 		if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
 			DMibError("Cannot get package name for non-meteor package");
-		
-		CStr Hostname;
-		if (!Package.m_DomainPrefix.f_IsEmpty())
-			Hostname = fg_Format("{}.{}", Package.m_DomainPrefix, mp_Domain);
-		else
-			Hostname = mp_Domain;
-		
-		return Hostname;
+
+		CStr Prefix = Package.m_DomainPrefix;
+
+		if (_bStatic)
+			Prefix += "static";
+
+		if (Prefix.f_IsEmpty())
+			return mp_Domain;
+
+		return fg_Format("{}.{}", Prefix, mp_Domain);
 	}
 	
 	CStr CMeteorManagerActor::fp_GetRootURL(CStr const &_Hostname) const
@@ -416,18 +418,26 @@ namespace NMib::NMeteor::NMeteorManager
 			CalculatedSettings["LocalIP"] = fp_GetAppIPAddress(_AppLaunch);
 			CalculatedSettings["WebSSLPort"] = CStr::fs_ToStr(mp_WebSSLPort);
 			CalculatedSettings["WebPort"] = CStr::fs_ToStr(mp_WebPort);
-			
+
 			if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Meteor)
 			{
-				CStr Hostname = fp_GetPackageHostname(_AppLaunch.f_GetKey().m_PackageName);
+				CStr Hostname = fp_GetPackageHostname(_AppLaunch.f_GetKey().m_PackageName, false);
+				CStr HostnameStatic = fp_GetPackageHostname(_AppLaunch.f_GetKey().m_PackageName, true);
 				CalculatedSettings["Hostname"] = Hostname;
 				CalculatedSettings["RootURL"] = fp_GetRootURL(Hostname);
+
+				if (fp_GetConfigValue("EnableSeparateStaticRoot", false).f_Boolean())
+				{
+					CalculatedSettings["StaticHostname"] = HostnameStatic;
+					CalculatedSettings["StaticRootURL"] = fp_GetRootURL(HostnameStatic);
+				}
 			}
 			for (auto &Package : mp_Options.m_Packages)
 			{
 				if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
 					continue;
-				CStr Hostname = fp_GetPackageHostname(Package.f_GetName());
+				CStr Hostname = fp_GetPackageHostname(Package.f_GetName(), false);
+				CStr HostnameStatic = fp_GetPackageHostname(Package.f_GetName(), true);
 				CalculatedSettings[fg_Format("Hostname_{}", Package.f_GetName())] = Hostname;
 				CalculatedSettings[fg_Format("RootURL_{}", Package.f_GetName())] = fp_GetRootURL(Hostname);
 				CalculatedSettings[fg_Format("LocalURL_{}", Package.f_GetName())] = fp_GetPackageLocalURL(Package.f_GetName());

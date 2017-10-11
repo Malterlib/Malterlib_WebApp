@@ -229,7 +229,7 @@ namespace NMib::NMeteor::NMeteorManager
 		static CStr fsp_GetVersionString();
 		TCContinuation<void> fp_UpdateVersionHistory();
 
-		CStr fp_GetPackageHostname(CStr const &_PackageName) const;
+		CStr fp_GetPackageHostname(CStr const &_PackageName, bool _bStatic) const;
 		CStr fp_GetPackageLocalURL(CStr const &_PackageName) const;
 		CStr fp_GetRootURL(CStr const &_Hostname) const;
 		CStr fp_GetAppIPAddress(CAppLaunch const &_AppLaunch) const;

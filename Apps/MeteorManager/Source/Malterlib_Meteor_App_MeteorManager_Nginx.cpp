@@ -24,7 +24,7 @@ ch8 const *g_pServerTemplate = R"---(
 	{
 		listen {SSLPort} {ListenOptions};
 		listen [::]:{SSLPort} {ListenOptionsIPV6};
-		server_name {ServerName} {ServerNameExtra_{PackageName}};
+		server_name {ServerName} {ServerNameStatic} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
 
@@ -95,6 +95,7 @@ ch8 const *g_pServerTemplate = R"---(
 		CStr NginxDirectory = fp_GetDataPath("nginx");
 		CStr DhParamFile = NginxDirectory + "/certificates/dhparam.pem";
 		CStr ConfigFile = NginxDirectory + "/nginx.conf";
+		bool bEnableSeparateStaticRoot = fp_GetConfigValue("EnableSeparateStaticRoot", false).f_Boolean();
 		
 		g_Dispatch(*mp_FileActors)
 			>
@@ -335,16 +336,19 @@ ch8 const *g_pServerTemplate = R"---(
 						auto &UpstreamName = Upstreams[Package.f_GetName()];
 						
 						CStr Server = g_pServerTemplate;
-						
-						CStr ServerName = mp_Domain;
-						
-						if (!Package.m_DomainPrefix.f_IsEmpty())
-							ServerName = fg_Format("{}.{}", Package.m_DomainPrefix, ServerName);
+
+						CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), false);
 
 						bool bIsMainServer = ServerName == mp_Domain;
 						
 						Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
 						Server = Server.f_Replace("{ServerName}", ServerName);
+
+						if (bEnableSeparateStaticRoot) // This is mainly for debug, as normally this domain would be served by e.g. CloudFront
+							Server = Server.f_Replace("{ServerNameStatic}", fp_GetPackageHostname(Package.f_GetName(), true));
+						else
+							Server = Server.f_Replace("{ServerNameStatic}", "");
+
 						Server = Server.f_Replace("{PackageName}", Package.f_GetName());
 						Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
 						Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
