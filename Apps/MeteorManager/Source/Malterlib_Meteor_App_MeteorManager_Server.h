@@ -132,7 +132,7 @@ namespace NMib::NMeteor::NMeteorManager
 			, ELogVerbosity_Messages 
 			, ELogVerbosity_All
 		};
-		
+
 		CMeteorManagerActor(CDistributedAppState &_AppState, CMeteorManagerOptions const &_Options);
 		~CMeteorManagerActor();
 		TCContinuation<void> f_Startup();
@@ -160,6 +160,12 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<CStr> f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir);
 		
 	private:
+		enum EHostnamePrefix
+		{
+			EHostnamePrefix_None
+			, EHostnamePrefix_Static
+			, EHostnamePrefix_StaticSource
+		};
 		
 		struct CAppLaunchKey
 		{
@@ -229,7 +235,7 @@ namespace NMib::NMeteor::NMeteorManager
 		static CStr fsp_GetVersionString();
 		TCContinuation<void> fp_UpdateVersionHistory();
 
-		CStr fp_GetPackageHostname(CStr const &_PackageName, bool _bStatic) const;
+		CStr fp_GetPackageHostname(CStr const &_PackageName, EHostnamePrefix _Prefix) const;
 		CStr fp_GetPackageLocalURL(CStr const &_PackageName) const;
 		CStr fp_GetRootURL(CStr const &_Hostname) const;
 		CStr fp_GetAppIPAddress(CAppLaunch const &_AppLaunch) const;

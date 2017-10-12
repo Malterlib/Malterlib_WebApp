@@ -24,7 +24,7 @@ ch8 const *g_pServerTemplate = R"---(
 	{
 		listen {SSLPort} {ListenOptions};
 		listen [::]:{SSLPort} {ListenOptionsIPV6};
-		server_name {ServerName} {ServerNameStatic} {ServerNameExtra_{PackageName}};
+		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
 
@@ -77,7 +77,43 @@ ch8 const *g_pServerTemplate = R"---(
 		}
 	}
 )---";
-	
+
+ch8 const *g_pServerStaticTemplate = R"---(
+	server
+	{
+		listen {SSLPort};
+		listen [::]:{SSLPort};
+		server_name {ServerNameStatic} {ServerNameStaticSource};
+		access_log logs/static_access_{PackageName}.log;
+		client_max_body_size 10M;
+
+		add_header 'Access-Control-Allow-Origin' 'https://{ServerName}{SSLPortRewrite}';
+		add_header Strict-Transport-Security "max-age=31536000;" always;
+		add_header Cache-Control public;
+
+		location ~* "^/[a-z0-9]{40}\.(css|js)$"
+		{
+			gzip_static always;
+			expires max;
+			root {StaticRoot};
+		}
+
+		location ~ "^/packages/.*\.(jpg|jpeg|png|gif|mp3|ico|pdf|svg|eot|woff|woff2|ttf|otf)$"
+		{
+			root {StaticRoot};
+		}
+
+		location ~ "\.(jpg|jpeg|png|gif|mp3|ico|pdf|svg|eot|woff|woff2|ttf|otf)$"
+		{
+			root {StaticRoot}/app;
+		}
+
+		location /robots.txt {
+			return 200 "User-agent: *\\nDisallow: /";
+		}
+	}
+)---";
+
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Nginx()
 	{
 		TCContinuation<void> Continuation;
@@ -337,17 +373,19 @@ ch8 const *g_pServerTemplate = R"---(
 						
 						CStr Server = g_pServerTemplate;
 
-						CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), false);
+						if (bEnableSeparateStaticRoot)
+						{
+							Server += g_pServerStaticTemplate;
+							Server = Server.f_Replace("{ServerNameStatic}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static));
+							Server = Server.f_Replace("{ServerNameStaticSource}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_StaticSource));
+						}
+
+						CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 
 						bool bIsMainServer = ServerName == mp_Domain;
 						
 						Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
 						Server = Server.f_Replace("{ServerName}", ServerName);
-
-						if (bEnableSeparateStaticRoot) // This is mainly for debug, as normally this domain would be served by e.g. CloudFront
-							Server = Server.f_Replace("{ServerNameStatic}", fp_GetPackageHostname(Package.f_GetName(), true));
-						else
-							Server = Server.f_Replace("{ServerNameStatic}", "");
 
 						Server = Server.f_Replace("{PackageName}", Package.f_GetName());
 						Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
