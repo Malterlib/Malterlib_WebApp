@@ -132,7 +132,12 @@ ch8 const *g_pServerStaticTemplate = R"---(
 		CStr DhParamFile = NginxDirectory + "/certificates/dhparam.pem";
 		CStr ConfigFile = NginxDirectory + "/nginx.conf";
 		bool bEnableSeparateStaticRoot = fp_GetConfigValue("EnableSeparateStaticRoot", false).f_Boolean();
-		
+
+		CStr CertificateOrganization = fp_GetConfigValue("CertificateOrganization", DProductCompany).f_String();
+		CStr CertificateCountry = fp_GetConfigValue("CertificateCountry", DProductCountry).f_String();
+		CStr CertificateLocality = fp_GetConfigValue("CertificateLocality", DProductLocality).f_String();
+		CStr CertificateOrganizationalUnit = fp_GetConfigValue("CertificateOrganizationalUnit", DProductOrganizationalUnit).f_String();
+
 		g_Dispatch(*mp_FileActors)
 			>
 			[
@@ -144,6 +149,10 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				, DhParamFile
 				, ConfigFile
 				, User = mp_NginxUser
+				, CertificateOrganization
+				, CertificateCountry
+				, CertificateLocality
+				, CertificateOrganizationalUnit
 			]
 			() mutable -> CResults
 			{
@@ -161,6 +170,9 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web.key";
 				CStr CertificateRequestFile = NginxDirectory + "/certificates/web.csr";
 
+				CStr CaCertificateFile = NginxDirectory + "/certificates/web_ca.pem";
+				CStr CaCertificateKeyFile = NginxDirectory + "/certificates/web_ca.key";
+
 				if (bIsStaging)
 				{
 					Results.m_CertificateFile = NginxDirectory + "/certificates/web-staging.pem";
@@ -170,26 +182,72 @@ ch8 const *g_pServerStaticTemplate = R"---(
 
 				if (!CFile::fs_FileExists(Results.m_CertificateFile))
 				{
+#ifdef DMibDebug
+					CSSLKeySetting KeySettings = CSSLKeySettings_EC_secp384r1{};
+#else
+					CSSLKeySetting KeySettings = CSSLKeySettings_RSA{8192};
+#endif
+
+					TCMap<CStr, CStr> RelativeDistinguishedNames;
+
+					RelativeDistinguishedNames["C"] = CertificateCountry;
+					RelativeDistinguishedNames["L"] = CertificateLocality;
+					RelativeDistinguishedNames["O"] = CertificateOrganization;
+					RelativeDistinguishedNames["OU"] = CertificateOrganizationalUnit;
+
 					TCVector<uint8> CertData;
 					TCVector<uint8> CertRequestData;
 					TCVector<uint8, CAllocator_HeapSecure> KeyData;
+					TCVector<uint8> CaCertData;
+					TCVector<uint8, CAllocator_HeapSecure> CaKeyData;
 
 					TCVector<CStr> Subjects = fg_CreateVector<CStr>(Domain, "*." + Domain);
 
-					CSSLContext::CCertificateOptions Options;
-					Options.m_Subject = Domain;
-					Options.m_Hostnames = Subjects;
-					Options.m_KeySetting = CSSLKeySettings_RSA{8192};
+					CSignOptions SignOptions;
+					SignOptions.m_Days = 365*20;
 
-					CSSLContext::fs_GenerateSelfSignedCertAndKey
-						(
-							Options
-							, CertData
-							, KeyData
-						)
-					;
+					if (CFile::fs_FileExists(CaCertificateFile) && CFile::fs_FileExists(CaCertificateKeyFile))
+					{
+						CaCertData = CFile::fs_ReadFile(CaCertificateFile);
+						CaKeyData = CFile::fs_ReadFile(CaCertificateKeyFile);
+					}
+					else
+					{
+						CSSLContext::CCertificateOptions Options;
+						Options.m_CommonName = fg_Format("Meteor Manager Debug CA {nfh,sj16,sf0}", fg_GetHighEntropyRandomInteger<uint64>());
+						Options.m_RelativeDistinguishedNames = RelativeDistinguishedNames;
+						Options.m_KeySetting = KeySettings;
+						Options.f_MakeCA();
+
+						SignOptions.f_AddExtension_SubjectKeyIdentifier();
+
+						CSSLContext::fs_GenerateSelfSignedCertAndKey
+							(
+								Options
+								, CaCertData
+								, CaKeyData
+								, SignOptions
+							)
+						;
+						CFile::fs_WriteFile(CaCertData, CaCertificateFile);
+						CFile::fs_WriteFile(CaKeyData, CaCertificateKeyFile);
+					}
+
+					CSSLContext::CCertificateOptions Options;
+					Options.m_CommonName = Domain;
+					Options.m_RelativeDistinguishedNames = RelativeDistinguishedNames;
+					Options.m_Hostnames = Subjects;
+					Options.m_KeySetting = KeySettings;
+
+
+					SignOptions.m_Extensions.f_Clear();
+					SignOptions.f_AddExtension_AuthorityKeyIdentifier();
+					Options.f_AddExtension_BasicConstraints(false);
+					Options.f_AddExtension_KeyUsage(CSSLContext::EKeyUsage_KeyEncipherment | CSSLContext::EKeyUsage_DigitalSignature);
+
 					CSSLContext::fs_GenerateClientCertificateRequest(Options, CertRequestData, KeyData);
-					
+					CSSLContext::fs_SignClientCertificate(CaCertData, CaKeyData, CertRequestData, CertData, SignOptions);
+
 					CFile::fs_WriteFile(CertData, Results.m_CertificateFile);
 					CFile::fs_WriteFile(KeyData, Results.m_CertificateKeyFile);
 					CFile::fs_WriteFile(CertRequestData, CertificateRequestFile);
