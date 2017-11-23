@@ -7,15 +7,20 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	CStr CMeteorManagerActor::fsp_GetVersionString()
 	{
+		NMib::NProcess::CVersionInfo VersionInfo;
+		NMib::NProcess::NPlatform::fg_Process_GetVersionInfo(CFile::fs_GetProgramPath(), VersionInfo);
+
 		return fg_Format
 			(
-				"{} {}.{}{} {} {}"
-				, DMalterlibBranch
-				, DMibStringize(DProductVersionMajor)
-				, DMibStringize(DProductVersionMinor)
-				, DMibStringize(DProductVersionRevision)
+			 	"{} {}.{}.{} {} {} {} {}"
+				, VersionInfo.m_Branch
+				, VersionInfo.m_Major
+				, VersionInfo.m_Minor
+				, VersionInfo.m_Revision
 				, DMibStringize(DPlatform)
 				, DMibStringize(DConfig)
+				, VersionInfo.m_GitBranch
+				, VersionInfo.m_GitCommit
 			)
 		;
 	}
@@ -73,15 +78,21 @@ namespace NMib::NMeteor::NMeteorManager
 					CStr Version;
 					CStr Platform;
 					CStr Config;
+					CStr GitBranch = "UNKNOWN";
+					CStr GitCommit = "UNKNOWN";
 
-					(CStr::CParse("{} {} {} {}") >> Branch >> Version >> Platform >> Config).f_Parse(iVersion->m_Version);
+					(CStr::CParse("{} {} {} {} {} {}") >> Branch >> Version >> Platform >> Config >> GitBranch >> GitCommit).f_Parse(iVersion->m_Version);
 
 					CTime LocalTime = iVersion->m_Time.f_ToLocal();
 
 					CTimeConvert::CDateTime DateTime;
 					CTimeConvert(LocalTime).f_ExtractDateTime(DateTime);
 
-					VersionHistory.f_Insert(fg_Format("{sf0,sj2}:{sf0,sj2} / #{} | {} | {td}", DateTime.m_Hour, DateTime.m_Minute, Version, Branch, LocalTime));
+					VersionHistory.f_Insert
+						(
+							"{sf0,sj2}:{sf0,sj2} / #{} | {} | {td} | {} | {}"_f << DateTime.m_Hour << DateTime.m_Minute << Version << Branch << LocalTime << GitBranch << GitCommit
+						)
+					;
 				}
 
 				CFile::fs_WriteStringToFile(VersionHistoryFileName, NewHistoryRegistry.f_GenerateStr(), false);

@@ -507,10 +507,14 @@ namespace NMib::NMeteor::NMeteorManager
 				CStr Version;
 				CStr Platform;
 				CStr Config;
-				
+				CStr GitBranch;
+				CStr GitCommit;
+
 				CStr VersionString = fsp_GetVersionString();
-				(CStr::CParse("{} {} {} {}") >> Branch >> Version >> Platform >> Config).f_Parse(VersionString);
+				(CStr::CParse("{} {} {} {} {} {}") >> Branch >> Version >> Platform >> Config >> GitBranch >> GitCommit).f_Parse(VersionString);
 				PublicMeteorSettings["appVersion"] = fg_Format("#{} | {}", Version, Branch);
+				PublicMeteorSettings["gitBranch"] = GitBranch;
+				PublicMeteorSettings["gitCommit"] = GitCommit;
 
 				{
 					auto &VersionHistory = (PublicMeteorSettings["appVersionHistory"] = EJSONType_Array).f_Array();
