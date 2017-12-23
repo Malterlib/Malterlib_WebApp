@@ -47,7 +47,13 @@ npm run prestart
 cp -r . "${OutputDir}$Name"
 
 cd "${OutputDir}"
-gnutar -c "$Name" | gzip > "$OutputBundleTar"
+
+SysName=$(uname -s)
+if [[ $SysName ==  Darwin* ]] ; then
+	TarOptions="--disable-copyfile"
+fi
+
+tar $TarOptions -c "$Name" | gzip > "$OutputBundleTar"
 
 md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5" 
 

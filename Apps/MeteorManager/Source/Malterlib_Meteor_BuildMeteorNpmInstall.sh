@@ -15,21 +15,22 @@ Name="$3"
 TempDirectory="`mktemp -d`"
 NodeDirectory="`mktemp -d`"
 
-if [ "$(uname)" == "Darwin" ]; then
-	TarExecutable="gnutar"
+SysName=$(uname -s)
+if [[ $SysName ==  Darwin* ]] ; then
+	TarOptions="--disable-copyfile"
 else
-	TarExecutable="tar"
+	TarExtractOptions="--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
 fi
 
 pushd "$NodeDirectory" > /dev/null
 
-tar --no-same-owner --strip-components=1 -xf "$NodePackage"
+tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$NodePackage"
 export PATH="$PWD/bin:$PATH"
 popd > /dev/null
 
 pushd "$TempDirectory" > /dev/null
 
-tar --no-same-owner -xf "$Package"
+tar $TarExtractOptions --no-same-owner -xf "$Package"
 
 pushd "$Name/programs/server/" > /dev/null
 
@@ -43,7 +44,7 @@ fi
 popd > /dev/null
 
 touch "$Name/.installed"
-$TarExecutable -c "$Name" | gzip > "$Package"
+tar $TarOptions -c "$Name" | gzip > "$Package"
 popd > /dev/null
 
 exit 0

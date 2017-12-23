@@ -33,7 +33,15 @@ namespace NMib::NMeteor::NMeteorManager
 			(
 				"tar"
 				, _DestinationDir
-				, fg_CreateVector<CStr>("--no-same-owner", "-xf", _TarFile)
+				, fg_CreateVector<CStr>
+				(
+					"--no-same-owner"
+#if !defined(DPlatformFamily_OSX)
+					, "--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
+#endif
+					, "-xf"
+					, _TarFile
+				)
 				, CStr{"ExtractArchive"}
 				, ELogVerbosity_Errors
 				, {}

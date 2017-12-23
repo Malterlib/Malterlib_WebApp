@@ -80,9 +80,14 @@ else
 	meteor build "$OutputDir" --server-only --architecture "$METEOR_ARCH" --directory
 fi
 
+SysName=$(uname -s)
+if [[ $SysName ==  Darwin* ]] ; then
+	TarOptions="--disable-copyfile"
+fi
+
 mv "${OutputDir}bundle" "${OutputDir}$Name"
 cd "$OutputDir"
-gnutar -c "$Name" | gzip > "$OutputBundleTar"
+tar $TarOptions -c "$Name" | gzip > "$OutputBundleTar"
 
 if [[ "$PlatformFamily" == "Linux" ]] ; then
 	if [[ "$BUILDSERVER" == "TRUE" ]] ; then
