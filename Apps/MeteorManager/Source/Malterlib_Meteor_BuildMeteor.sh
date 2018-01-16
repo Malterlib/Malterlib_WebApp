@@ -63,6 +63,8 @@ echo Building meteor bundle
 rm -rf "${OutputDir}$Name"
 cd "$MeteorDir"
 
+rm -rf .meteor/local/plugin-cache/less/local
+
 if [ "$PlatformFamily" == "Linux" ]; then
 	METEOR_ARCH="os.linux.x86_64"
 else
