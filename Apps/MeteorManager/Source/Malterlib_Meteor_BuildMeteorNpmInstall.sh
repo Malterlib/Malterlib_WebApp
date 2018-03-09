@@ -44,7 +44,10 @@ fi
 popd > /dev/null
 
 touch "$Name/.installed"
-tar $TarOptions -c "$Name" | gzip > "$Package"
+tar $TarOptions -czf "$Package" "$Name"
 popd > /dev/null
+
+rm -rf "$TempDirectory"
+rm -rf "$NodeDirectory"
 
 exit 0

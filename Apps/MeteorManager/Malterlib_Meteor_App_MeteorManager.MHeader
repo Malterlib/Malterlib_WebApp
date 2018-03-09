@@ -51,15 +51,22 @@
 		MalterlibMeteorToolExcludePatterns "@(MalterlibMeteorToolExcludePatterns->Replace('´',';'))"
 		ExcludeFiles "@(MalterlibMeteorToolExcludePatterns);@(ExcludeFiles)"
 		OutputDirectory "@(Target.OutputDirectory)"
+		MeteorCommand "meteor"
+		MeteorCommand "meteor.bat"
+		{
+			!!PlatformFamily Windows
+		}
+		MalterlibExportEnvironmentMinGW true
 	}
 	Target
 	{
 		Type "Tool"
 		BaseName "BuildMeteor_@(MalterlibMeteorManagerName)_@(MalterlibMeteorToolBuildName)"
-		CommandLine_Build "@(BuildScript) Build"
-		CommandLine_ReBuild "@(BuildScript) Rebuild"
-		CommandLine_Clean "@(BuildScript) Clean"
+		CommandLine_Build "@(BashScriptPrefix)@(BuildScript) Build"
+		CommandLine_ReBuild "@(BashScriptPrefix)@(BuildScript) Rebuild"
+		CommandLine_Clean "@(BashScriptPrefix)@(BuildScript) Clean"
 		
+		ExportScriptEnvironment "MeteorCommand;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "OutputDirectory;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "MalterlibMeteorToolBuildName;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "MeteorBuildDirectory;@(Target.ExportScriptEnvironment)"

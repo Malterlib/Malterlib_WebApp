@@ -155,6 +155,9 @@ namespace NMib::NMeteor::NMeteorManager
 				, bool _bSeparateStdErr = true
 				, CStr const &_Home = {}
 				, CStr const &_User = {}
+#ifdef DPlatformFamily_Windows
+				, CStrSecure const &_UserPassword = {}
+#endif
 			)
 		;
 		TCContinuation<CStr> f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir);
@@ -205,7 +208,18 @@ namespace NMib::NMeteor::NMeteorManager
 				, TCVector<CStr> const &_Arguments
 			)
 		;
-		static void fsp_SetupUser(CUser &_User);
+#ifdef DPlatformFamily_Windows
+		CStrSecure fp_GetUserPassword(CStr const &_User);
+#endif
+		static CStr fsp_GetGroupName(CStr const &_GroupName);
+		static void fsp_SetupUser
+			(
+				CUser &_User
+#ifdef DPlatformFamily_Windows
+				, CStrSecure &o_Password
+#endif
+			)
+		;
 		TCContinuation<void> fp_ExtractExeFS() const;
 		TCContinuation<void> fp_CheckVersion(CStr const &_Tool, CStr const &_Argument, CStr const &_ParseString, CVersion const &_NeededVersion);
 		TCContinuation<void> fp_CleanupOldProcesses();
@@ -216,7 +230,16 @@ namespace NMib::NMeteor::NMeteorManager
 		mint fp_GetNumNodes() const;
 		
 		static CHashDigest_MD5 fsp_GetFileChecksum(CStr const &_File);
-		static void fsp_SetupPrerequisites_NodeUser(CUser &_User, CStr const &_Directory, CStr const &_SSLDirectory);
+		static void fsp_SetupPrerequisites_NodeUser
+			(
+				CUser &_User
+#ifdef DPlatformFamily_Windows
+				, CStrSecure &o_Password
+#endif
+				, CStr const &_Directory
+				, CStr const &_SSLDirectory
+			)
+		;
 		
 		TCContinuation<void> fp_SetupPrerequisites_Node();
 		TCContinuation<void> fp_SetupPrerequisites_Nginx();

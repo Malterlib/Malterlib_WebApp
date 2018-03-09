@@ -53,13 +53,27 @@ if [[ $SysName ==  Darwin* ]] ; then
 	TarOptions="--disable-copyfile"
 fi
 
-tar $TarOptions -c "$Name" | gzip > "$OutputBundleTar"
+tar $TarOptions -czf "$OutputBundleTar" "$Name"
 
-md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5" 
+
+
+if [[ "$PlatformFamily" != "Windows" ]] ; then
+	md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"
+	function ConvertPath()
+	{
+		echo "$1"
+	}
+else
+	md5sum "$OutputBundleTar" | cut '-d ' -f 1 > "$OutputBundleTar.md5"
+	function ConvertPath()
+	{
+		cygpath -m "$1"
+	}
+fi
 
 ExcludePatterns="*/bin;*/node_modules"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 
-MTool BuildDependencies "OutputFile=$DependencyFile" "Output:$OutputBundleTar" "Input:${BASH_SOURCE[0]}" "Find:$AppDir/*;RIF;33;$ExcludePatterns"
+MTool BuildDependencies "OutputFile=`ConvertPath \"$DependencyFile\"`" "Output:ConvertPath `\"$OutputBundleTar\"`" "Input:ConvertPath `\"${BASH_SOURCE[0]}\"`" "Find:`ConvertPath \"$AppDir\"`/*;RIF;33;$ExcludePatterns"
 
 exit 0

@@ -29,7 +29,7 @@ namespace NMib::NMeteor::NMeteorManager
 		Environment["LoopbackPrefix"] = fg_Format("{}", mp_Options.m_LoopbackPrefix);
 
 		TCContinuation<void> Continuation;
-		f_LaunchTool(SetupOSFile, ProgramDirectory, {}, "OSSetup", ELogVerbosity_Errors, Environment) > Continuation.f_ReceiveAny();
+		f_LaunchTool(CProcessLaunch::fs_GetBashPath(), ProgramDirectory, {SetupOSFile}, "OSSetup", ELogVerbosity_Errors, Environment) > Continuation.f_ReceiveAny();
 		return Continuation;
 	}
 	
@@ -41,9 +41,21 @@ namespace NMib::NMeteor::NMeteorManager
 		return CFile::fs_GetFileChecksum(_File);
 	}
 
-	void CMeteorManagerActor::fsp_SetupPrerequisites_NodeUser(CUser &_User, CStr const &_Directory, CStr const &_SSLDirectory)
+	void CMeteorManagerActor::fsp_SetupPrerequisites_NodeUser
+		(
+			CUser &_User
+#ifdef DPlatformFamily_Windows
+			, CStrSecure &o_Password
+#endif
+			, CStr const &_Directory
+			, CStr const &_SSLDirectory
+		)
 	{
+#ifdef DPlatformFamily_Windows
+		fsp_SetupUser(_User, o_Password);
+#else
 		fsp_SetupUser(_User);
+#endif
 
 		CStr TmpDirectory = _Directory + "/.tmp";
 		CFile::fs_CreateDirectory(_Directory);
@@ -88,7 +100,7 @@ namespace NMib::NMeteor::NMeteorManager
 			;
 		}
 
-		CFile::fs_SetOwnerAndGroupRecursive(_Directory, _User.m_Name, _User.m_Name);
+		CFile::fs_SetOwnerAndGroupRecursive(_Directory, _User.m_Name, fsp_GetGroupName(_User.m_Name));
 	}
 
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_NodeExtract()
@@ -99,6 +111,9 @@ namespace NMib::NMeteor::NMeteorManager
 		struct CNodeInfo
 		{
 			CUser m_User = {""};
+#ifdef DPlatformFamily_Windows
+			CStrSecure m_UserPassword;
+#endif
 			bool m_bForceAppReinstall = false;
 		};
 	
@@ -114,14 +129,19 @@ namespace NMib::NMeteor::NMeteorManager
 				CStr DistFile;
 
 				bool bDoInstall = false;
-				bool bForceAppReinstall = false;
 				CStr DistDirectory = ProgramDirectory + "/node_dist";
 				CStr ChecksumFileName = ProgramDirectory + "/node.installed.md5";
 				CStr NewChecksum;
+				CNodeInfo NodeInfo;
+				NodeInfo.m_User = NodeUser;
 
 				try
 				{
-					fsp_SetupPrerequisites_NodeUser(NodeUser, NodeDirectory, MongoSSLDirectory);
+#ifdef DPlatformFamily_Windows
+					fsp_SetupPrerequisites_NodeUser(NodeInfo.m_User, NodeInfo.m_UserPassword, NodeDirectory, MongoSSLDirectory);
+#else
+					fsp_SetupPrerequisites_NodeUser(NodeInfo.m_User, NodeDirectory, MongoSSLDirectory);
+#endif
 					
 					auto Files = CFile::fs_FindFiles(ProgramDirectory + "/node-*.tar.gz");
 					
@@ -149,7 +169,7 @@ namespace NMib::NMeteor::NMeteorManager
 								;
 								CFile::fs_DeleteDirectoryRecursive(DistDirectory);
 
-								bForceAppReinstall = true;
+								NodeInfo.m_bForceAppReinstall = true;
 								bDoInstall = true;
 							}
 							else
@@ -167,10 +187,6 @@ namespace NMib::NMeteor::NMeteorManager
 					{
 						DLog(Error, "No node distribution found");
 						
-						CNodeInfo NodeInfo;
-						NodeInfo.m_User = NodeUser;
-						NodeInfo.m_bForceAppReinstall = bForceAppReinstall;
-
 						Continuation.f_SetResult(NodeInfo);
 						return Continuation;
 					}
@@ -204,20 +220,12 @@ namespace NMib::NMeteor::NMeteorManager
 								return;
 							}
 							
-							CNodeInfo NodeInfo;
-							NodeInfo.m_User = NodeUser;
-							NodeInfo.m_bForceAppReinstall = bForceAppReinstall;
-
 							Continuation.f_SetResult(NodeInfo);
 						}
 					;
 				}
 				else
 				{
-					CNodeInfo NodeInfo;
-					NodeInfo.m_User = NodeUser;
-					NodeInfo.m_bForceAppReinstall = bForceAppReinstall;
-
 					Continuation.f_SetResult(NodeInfo);
 					return Continuation;
 				}
@@ -228,6 +236,14 @@ namespace NMib::NMeteor::NMeteorManager
 			{
 				mp_NodeUser = _NodeInfo.m_User;
 				mp_bForceAppsReinstall = _NodeInfo.m_bForceAppReinstall;
+#ifdef DPlatformFamily_Windows
+				if (!_NodeInfo.m_UserPassword.f_IsEmpty())
+				{
+					mp_AppState.m_StateDatabase.m_Data["Users"][_NodeInfo.m_User.m_Name]["Password"] = _NodeInfo.m_UserPassword;
+					mp_AppState.f_SaveStateDatabase() > Continuation;
+					return;
+				}
+#endif
 				Continuation.f_SetResult();
 			}
 		;
@@ -261,6 +277,9 @@ namespace NMib::NMeteor::NMeteorManager
 		struct CPackageInfo
 		{
 			CUser m_User = {""};
+#ifdef DPlatformFamily_Windows
+			CStrSecure m_UserPassword;
+#endif
 		};
 		
 		auto &PackageOptions = fg_Const(mp_Options.m_Packages)[_PackageName];
@@ -272,7 +291,7 @@ namespace NMib::NMeteor::NMeteorManager
 				, ProgramDirectory
 				, ThisActor = fg_ThisActor(this)
 				, NodeUserName = mp_NodeUser.m_Name
-				, User = CUser{fg_Format("mib_node_{}_{}", mp_Options.m_ManagerName, _PackageName)}
+				, User = CUser{NSys::fg_UserManagement_MakeValidUserName(fg_Format("mib_node_{}_{}", mp_Options.m_ManagerName, _PackageName))}
 				, HomeDirectory = fg_Format("{}/node_{}", ProgramDirectory, _PackageName)
 				, MongoSSLDirectory = fp_GetMongoSSLDirectory()
 				, bSeparateUser = PackageOptions.m_bSeparateUser
@@ -287,8 +306,17 @@ namespace NMib::NMeteor::NMeteorManager
 					DMibLogCategoryStr(_PackageName);
 					DLog(Info, "Setting up package");
 
+					CPackageInfo PackageInfo;
+					PackageInfo.m_User = User;
+
 					if (bSeparateUser)
-						fsp_SetupPrerequisites_NodeUser(User, HomeDirectory, MongoSSLDirectory);
+					{
+#ifdef DPlatformFamily_Windows
+						fsp_SetupPrerequisites_NodeUser(PackageInfo.m_User, PackageInfo.m_UserPassword, HomeDirectory, MongoSSLDirectory);
+#else
+						fsp_SetupPrerequisites_NodeUser(PackageInfo.m_User, HomeDirectory, MongoSSLDirectory);
+#endif
+					}
 					
 					CStr PackageDirectory = ProgramDirectory + "/" + _PackageName;
 					CStr MeteorPackageFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz";
@@ -326,7 +354,7 @@ namespace NMib::NMeteor::NMeteorManager
 						if (CFile::fs_FileExists(MeteorPackageChecksumFileName))
 							CFile::fs_DeleteFile(MeteorPackageChecksumFileName); // Make sure to retry the next time if failure below
 						if (CFile::fs_FileExists(PackageDirectory))
-							CFile::fs_DeleteDirectoryRecursive(PackageDirectory);
+							CFile::fs_DeleteDirectoryRecursive(PackageDirectory, true);
 
 						ThisActor(&CMeteorManagerActor::f_ExtractTar, MeteorPackageFileName, ProgramDirectory) > InstallContinuation / [=]
 							{
@@ -351,6 +379,9 @@ namespace NMib::NMeteor::NMeteorManager
 													, true
 													, fg_Default()
 													, fg_Default()
+#ifdef DPlatformFamily_Windows
+													, fg_Default()
+#endif
 												)
 												> Results.f_AddResult()
 											;
@@ -358,7 +389,7 @@ namespace NMib::NMeteor::NMeteorManager
 										
 										if (!CFile::fs_FileExists(PackageDirectory + "/.installed"))
 										{
-											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, NodeUserName, NodeUserName);
+											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, NodeUserName, fsp_GetGroupName(NodeUserName));
 
 											ThisActor
 												(
@@ -372,6 +403,9 @@ namespace NMib::NMeteor::NMeteorManager
 													, true
 													, ProgramDirectory + "/node"
 													, NodeUserName
+#ifdef DPlatformFamily_Windows
+													, PackageInfo.m_UserPassword
+#endif
 												)
 												> Results.f_AddResult()
 											;
@@ -420,13 +454,11 @@ namespace NMib::NMeteor::NMeteorManager
 					else
 						InstallContinuation.f_SetResult();
 					
-					InstallContinuation > Continuation / [_PackageName, Continuation, User]
+					InstallContinuation > Continuation / [_PackageName, Continuation, User, PackageInfo]
 						{
 							DMibLogCategoryStr(_PackageName);
 							DLog(Info, "Setting up package was successful");
-							CPackageInfo PackageInfo;
-							PackageInfo.m_User = User;
-							Continuation.f_SetResult();
+							Continuation.f_SetResult(PackageInfo);
 						}
 					;
 				}
@@ -442,6 +474,14 @@ namespace NMib::NMeteor::NMeteorManager
 			{
 				auto &Package = mp_Options.m_Packages[_PackageName];
 				Package.m_User = _PackageInfo.m_User;
+#ifdef DPlatformFamily_Windows
+				if (!_PackageInfo.m_UserPassword.f_IsEmpty())
+				{
+					mp_AppState.m_StateDatabase.m_Data["Users"][_PackageInfo.m_User.m_Name]["Password"] = _PackageInfo.m_UserPassword;
+					mp_AppState.f_SaveStateDatabase() > Continuation;
+					return;
+				}
+#endif
 				
 				Continuation.f_SetResult();
 			}

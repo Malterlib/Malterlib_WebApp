@@ -14,10 +14,20 @@ namespace NMib::NMeteor::NMeteorManager
 			// Kill old managers
 			nKilled += CProcessLaunch::fs_KillProcessesInDirectory(CFile::fs_GetFile(CFile::fs_GetProgramPath()));
 
+			auto fAddExtension = [](CStr const &_File)
+				{
+#ifdef DPlatformFamily_Windows
+					return _File + ".exe";
+#else
+					return _File;
+#endif
+				}
+			;
+
 			// Kill individual processes
-			nKilled += CProcessLaunch::fs_KillProcessesInDirectory("nginx", "*master*");
-			nKilled += CProcessLaunch::fs_KillProcessesInDirectory("nginx");
-			nKilled += CProcessLaunch::fs_KillProcessesInDirectory("node");
+			nKilled += CProcessLaunch::fs_KillProcessesInDirectory(fAddExtension("nginx"), "*master*");
+			nKilled += CProcessLaunch::fs_KillProcessesInDirectory(fAddExtension("nginx"));
+			nKilled += CProcessLaunch::fs_KillProcessesInDirectory(fAddExtension("node"));
 			if (nKilled)
 				DLog(Error, "Cleaned up {} old processes", nKilled);
 		}

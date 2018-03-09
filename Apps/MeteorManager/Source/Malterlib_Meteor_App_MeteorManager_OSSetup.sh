@@ -21,6 +21,10 @@ elif  [ "$PlatformFamily" == "Linux" ]; then
 		let COUNTER=COUNTER+1 
 	done
 
+elif  [ "$PlatformFamily" == "Windows" ]; then
+
+	echo Not implemented
+
 else
 	echo Unknown platform, cannot setup OS
 	exit 1

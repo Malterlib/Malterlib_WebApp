@@ -374,8 +374,13 @@ namespace NMib::NMeteor::NMeteorManager
 		auto &Params = Launch.m_Params;
 
 		Params.m_bAllowExecutableLocate = true;
+		Params.m_bShowLaunched = false;
+
 		Params.m_RunAsUser = mp_NodeUser.m_Name;
-		Params.m_RunAsGroup = mp_NodeUser.m_Name;
+#ifdef DPlatformFamily_Windows
+		Params.m_RunAsUserPassword = fp_GetUserPassword(mp_NodeUser.m_Name);
+#endif
+		Params.m_RunAsGroup = fsp_GetGroupName(mp_NodeUser.m_Name);
 		{
 			auto &Limit = Params.m_Limits[EProcessLimit_OpenedFiles];
 			Limit.m_Value = CMeteorManagerActor::fs_GetNodeFileLimits();
@@ -391,6 +396,10 @@ namespace NMib::NMeteor::NMeteorManager
 		Params.m_bMergeEnvironment = true;
 		Params.m_Environment["HOME"] = NodeHomePath;
 		Params.m_Environment["TMPDIR"] = NodeHomePath + "/.tmp";
+#ifdef DPlatformFamily_Windows
+		Params.m_Environment["TMP"] = NodeHomePath + "/.tmp";
+		Params.m_Environment["TEMP"] = NodeHomePath + "/.tmp";
+#endif
 		
 		try
 		{

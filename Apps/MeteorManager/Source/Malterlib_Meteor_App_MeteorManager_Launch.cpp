@@ -3,6 +3,10 @@
 
 #include "Malterlib_Meteor_App_MeteorManager_Server.h"
 
+#ifdef DPlatformFamily_Windows
+#include <Mib/Core/PlatformSpecific/WindowsFilePath>
+#endif
+
 namespace NMib::NMeteor::NMeteorManager
 {
 	void CMeteorManagerActor::fs_SetupEnvironment(CProcessLaunchParams &_Params)
@@ -40,14 +44,16 @@ namespace NMib::NMeteor::NMeteorManager
 					, "--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
 #endif
 					, "-xf"
+#ifdef DPlatformFamily_Windows
+					, NFile::NPlatform::fg_ConvertToMinGWPath(_TarFile)
+#else
 					, _TarFile
+#endif
 				)
 				, CStr{"ExtractArchive"}
 				, ELogVerbosity_Errors
 				, {}
 				, true
-				, {}
-				, {}
 			)
 		;
 	}
@@ -63,6 +69,9 @@ namespace NMib::NMeteor::NMeteorManager
 			, bool _bSeparateStdErr
 			, CStr const &_Home
 			, CStr const &_User
+#ifdef DPlatformFamily_Windows
+			, CStrSecure const &_UserPassword
+#endif
 		)
 	{
 		if (mp_pCanDestroyTracker.f_IsEmpty() || mp_bStopped)
@@ -98,17 +107,26 @@ namespace NMib::NMeteor::NMeteorManager
 
 		LaunchParams.m_bSeparateStdErr = _bSeparateStdErr;
 		LaunchParams.m_bAllowExecutableLocate = true;
+		LaunchParams.m_bShowLaunched = false;
 		
 		if (!_User.f_IsEmpty())
 		{
 			LaunchParams.m_RunAsUser = _User;
-			LaunchParams.m_RunAsGroup = _User;
+#ifdef DPlatformFamily_Windows
+			LaunchParams.m_RunAsUserPassword = _UserPassword;
+#else
+#endif
+			LaunchParams.m_RunAsGroup = fsp_GetGroupName(_User);
 		}
 
 		if (!_Home.f_IsEmpty())
 		{
 			LaunchParams.m_Environment["HOME"] = _Home;
 			LaunchParams.m_Environment["TMPDIR"] = _Home + "/.tmp";
+#ifdef DPlatformFamily_Windows
+			LaunchParams.m_Environment["TMP"] = _Home + "/.tmp";
+			LaunchParams.m_Environment["TEMP"] = _Home + "/.tmp";
+#endif
 		}
 		
 		TCSharedPointer<bool> pDestroyed = pToolLaunch->m_pDestroyed;
@@ -127,7 +145,7 @@ namespace NMib::NMeteor::NMeteorManager
 				{
 					CStr ErrorOut;
 					if (_bSeparateStdErr)
-						ErrorOut = _Result.f_GetErrorOut().f_TrimRight();
+						ErrorOut = _Result.f_GetCombinedOut().f_TrimRight();
 					else
 						ErrorOut = _Result.f_GetStdOut().f_TrimRight();
 					Continuation.f_SetException(DErrorInstance(fg_Format("Tool '{}' exited with: {}\n{}", _LogCategory, _Result.m_ExitCode, ErrorOut)));

@@ -125,6 +125,9 @@ ch8 const *g_pServerStaticTemplate = R"---(
 			CStr m_CertificateFile;
 			CStr m_CertificateKeyFile;
 			CUser m_User{""};
+#ifdef DPlatformFamily_Windows
+			CStrSecure m_UserPassword;
+#endif
 			bool m_bHasDHParamFile = false;
 		};
 		
@@ -159,7 +162,11 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				CResults Results;
 				
 				Results.m_User = User;
+#ifdef DPlatformFamily_Windows
+				fsp_SetupUser(Results.m_User, Results.m_UserPassword);
+#else
 				fsp_SetupUser(Results.m_User);
+#endif
 				
 				CFile::fs_CreateDirectory(NginxDirectory + "/root");
 				CFile::fs_CreateDirectory(NginxDirectory + "/logs");
@@ -315,6 +322,17 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 				
 				mp_NginxUser = _Results.m_User;
+				TCContinuation<void> SavePasswordContinuation;
+#ifdef DPlatformFamily_Windows
+				if (!_Results.m_UserPassword.f_IsEmpty())
+				{
+					mp_AppState.m_StateDatabase.m_Data["Users"][mp_NginxUser.m_Name]["Password"] = _Results.m_UserPassword;
+					mp_AppState.f_SaveStateDatabase() > Continuation;
+					return;
+				}
+				else
+#endif
+					SavePasswordContinuation.f_SetResult();
 				
 				CStr ConfigContents = _Results.m_ConfigContents;
 
@@ -586,14 +604,19 @@ ch8 const *g_pServerStaticTemplate = R"---(
 					ConfigContents = ConfigContents.f_Replace("{AllowRobots}", RobotsTxtContents);
 				}
 
-				g_Dispatch(*mp_FileActors) >[ConfigFile, ConfigContents, UserName = mp_NginxUser.m_Name, NginxDirectory]()
+
+				(g_Dispatch(*mp_FileActors) > [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_Name, NginxDirectory]()
 					{
 						CFile::fs_WriteStringToFile(ConfigFile, ConfigContents, false);
 
-						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, UserName);
-						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", UserName);
+						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, fsp_GetGroupName(UserName));
+						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", fsp_GetGroupName(UserName));
+					})
+					+ SavePasswordContinuation
+					> Continuation / [Continuation]()
+					{
+						Continuation.f_SetResult();
 					}
-					> Continuation
 				;
 			}
 		;
@@ -670,7 +693,8 @@ ch8 const *g_pServerStaticTemplate = R"---(
 		
 		auto &Params = Launch.m_Params;
 
-		Params.m_bAllowExecutableLocate = false;
+		Params.m_bAllowExecutableLocate = true;
+		Params.m_bShowLaunched = false;
 		{
 			auto &Limit = Params.m_Limits[EProcessLimit_OpenedFiles];
 			Limit.m_Value = fs_GetNginxFileLimits(mp_AppLaunches.f_GetLen());
@@ -682,6 +706,10 @@ ch8 const *g_pServerStaticTemplate = R"---(
 		
 		Params.m_Environment["HOME"] = NginxDirectory;
 		Params.m_Environment["TMPDIR"] = NginxDirectory + "/.tmp";
+#ifdef DPlatformFamily_Windows
+		Params.m_Environment["TMP"] = NginxDirectory + "/.tmp";
+		Params.m_Environment["TEMP"] = NginxDirectory + "/.tmp";
+#endif
 		
 		mp_NginxLaunch = fg_ConstructActor<CProcessLaunchActor>();
 		

@@ -48,6 +48,9 @@ namespace NMib::NMeteor::NMeteorManager
 		Params.m_bAllowExecutableLocate = true;
 		Params.m_bMergeEnvironment = true;
 		Params.m_RunAsUser = mp_MongoToolsUser;
+#ifdef DPlatformFamily_Windows
+		Params.m_RunAsUser = fp_GetUserPassword(mp_MongoToolsUser);
+#endif
 		Params.m_RunAsGroup = mp_MongoToolsGroup;
 
 		CStr MongoHost = mp_MongoHost;
@@ -146,8 +149,6 @@ namespace NMib::NMeteor::NMeteorManager
 						, ELogVerbosity_None
 						, {}
 						, true
-						, {}
-						, {}
 					)
 					> [ScriptName, _Continuation, Clock, _Timeout, pDoLaunch](TCAsyncResult<CStr> const &_StdOut)
 					{
@@ -166,7 +167,8 @@ namespace NMib::NMeteor::NMeteorManager
 							(*pDoLaunch)(_Continuation);
 							return;
 						}
-						DLog(Info, "{}:\n{}", ScriptName, (*_StdOut).f_Trim());
+						auto StdOut = (*_StdOut).f_Trim();
+						DLog(Info, "{}:{}{}", ScriptName, StdOut.f_IsEmpty() ? "" : "\n", StdOut);
 						_Continuation.f_SetResult();
 						(*pDoLaunch)(_Continuation);
 					}

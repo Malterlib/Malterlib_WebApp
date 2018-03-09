@@ -65,7 +65,9 @@ cd "$MeteorDir"
 
 rm -rf .meteor/local/plugin-cache/less/local
 
-if [ "$PlatformFamily" == "Linux" ]; then
+if [ "$PlatformFamily" == "Windows" ]; then
+	METEOR_ARCH="os.windows.x86_64"
+elif [ "$PlatformFamily" == "Linux" ]; then
 	METEOR_ARCH="os.linux.x86_64"
 else
 	METEOR_ARCH="os.osx.x86_64"
@@ -73,13 +75,15 @@ fi
 
 export NPM_CONFIG_PROGRESS=false
 
-meteor npm install --production
+$MeteorCommand npm install --production
+
+mkdir -p "${OutputDir}bundle"
 
 if [ "$MeteorDebugPackage" == "true" ]; then
 	echo Building meteor bundle with debug
-	meteor build "$OutputDir" --server-only --debug --architecture "$METEOR_ARCH" --directory
+	$MeteorCommand build "$OutputDir" --server-only --debug --architecture "$METEOR_ARCH" --directory
 else
-	meteor build "$OutputDir" --server-only --architecture "$METEOR_ARCH" --directory
+	$MeteorCommand build "$OutputDir" --server-only --architecture "$METEOR_ARCH" --directory
 fi
 
 SysName=$(uname -s)
@@ -89,7 +93,7 @@ fi
 
 mv "${OutputDir}bundle" "${OutputDir}$Name"
 cd "$OutputDir"
-tar $TarOptions -c "$Name" | gzip > "$OutputBundleTar"
+tar $TarOptions -czf "$OutputBundleTar" "$Name" 
 
 if [[ "$PlatformFamily" == "Linux" ]] ; then
 	if [[ "$BUILDSERVER" == "TRUE" ]] ; then
@@ -103,7 +107,19 @@ else
 	"$ScriptDir/Malterlib_Meteor_BuildMeteorNpmInstall.sh" "$OutputBundleTar" "$NodePackage" "$Name"
 fi
 
-md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5" 
+if [[ "$PlatformFamily" != "Windows" ]] ; then
+	md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"
+	function ConvertPath()
+	{
+		echo "$1"
+	}
+else
+	md5sum "$OutputBundleTar" | cut '-d ' -f 1 > "$OutputBundleTar.md5"
+	function ConvertPath()
+	{
+		cygpath -m "$1"
+	}
+fi
 
 ExcludePatterns="*/.meteor/local"
 ExcludePatterns="$ExcludePatterns;*/tests/jasmine/server/unit/package-stubs.js"
@@ -114,6 +130,6 @@ ExcludePatterns="$ExcludePatterns;*/.npm"
 ExcludePatterns="$ExcludePatterns;*/.git"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 
-MTool BuildDependencies "OutputFile=$DependencyFile" "Output:$OutputBundleTar" "Input:${BASH_SOURCE[0]}" "Input:$ScriptDir/Malterlib_Meteor_BuildMeteorNpmInstall.sh" "Find:$MeteorDir/*;RIF;33;$ExcludePatterns" "Find:$SharedPackagesDir/*;RIF;33;$ExcludePatterns"
+MTool BuildDependencies "OutputFile=`ConvertPath \"$DependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Input:`ConvertPath \"$ScriptDir/Malterlib_Meteor_BuildMeteorNpmInstall.sh\"`" "Find:`ConvertPath \"$MeteorDir\"`/*;RIF;33;$ExcludePatterns" "Find:`ConvertPath \"$SharedPackagesDir\"`/*;RIF;33;$ExcludePatterns"
 
 exit 0
