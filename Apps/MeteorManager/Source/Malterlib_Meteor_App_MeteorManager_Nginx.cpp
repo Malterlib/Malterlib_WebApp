@@ -124,7 +124,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 			TCMap<CStr, CStr> m_Redirects;
 			CStr m_CertificateFile;
 			CStr m_CertificateKeyFile;
-			CUser m_User{""};
+			CUser m_User{"", ""};
 #ifdef DPlatformFamily_Windows
 			CStrSecure m_UserPassword;
 #endif
@@ -605,12 +605,12 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				}
 
 
-				(g_Dispatch(*mp_FileActors) > [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_Name, NginxDirectory]()
+				(g_Dispatch(*mp_FileActors) > [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_UserName, GroupName = mp_NginxUser.m_GroupName, NginxDirectory]()
 					{
 						CFile::fs_WriteStringToFile(ConfigFile, ConfigContents, false);
 
-						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, fsp_GetGroupName(UserName));
-						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", fsp_GetGroupName(UserName));
+						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, GroupName);
+						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", GroupName);
 					})
 					+ SavePasswordContinuation
 					> Continuation / [Continuation]()

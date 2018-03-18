@@ -11,9 +11,10 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	struct CUser
 	{
-		CUser(CStr const &_Name);
+		CUser(CStr const &_UserName, CStr const &_GroupName);
 
-		CStr m_Name;
+		CStr m_UserName;
+		CStr m_GroupName;
 		CStr m_GroupID;
 		CStr m_UserID;
 	};

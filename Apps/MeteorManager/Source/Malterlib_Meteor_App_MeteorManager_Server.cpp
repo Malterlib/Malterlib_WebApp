@@ -12,8 +12,9 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	CMeteorManagerActor::CMeteorManagerActor(CDistributedAppState &_AppState, CMeteorManagerOptions const &_Options)
 		: mp_AppState(_AppState)
-		, mp_NodeUser{NSys::fg_UserManagement_MakeValidUserName(fg_Format("mib_node_{}", _Options.m_ManagerName))}
-		, mp_NginxUser{NSys::fg_UserManagement_MakeValidUserName(fg_Format("mib_nginx_{}", _Options.m_ManagerName))}
+		, mp_pUniqueUserGroup{fg_Construct("/M/App/MeteorManager-{}"_f << _Options.m_ManagerName)}
+		, mp_NodeUser{mp_pUniqueUserGroup->f_GetUser("mib_node_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_node_{}"_f << _Options.m_ManagerName)}
+		, mp_NginxUser{mp_pUniqueUserGroup->f_GetUser("mib_nginx_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_nginx_{}"_f << _Options.m_ManagerName)}
 		, mp_pCanDestroyTracker(fg_Construct())
 		, mp_Options(_Options)
 		, mp_pCustomization(fg_CreateMeteorManagerCustomization())
@@ -188,18 +189,6 @@ namespace NMib::NMeteor::NMeteorManager
 	}
 #endif
 
-	CStr CMeteorManagerActor::fsp_GetGroupName(CStr const &_GroupName)
-	{
-		if (_GroupName.f_IsEmpty())
-			return {};
-
-#ifdef DPlatformFamily_Windows
-		return "Group_" + _GroupName;
-#else
-		return _GroupName;
-#endif
-	}
-
 	void CMeteorManagerActor::fsp_SetupUser
 		(
 			CUser &_User
@@ -208,24 +197,24 @@ namespace NMib::NMeteor::NMeteorManager
 #endif
 		)
 	{
-		if (!NSys::fg_UserManagement_GroupExists(fsp_GetGroupName(_User.m_Name), _User.m_GroupID))
-			NSys::fg_UserManagement_CreateGroup(fsp_GetGroupName(_User.m_Name), _User.m_GroupID);
+		if (!NSys::fg_UserManagement_GroupExists(_User.m_GroupName, _User.m_GroupID))
+			NSys::fg_UserManagement_CreateGroup(_User.m_GroupName, _User.m_GroupID);
 
-		if (!NSys::fg_UserManagement_UserExists(_User.m_Name, _User.m_UserID))
+		if (!NSys::fg_UserManagement_UserExists(_User.m_UserName, _User.m_UserID))
 		{
 #ifdef DPlatformFamily_Windows
 			o_Password = fg_HighEntropyRandomID("23456789ABCDEFGHJKLMNPQRSTWXYZabcdefghijkmnopqrstuvwxyz&=*!@~^") + "2Dg&";
 #endif
 			NSys::fg_UserManagement_CreateUser
 				(
-					fsp_GetGroupName(_User.m_Name)
-					, _User.m_Name
+					_User.m_GroupName
+					, _User.m_UserName
 #ifdef DPlatformFamily_Windows
 					, o_Password
 #else
 					, ""
 #endif
-					, _User.m_Name
+					, _User.m_UserName
 					, "/dev/null"
 					, _User.m_UserID
 				)

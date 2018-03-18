@@ -12,6 +12,7 @@
 #include <Mib/Process/ProcessLaunch>
 #include <Mib/Mongo/Client>
 #include <Mib/Storage/Optional>
+#include <Mib/Security/UniqueUserGroup>
 
 #include "Malterlib_Meteor_App_MeteorManager_Helpers.h"
 
@@ -49,7 +50,7 @@ namespace NMib::NMeteor::NMeteorManager
 			TCVector<CStr> m_StartupDependencies;
 			CStr m_CustomExecutable;
 			TCVector<CStr> m_CustomParams;
-			CUser m_User{""};
+			CUser m_User{"", ""};
 			CStr m_DomainPrefix;
 			CStr m_RedirectsFile;
 			CStr m_StickyCookie;
@@ -155,6 +156,7 @@ namespace NMib::NMeteor::NMeteorManager
 				, bool _bSeparateStdErr = true
 				, CStr const &_Home = {}
 				, CStr const &_User = {}
+				, CStr const &_Group = {}
 #ifdef DPlatformFamily_Windows
 				, CStrSecure const &_UserPassword = {}
 #endif
@@ -211,7 +213,6 @@ namespace NMib::NMeteor::NMeteorManager
 #ifdef DPlatformFamily_Windows
 		CStrSecure fp_GetUserPassword(CStr const &_User);
 #endif
-		static CStr fsp_GetGroupName(CStr const &_GroupName);
 		static void fsp_SetupUser
 			(
 				CUser &_User
@@ -280,7 +281,9 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> fp_StartNginx();
 		TCContinuation<void> fp_StartApps();
 		TCContinuation<void> fp_DestroyApps();
-		
+
+		TCSharedPointer<CUniqueUserGroup> mp_pUniqueUserGroup;
+
 		CMeteorManagerOptions mp_Options;
 		TCRoundRobinActors<CSeparateThreadActor> mp_FileActors;
 		

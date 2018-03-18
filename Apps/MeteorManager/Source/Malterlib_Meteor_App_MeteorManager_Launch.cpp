@@ -69,6 +69,7 @@ namespace NMib::NMeteor::NMeteorManager
 			, bool _bSeparateStdErr
 			, CStr const &_Home
 			, CStr const &_User
+			, CStr const &_Group
 #ifdef DPlatformFamily_Windows
 			, CStrSecure const &_UserPassword
 #endif
@@ -116,7 +117,7 @@ namespace NMib::NMeteor::NMeteorManager
 			LaunchParams.m_RunAsUserPassword = _UserPassword;
 #else
 #endif
-			LaunchParams.m_RunAsGroup = fsp_GetGroupName(_User);
+			LaunchParams.m_RunAsGroup = _Group;
 		}
 
 		if (!_Home.f_IsEmpty())

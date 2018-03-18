@@ -100,7 +100,7 @@ namespace NMib::NMeteor::NMeteorManager
 			;
 		}
 
-		CFile::fs_SetOwnerAndGroupRecursive(_Directory, _User.m_Name, fsp_GetGroupName(_User.m_Name));
+		CFile::fs_SetOwnerAndGroupRecursive(_Directory, _User.m_UserName, _User.m_GroupName);
 	}
 
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_NodeExtract()
@@ -110,7 +110,7 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		struct CNodeInfo
 		{
-			CUser m_User = {""};
+			CUser m_User = {"", ""};
 #ifdef DPlatformFamily_Windows
 			CStrSecure m_UserPassword;
 #endif
@@ -276,7 +276,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		struct CPackageInfo
 		{
-			CUser m_User = {""};
+			CUser m_User = {"", ""};
 #ifdef DPlatformFamily_Windows
 			CStrSecure m_UserPassword;
 #endif
@@ -290,8 +290,13 @@ namespace NMib::NMeteor::NMeteorManager
 				, _Type
 				, ProgramDirectory
 				, ThisActor = fg_ThisActor(this)
-				, NodeUserName = mp_NodeUser.m_Name
-				, User = CUser{NSys::fg_UserManagement_MakeValidUserName(fg_Format("mib_node_{}_{}", mp_Options.m_ManagerName, _PackageName))}
+				, NodeUserName = mp_NodeUser.m_UserName
+				, NodeGroupName = mp_NodeUser.m_GroupName
+				, User = CUser
+			 	{
+			 		mp_pUniqueUserGroup->f_GetUser("mib_node_{}_{}"_f << mp_Options.m_ManagerName << _PackageName)
+			 		, mp_pUniqueUserGroup->f_GetGroup("mib_node_{}_{}"_f << mp_Options.m_ManagerName << _PackageName)
+			 	}
 				, HomeDirectory = fg_Format("{}/node_{}", ProgramDirectory, _PackageName)
 				, MongoSSLDirectory = fp_GetMongoSSLDirectory()
 				, bSeparateUser = PackageOptions.m_bSeparateUser
@@ -309,6 +314,8 @@ namespace NMib::NMeteor::NMeteorManager
 					CPackageInfo PackageInfo;
 					PackageInfo.m_User = User;
 
+					CStr NodeHomePath = ProgramDirectory / "node";
+
 					if (bSeparateUser)
 					{
 #ifdef DPlatformFamily_Windows
@@ -316,6 +323,9 @@ namespace NMib::NMeteor::NMeteorManager
 #else
 						fsp_SetupPrerequisites_NodeUser(PackageInfo.m_User, HomeDirectory, MongoSSLDirectory);
 #endif
+						NodeUserName = PackageInfo.m_User.m_UserName;
+						NodeGroupName = PackageInfo.m_User.m_GroupName;
+						NodeHomePath = HomeDirectory;
 					}
 					
 					CStr PackageDirectory = ProgramDirectory + "/" + _PackageName;
@@ -379,6 +389,7 @@ namespace NMib::NMeteor::NMeteorManager
 													, true
 													, fg_Default()
 													, fg_Default()
+													, fg_Default()
 #ifdef DPlatformFamily_Windows
 													, fg_Default()
 #endif
@@ -389,7 +400,7 @@ namespace NMib::NMeteor::NMeteorManager
 										
 										if (!CFile::fs_FileExists(PackageDirectory + "/.installed"))
 										{
-											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, NodeUserName, fsp_GetGroupName(NodeUserName));
+											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, NodeUserName, NodeGroupName);
 
 											ThisActor
 												(
@@ -401,8 +412,9 @@ namespace NMib::NMeteor::NMeteorManager
 													, ELogVerbosity_Errors
 													, fg_Default()
 													, true
-													, ProgramDirectory + "/node"
+													, NodeHomePath
 													, NodeUserName
+													, NodeGroupName
 #ifdef DPlatformFamily_Windows
 													, PackageInfo.m_UserPassword
 #endif

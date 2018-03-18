@@ -376,22 +376,26 @@ namespace NMib::NMeteor::NMeteorManager
 		Params.m_bAllowExecutableLocate = true;
 		Params.m_bShowLaunched = false;
 
-		Params.m_RunAsUser = mp_NodeUser.m_Name;
+		CStr NodeHomePath = fp_GetDataPath("node");
+		auto NodeUser = mp_NodeUser;
+
+		if (PackageOptions.m_bSeparateUser)
+		{
+			NodeHomePath = fg_Format("{}/node_{}", ProgramDirectory, LaunchKey.m_PackageName);
+			NodeUser = PackageOptions.m_User;
+		}
+
+		Params.m_RunAsUser = NodeUser.m_UserName;
 #ifdef DPlatformFamily_Windows
-		Params.m_RunAsUserPassword = fp_GetUserPassword(mp_NodeUser.m_Name);
+		Params.m_RunAsUserPassword = fp_GetUserPassword(NodeUser.m_Name);
 #endif
-		Params.m_RunAsGroup = fsp_GetGroupName(mp_NodeUser.m_Name);
+		Params.m_RunAsGroup = NodeUser.m_GroupName;
 		{
 			auto &Limit = Params.m_Limits[EProcessLimit_OpenedFiles];
 			Limit.m_Value = CMeteorManagerActor::fs_GetNodeFileLimits();
 			Limit.m_MaxValue = CMeteorManagerActor::fs_GetNodeFileLimits();
 		}
 
-		CStr NodeHomePath = fp_GetDataPath("node");
-		
-		if (PackageOptions.m_bSeparateUser)
-			NodeHomePath = fg_Format("{}/node_{}", ProgramDirectory, LaunchKey.m_PackageName);
-		
 		fs_SetupEnvironment(Params);
 		Params.m_bMergeEnvironment = true;
 		Params.m_Environment["HOME"] = NodeHomePath;

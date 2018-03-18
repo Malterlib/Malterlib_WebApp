@@ -7,8 +7,9 @@
 
 namespace NMib::NMeteor::NMeteorManager
 {
-	CUser::CUser(CStr const &_Name)
-		: m_Name(_Name)
+	CUser::CUser(CStr const &_UserName, CStr const &_GroupName)
+		: m_UserName(_UserName)
+		, m_GroupName(_GroupName)
 	{
 	}
 
