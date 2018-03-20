@@ -13,7 +13,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		return 65536*nFilesPerConnection + 8192;
 	}
-	
+
 	mint CMeteorManagerActor::fs_GetNginxFileLimits(mint _nNodes)
 	{
 		return fs_GetNginxWorkerFileLimits() * _nNodes + 8192;
@@ -117,7 +117,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Nginx()
 	{
 		TCContinuation<void> Continuation;
-		
+
 		struct CResults
 		{
 			CStr m_ConfigContents;
@@ -130,7 +130,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 #endif
 			bool m_bHasDHParamFile = false;
 		};
-		
+
 		CStr NginxDirectory = fp_GetDataPath("nginx");
 		CStr DhParamFile = NginxDirectory + "/certificates/dhparam.pem";
 		CStr ConfigFile = NginxDirectory + "/nginx.conf";
@@ -160,14 +160,14 @@ ch8 const *g_pServerStaticTemplate = R"---(
 			() mutable -> CResults
 			{
 				CResults Results;
-				
+
 				Results.m_User = User;
 #ifdef DPlatformFamily_Windows
 				fsp_SetupUser(Results.m_User, Results.m_UserPassword);
 #else
 				fsp_SetupUser(Results.m_User);
 #endif
-				
+
 				CFile::fs_CreateDirectory(NginxDirectory + "/root");
 				CFile::fs_CreateDirectory(NginxDirectory + "/logs");
 				CFile::fs_CreateDirectory(NginxDirectory + "/.tmp");
@@ -262,8 +262,8 @@ ch8 const *g_pServerStaticTemplate = R"---(
 
 				if (CFile::fs_FileExists(DhParamFile))
 					Results.m_bHasDHParamFile = true;
-				
-				CFile::fs_SetUnixAttributesRecursive(NginxDirectory + "/certificates", EFileAttrib_UserRead, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute); 
+
+				CFile::fs_SetUnixAttributesRecursive(NginxDirectory + "/certificates", EFileAttrib_UserRead, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
 
 				Results.m_ConfigContents = CFile::fs_ReadStringFromFile(ProgramDirectory + "/Source/Malterlib_Meteor_App_MeteorManager_Nginx.conf");
 
@@ -272,10 +272,10 @@ ch8 const *g_pServerStaticTemplate = R"---(
 					{
 						if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
 							continue;
-						
+
 						if (Package.m_RedirectsFile.f_IsEmpty())
 							continue;
-						
+
 						CStr RedirectPath = fg_Format("{}/{}/{}", CFile::fs_GetProgramDirectory(), Package.f_GetName(), Package.m_RedirectsFile);
 
 						CStr RedirectContents;
@@ -294,11 +294,12 @@ ch8 const *g_pServerStaticTemplate = R"---(
 								RedirectContents += fg_Format
 									(
 										"			if ($uri ~* ^/{}$) {{\n"
-										"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/\";\n"
+										"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{}\";\n"
 										"				return 302 {}?campaign={};\n"
 										"			}\n"
 										, Path
 										, ReferrerCookie
+										, Domain
 										, RedirectTo
 										, CampaignPercentEncoded
 									)
@@ -309,18 +310,18 @@ ch8 const *g_pServerStaticTemplate = R"---(
 						{
 							DMibError(fg_Format("Failed to generate redirects: {}", _Exception));
 						}
-						
+
 						Results.m_Redirects[Package.f_GetName()] = fg_Move(RedirectContents);
 					}
 
 				}
-				
+
 				return Results;
 			}
 			> Continuation / [=](CResults &&_Results)
 			{
 				CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
-				
+
 				mp_NginxUser = _Results.m_User;
 				TCContinuation<void> SavePasswordContinuation;
 #ifdef DPlatformFamily_Windows
@@ -333,7 +334,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				else
 #endif
 					SavePasswordContinuation.f_SetResult();
-				
+
 				CStr ConfigContents = _Results.m_ConfigContents;
 
 				CStr PidFile = NginxDirectory + "/nginx.pid";
@@ -350,27 +351,27 @@ ch8 const *g_pServerStaticTemplate = R"---(
 					{
 						if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
 							continue;
-						
+
 						auto &UpstreamName = Upstreams[Package.f_GetName()];
-						
+
 						UpstreamName = "upstream_{}"_f << Package.f_GetName();
 
 						UpstreamServers += "\n	# {} Upstream\n\n"_f << Package.f_GetName();
 						UpstreamServers += "	upstream {}\n"_f << UpstreamName;
 						UpstreamServers += "	{\n";
-						
+
 						if (Package.m_StickyHeader.f_IsEmpty() && Package.m_StickyCookie.f_IsEmpty())
 							UpstreamServers += "		ip_hash; # for sticky sessions\n";
-						
+
 						for (auto &AppLaunch : mp_AppLaunches)
 						{
 							if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 								continue;
 							UpstreamServers += "\t\tserver {}:8080 max_fails=30 fail_timeout=30s;\n"_f << fp_GetAppIPAddress(AppLaunch);
 						}
-						
+
 						UpstreamServers += "	}\n\n";
-						
+
 						if (!Package.m_StickyHeader.f_IsEmpty())
 						{
 							CStr PreviousUpstream = UpstreamName;
@@ -379,14 +380,14 @@ ch8 const *g_pServerStaticTemplate = R"---(
 							UpstreamServers += "	map $http_{} {}\n"_f << Package.m_StickyHeader << UpstreamName;
 							UpstreamServers += "	{\n";
 							UpstreamServers += "		default {};\n"_f << PreviousUpstream;
-							
+
 							for (auto &AppLaunch : mp_AppLaunches)
 							{
 								if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 									continue;
 								UpstreamServers += "		{} {}:8080;\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch);
 							}
-							
+
 							UpstreamServers += "	}\n\n";
 						}
 						if (!Package.m_StickyCookie.f_IsEmpty())
@@ -397,14 +398,14 @@ ch8 const *g_pServerStaticTemplate = R"---(
 							UpstreamServers += "	map $cookie_{} {}\n"_f << Package.m_StickyCookie << UpstreamName;
 							UpstreamServers += "	{\n";
 							UpstreamServers += "		default {};\n"_f << PreviousUpstream;
-							
+
 							for (auto &AppLaunch : mp_AppLaunches)
 							{
 								if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 									continue;
 								UpstreamServers += "		{} {}:8080;\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch);
 							}
-							
+
 							UpstreamServers += "	}\n\n";
 						}
 					}
@@ -413,7 +414,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				}
 
 				ConfigContents = ConfigContents.f_Replace("{MeteorManagerUpstream}", UpstreamServers);
-				
+
 				VariablesToRemove["{MeteorManagerHTTPServers}"];
 				if (mp_Options.m_bRedirectWWW)
 				{
@@ -427,7 +428,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 
 		location /
 		{
-			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/";
+			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{DomainName}";
 			return 302 https://$host{SSLPortRewrite}$request_uri;
 		}
 	}
@@ -436,7 +437,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 
 					ConfigContents = ConfigContents.f_Replace("{MeteorManagerHTTPServers}", Section);
 				}
-				
+
 				CStr Servers;
 				TCMap<CStr, CStr> VariablesToReplace;
 				{
@@ -444,9 +445,9 @@ ch8 const *g_pServerStaticTemplate = R"---(
 					{
 						if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
 							continue;
-						
+
 						auto &UpstreamName = Upstreams[Package.f_GetName()];
-						
+
 						CStr Server = g_pServerTemplate;
 
 						if (bEnableSeparateStaticRoot)
@@ -459,7 +460,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 						CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 
 						bool bIsMainServer = ServerName == mp_Domain;
-						
+
 						Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
 						Server = Server.f_Replace("{ServerName}", ServerName);
 
@@ -467,7 +468,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 						Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
 						Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
 						Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()));
-						
+
 						if (bIsMainServer)
 						{
 							Server = Server.f_Replace("{ListenOptions}", "default_server ssl http2 backlog=1024");
@@ -478,18 +479,18 @@ ch8 const *g_pServerStaticTemplate = R"---(
 							Server = Server.f_Replace("{ListenOptions}", "");
 							Server = Server.f_Replace("{ListenOptionsIPV6}", "");
 						}
-						
-						
+
+
 						VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
 						VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");
-						
+
 						VariablesToRemove[("{{ServerNameExtra_{}}"_f << Package.f_GetName()).f_GetStr()];
 						VariablesToRemove[("{{ServerAccessCheck_{}}"_f << Package.f_GetName()).f_GetStr()];
 						VariablesToRemove[("{{ServerRedirect_{}}"_f << Package.f_GetName()).f_GetStr()];
 						VariablesToRemove[("{{ServerRootOptions_{}}"_f << Package.f_GetName()).f_GetStr()];
-						
+
 						CStr StaticPackages;
-						
+
 						if (bIsMainServer)
 						{
 							for (auto &Package : mp_Options.m_Packages)
@@ -504,10 +505,10 @@ ch8 const *g_pServerStaticTemplate = R"---(
 								StaticPackages += "		}\n";
 							}
 						}
-						
+
 						Server = Server.f_Replace("{StaticPackages}", StaticPackages);
 						Server = Server.f_Replace("{PathRedirect}",  _Results.m_Redirects[Package.f_GetName()]);
-						
+
 						if (bIsMainServer && mp_Options.m_bRedirectWWW)
 						{
 							Server += R"---(
@@ -522,14 +523,14 @@ ch8 const *g_pServerStaticTemplate = R"---(
 		location /
 		{
 			add_header Strict-Transport-Security "max-age=31536000;" always;
-			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/";
+			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{DomainName}";
 			return 302 https://{DomainName}{SSLPortRewrite}$request_uri;
 		}
 		return 302 https://{DomainName}{SSLPortRewrite}$request_uri;
 	}
 )---";
 						}
-						
+
 						if (bIsMainServer)
 						{
 							Server += "\n";
@@ -545,7 +546,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 					VariablesToRemove["{MeteorManagerServers}"];
 				}
 				ConfigContents = ConfigContents.f_Replace("{MeteorManagerServers}", Servers);
-				
+
 				if (mp_pCustomization)
 				{
 					mp_pCustomization->f_ManipulateNginxConfig
@@ -561,7 +562,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 						)
 					;
 				}
-				
+
 				for (auto &ToRemove : VariablesToRemove)
 					ConfigContents = ConfigContents.f_Replace(ToRemove, "");
 
@@ -569,10 +570,10 @@ ch8 const *g_pServerStaticTemplate = R"---(
 					CStr RedirectReferrerCookie = mp_Options.m_HTTPRedirectReferrerCookie.f_IsEmpty() ? "RedirectReferrer" : mp_Options.m_HTTPRedirectReferrerCookie;
 					ConfigContents = ConfigContents.f_Replace("{HTTPRedirectReferrerCookie}", RedirectReferrerCookie);
 				}
-				
+
 				for (auto &ReplaceWith : VariablesToReplace)
 					ConfigContents = ConfigContents.f_Replace(VariablesToReplace.fs_GetKey(ReplaceWith), ReplaceWith);
-				
+
 				ConfigContents = ConfigContents.f_Replace("{DomainName}", mp_Domain);
 				ConfigContents = ConfigContents.f_Replace("{Root}", NginxDirectory + "/root");
 				ConfigContents = ConfigContents.f_Replace("{Port}", CStr::fs_ToStr(mp_WebPort));
@@ -627,7 +628,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 	{
 		if (mp_NginxLaunch || mp_bStopped || mp_bDestroyed)
 			return fg_Explicit(); // Launch already in progress
-		
+
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr NginxDirectory = fp_GetDataPath("nginx");
 		CStr NginxConfig = NginxDirectory + "/nginx.conf";
@@ -635,9 +636,9 @@ ch8 const *g_pServerStaticTemplate = R"---(
 		TCVector<CStr> Arguments;
 		Arguments.f_Insert("-c");
 		Arguments.f_Insert(NginxConfig);
-		
+
 		TCContinuation<void> Continuation;
-		
+
 		CProcessLaunchActor::CLaunch Launch = CProcessLaunchParams::fs_LaunchExecutable
 			(
 				ProgramDirectory + "/nginx_exe/nginx"
@@ -686,11 +687,11 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				}
 			)
 		;
-		
+
 		Launch.m_ToLog = CProcessLaunchActor::ELogFlag_All;
 		Launch.m_LogName = "nginx";
 		Launch.m_Params.m_bCreateNewProcessGroup = true;
-		
+
 		auto &Params = Launch.m_Params;
 
 		Params.m_bAllowExecutableLocate = true;
@@ -700,19 +701,19 @@ ch8 const *g_pServerStaticTemplate = R"---(
 			Limit.m_Value = fs_GetNginxFileLimits(mp_AppLaunches.f_GetLen());
 			Limit.m_MaxValue = Limit.m_Value;
 		}
-		
+
 		fs_SetupEnvironment(Params);
 		Params.m_bMergeEnvironment = true;
-		
+
 		Params.m_Environment["HOME"] = NginxDirectory;
 		Params.m_Environment["TMPDIR"] = NginxDirectory + "/.tmp";
 #ifdef DPlatformFamily_Windows
 		Params.m_Environment["TMP"] = NginxDirectory + "/.tmp";
 		Params.m_Environment["TEMP"] = NginxDirectory + "/.tmp";
 #endif
-		
+
 		mp_NginxLaunch = fg_ConstructActor<CProcessLaunchActor>();
-		
+
 		mp_NginxLaunch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this)) > [this, Continuation](TCAsyncResult<CActorSubscription> &&_Subscription)
 			{
 				if (!_Subscription)
@@ -724,7 +725,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				mp_NginxLaunchSubscription = fg_Move(*_Subscription);
 			}
 		;
-		
+
 		return Continuation;
 	}
 }
