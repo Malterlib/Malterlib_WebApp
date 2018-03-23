@@ -59,6 +59,7 @@ ch8 const *g_pServerTemplate = R"---(
 			error_page 502 = @{PackageName}_Fallback;
 			proxy_pass http://{UpstreamSticky};
 			proxy_http_version 1.1;
+			proxy_set_header Host $host;
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
@@ -67,6 +68,7 @@ ch8 const *g_pServerTemplate = R"---(
 		{
 			proxy_pass http://{Upstream};
 			proxy_http_version 1.1;
+			proxy_set_header Host $host;
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
