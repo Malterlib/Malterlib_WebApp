@@ -588,6 +588,8 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				ConfigContents = ConfigContents.f_Replace("{CertificateKey}", _Results.m_CertificateKeyFile);
 				ConfigContents = ConfigContents.f_Replace("{PidFile}", PidFile);
 				ConfigContents = ConfigContents.f_Replace("{WorkerMaxOpenedFiles}", CStr::fs_ToStr(fs_GetNginxWorkerFileLimits()));
+				ConfigContents = ConfigContents.f_Replace("{NgnixUser}", mp_NginxUser.m_UserName);
+				ConfigContents = ConfigContents.f_Replace("{NgnixGroup}", mp_NginxUser.m_GroupName);
 
 				{
 					if (_Results.m_bHasDHParamFile)
