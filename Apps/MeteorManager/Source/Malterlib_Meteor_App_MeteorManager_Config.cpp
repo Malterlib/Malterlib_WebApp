@@ -23,7 +23,7 @@ namespace NMib::NMeteor::NMeteorManager
 #ifdef DMibDebug
 		mp_Tags["Debug"];
 #endif
-		if (auto *pValue = mp_AppState.m_StateDatabase.m_Data.f_GetMember("Tags"))
+		if (auto const *pValue = mp_AppState.m_StateDatabase.m_Data.f_GetMember("Tags"))
 		{
 			for (auto &Tag : pValue->f_Object())
 				mp_Tags[Tag.f_Name()];

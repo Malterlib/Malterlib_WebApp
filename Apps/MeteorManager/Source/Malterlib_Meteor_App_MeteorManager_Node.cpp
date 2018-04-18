@@ -196,15 +196,15 @@ namespace NMib::NMeteor::NMeteorManager
 			, CMeteorManagerOptions::CPackage const &_PackageOptions
 		)
 	{
-		TCSet<CStr> Tags = mp_Tags;
-		Tags[_PackageOptions.f_GetName()];
-		Tags[fg_Format("{}_{}", _PackageOptions.f_GetName(), _AppLaunch.f_GetKey().m_iAppSequence)];
+		TCSet<CStr> AvailableTags = mp_Tags;
+		AvailableTags[_PackageOptions.f_GetName()];
+		AvailableTags[fg_Format("{}_{}", _PackageOptions.f_GetName(), _AppLaunch.f_GetKey().m_iAppSequence)];
 		
 		switch(_PackageOptions.m_Type)
 		{
-		case CMeteorManagerOptions::EPackageType_Meteor: Tags["Meteor"]; break;
-		case CMeteorManagerOptions::EPackageType_Npm: Tags["Npm"]; break;
-		case CMeteorManagerOptions::EPackageType_Custom: Tags["Custom"]; break;
+		case CMeteorManagerOptions::EPackageType_Meteor: AvailableTags["Meteor"]; break;
+		case CMeteorManagerOptions::EPackageType_Npm: AvailableTags["Npm"]; break;
+		case CMeteorManagerOptions::EPackageType_Custom: AvailableTags["Custom"]; break;
 		}
 		
 		for (auto &EnvVar : mp_Options.m_Environment)
@@ -216,7 +216,7 @@ namespace NMib::NMeteor::NMeteorManager
 				bool bFoundOne = false;
 				for (auto &Tag : Tags)
 				{
-					if (Tags.f_FindEqual(Tag))
+					if (AvailableTags.f_FindEqual(Tag))
 						bFoundOne = true;
 				}
 				if (!bFoundOne)
@@ -225,7 +225,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 			for (auto &Tag : EnvVar.m_ForbiddenTags)
 			{
-				if (Tags.f_FindEqual(Tag))
+				if (AvailableTags.f_FindEqual(Tag))
 					bPassAllTags = false;
 			}
 
