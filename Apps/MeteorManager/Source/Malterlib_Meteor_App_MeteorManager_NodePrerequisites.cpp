@@ -41,7 +41,7 @@ namespace NMib::NMeteor::NMeteorManager
 		return CFile::fs_GetFileChecksum(_File);
 	}
 
-	void CMeteorManagerActor::fsp_SetupPrerequisites_NodeUser
+	void CMeteorManagerActor::fsp_SetupPrerequisites_ServerUser
 		(
 			CUser &_User
 #ifdef DPlatformFamily_Windows
@@ -116,10 +116,18 @@ namespace NMib::NMeteor::NMeteorManager
 #endif
 			bool m_bForceAppReinstall = false;
 		};
-	
+
+		bool bNeedNode = false;
+
+		for (auto &Package : mp_Options.m_Packages)
+		{
+			if (Package.m_Type != CMeteorManagerOptions::EPackageType_FastCGI)
+				bNeedNode = true;
+		}
+
 		TCContinuation<void> Continuation;
 		g_Dispatch(*mp_FileActors)
-			> [ProgramDirectory, NodeDirectory, ThisActor = fg_ThisActor(this), NodeUser = mp_NodeUser, MongoSSLDirectory = fp_GetMongoSSLDirectory()]
+			> [ProgramDirectory, NodeDirectory, ThisActor = fg_ThisActor(this), NodeUser = mp_NodeUser, MongoSSLDirectory = fp_GetMongoSSLDirectory(), bNeedNode]
 			() mutable -> TCContinuation<CNodeInfo>
 			{
 				DLog(Info, "Extracting node distribution");
@@ -138,9 +146,9 @@ namespace NMib::NMeteor::NMeteorManager
 				try
 				{
 #ifdef DPlatformFamily_Windows
-					fsp_SetupPrerequisites_NodeUser(NodeInfo.m_User, NodeInfo.m_UserPassword, NodeDirectory, MongoSSLDirectory);
+					fsp_SetupPrerequisites_ServerUser(NodeInfo.m_User, NodeInfo.m_UserPassword, NodeDirectory, MongoSSLDirectory);
 #else
-					fsp_SetupPrerequisites_NodeUser(NodeInfo.m_User, NodeDirectory, MongoSSLDirectory);
+					fsp_SetupPrerequisites_ServerUser(NodeInfo.m_User, NodeDirectory, MongoSSLDirectory);
 #endif
 					
 					auto Files = CFile::fs_FindFiles(ProgramDirectory + "/node-*.tar.gz");
@@ -185,7 +193,8 @@ namespace NMib::NMeteor::NMeteorManager
 					}
 					else
 					{
-						DLog(Error, "No node distribution found");
+						if (bNeedNode)
+							DLog(Error, "No node distribution found");
 						
 						Continuation.f_SetResult(NodeInfo);
 						return Continuation;
@@ -279,10 +288,20 @@ namespace NMib::NMeteor::NMeteorManager
 			CUser m_User = {"", ""};
 #ifdef DPlatformFamily_Windows
 			CStrSecure m_UserPassword;
+			bool m_bPasswordChanged = false;
 #endif
 		};
 		
 		auto &PackageOptions = fg_Const(mp_Options.m_Packages)[_PackageName];
+
+		auto PackageUser = CUser
+			{
+				mp_pUniqueUserGroup->f_GetUser("mib_pkg_{}_{}"_f << mp_Options.m_ManagerName << _PackageName)
+				, mp_pUniqueUserGroup->f_GetGroup("mib_pkg_{}_{}"_f << mp_Options.m_ManagerName << _PackageName)
+			}
+		;
+		auto DefaultUser = (_Type == CMeteorManagerOptions::EPackageType_FastCGI) ? mp_FastCGIUser : mp_NodeUser;
+		bool bSeparateUser = PackageOptions.m_bSeparateUser;
 
 		g_Dispatch(*mp_FileActors) >
 			[
@@ -290,16 +309,16 @@ namespace NMib::NMeteor::NMeteorManager
 				, _Type
 				, ProgramDirectory
 				, ThisActor = fg_ThisActor(this)
-				, NodeUserName = mp_NodeUser.m_UserName
-				, NodeGroupName = mp_NodeUser.m_GroupName
-				, User = CUser
-			 	{
-			 		mp_pUniqueUserGroup->f_GetUser("mib_node_{}_{}"_f << mp_Options.m_ManagerName << _PackageName)
-			 		, mp_pUniqueUserGroup->f_GetGroup("mib_node_{}_{}"_f << mp_Options.m_ManagerName << _PackageName)
-			 	}
-				, HomeDirectory = fg_Format("{}/node_{}", ProgramDirectory, _PackageName)
+			 	, DefaultUser
+				, PackageUser
+#ifdef DPlatformFamily_Windows
+			 	, PackagePassword = fp_GetUserPassword(PackageUser.m_UserName)
+			 	, DefaultPassword = fp_GetUserPassword(DefaultUser.m_UserName)
+#endif
+				, PackageHomeDirectory = fg_Format("{}/Home_{}", ProgramDirectory, _PackageName)
 				, MongoSSLDirectory = fp_GetMongoSSLDirectory()
-				, bSeparateUser = PackageOptions.m_bSeparateUser
+				, bSeparateUser
+				, bOwnPackageDirectory = PackageOptions.m_bOwnPackageDirectory
 				, bForceAppsReinstall = mp_bForceAppsReinstall
 			]
 			() mutable -> TCContinuation<CPackageInfo>
@@ -312,20 +331,26 @@ namespace NMib::NMeteor::NMeteorManager
 					DLog(Info, "Setting up package");
 
 					CPackageInfo PackageInfo;
-					PackageInfo.m_User = User;
+					PackageInfo.m_User = DefaultUser;
+#ifdef DPlatformFamily_Windows
+					PackageInfo.m_UserPassword = DefaultPassword;
+#endif
 
-					CStr NodeHomePath = ProgramDirectory / "node";
+					auto User = DefaultUser;
+					CStr UserHomePath = ProgramDirectory / (_Type == CMeteorManagerOptions::EPackageType_FastCGI ? "FastCGIHome" : "node");
 
 					if (bSeparateUser)
 					{
+						PackageInfo.m_User = PackageUser;
 #ifdef DPlatformFamily_Windows
-						fsp_SetupPrerequisites_NodeUser(PackageInfo.m_User, PackageInfo.m_UserPassword, HomeDirectory, MongoSSLDirectory);
+						PackageInfo.m_UserPassword = PackagePassword;
+						fsp_SetupPrerequisites_ServerUser(PackageInfo.m_User, PackageInfo.m_UserPassword, PackageHomeDirectory, MongoSSLDirectory);
+						PackageInfo.m_bPasswordChanged = PackageInfo.m_UserPassword != PackagePassword;
 #else
-						fsp_SetupPrerequisites_NodeUser(PackageInfo.m_User, HomeDirectory, MongoSSLDirectory);
+						fsp_SetupPrerequisites_ServerUser(PackageInfo.m_User, PackageHomeDirectory, MongoSSLDirectory);
 #endif
-						NodeUserName = PackageInfo.m_User.m_UserName;
-						NodeGroupName = PackageInfo.m_User.m_GroupName;
-						NodeHomePath = HomeDirectory;
+						User = PackageInfo.m_User;
+						UserHomePath = PackageHomeDirectory;
 					}
 					
 					CStr PackageDirectory = ProgramDirectory + "/" + _PackageName;
@@ -371,10 +396,26 @@ namespace NMib::NMeteor::NMeteorManager
 								TCActorResultVector<CStr> Results;
 								try
 								{
-									if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
+									if (_Type == CMeteorManagerOptions::EPackageType_Meteor || _Type == CMeteorManagerOptions::EPackageType_FastCGI)
 									{
-										auto Files = CFile::fs_FindFiles(PackageDirectory + "/programs/web.browser/*.css");
-										Files.f_Insert(CFile::fs_FindFiles(PackageDirectory+ "/programs/web.browser/*.js"));
+										CStr StaticRoot;
+										if (_Type == CMeteorManagerOptions::EPackageType_FastCGI)
+											StaticRoot = PackageDirectory + "/static";
+										else
+											StaticRoot = PackageDirectory + "/programs/web.browser";
+
+										TCVector<CStr> Files;
+										if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
+										{
+											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.css", EFileAttrib_File));
+											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.js", EFileAttrib_File));
+										}
+										else
+										{
+											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.css", EFileAttrib_File, true));
+											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.js", EFileAttrib_File, true));
+										}
+
 										for (auto &File : Files)
 										{
 											ThisActor
@@ -400,27 +441,30 @@ namespace NMib::NMeteor::NMeteorManager
 										
 										if (!CFile::fs_FileExists(PackageDirectory + "/.installed"))
 										{
-											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, NodeUserName, NodeGroupName);
+											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, User.m_UserName, User.m_GroupName);
 
-											ThisActor
-												(
-													&CMeteorManagerActor::f_LaunchTool
-													, ProgramDirectory + "/node_dist/bin/npm"
-													, PackageDirectory + "/programs/server"
-													, fg_CreateVector<CStr>("install", "--silent")
-													, CStr{"GZipStatic"}
-													, ELogVerbosity_Errors
-													, fg_Default()
-													, true
-													, NodeHomePath
-													, NodeUserName
-													, NodeGroupName
+											if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
+											{
+												ThisActor
+													(
+														&CMeteorManagerActor::f_LaunchTool
+														, ProgramDirectory + "/node_dist/bin/npm"
+														, PackageDirectory + "/programs/server"
+														, fg_CreateVector<CStr>("install", "--silent")
+														, CStr{"GZipStatic"}
+														, ELogVerbosity_Errors
+														, fg_Default()
+														, true
+														, UserHomePath
+														, User.m_UserName
+														, User.m_GroupName
 #ifdef DPlatformFamily_Windows
-													, PackageInfo.m_UserPassword
+														, PackageInfo.m_UserPassword
 #endif
-												)
-												> Results.f_AddResult()
-											;
+													)
+													> Results.f_AddResult()
+												;
+											}
 										}
 									}
 								}
@@ -430,7 +474,6 @@ namespace NMib::NMeteor::NMeteorManager
 									return;
 								}
 
-								
 								Results.f_GetResults() > [=](TCAsyncResult<TCVector<TCAsyncResult<CStr>>> &&_Results)
 									{
 										if (!fg_CombineResults(InstallContinuation, fg_Move(_Results)))
@@ -450,7 +493,20 @@ namespace NMib::NMeteor::NMeteorManager
 										;
 										try
 										{
-											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, NSys::fg_UserManagement_GetProcessRealUserName(), NSys::fg_UserManagement_GetProcessRealGroupName());
+											CStr UserName;
+											if (bOwnPackageDirectory)
+												CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, User.m_UserName, User.m_GroupName);
+											else
+											{
+												CFile::fs_SetOwnerAndGroupRecursive
+													(
+													 	PackageDirectory
+													 	, NSys::fg_UserManagement_GetProcessRealUserName()
+													 	, NSys::fg_UserManagement_GetProcessRealGroupName()
+													)
+												;
+											}
+
 											CFile::fs_WriteStringToFile(MeteorPackageChecksumFileName, NewChecksum, false);
 										}
 										catch (NException::CException const &)
@@ -466,7 +522,7 @@ namespace NMib::NMeteor::NMeteorManager
 					else
 						InstallContinuation.f_SetResult();
 					
-					InstallContinuation > Continuation / [_PackageName, Continuation, User, PackageInfo]
+					InstallContinuation > Continuation / [_PackageName, Continuation, PackageInfo]
 						{
 							DMibLogCategoryStr(_PackageName);
 							DLog(Info, "Setting up package was successful");
@@ -487,7 +543,7 @@ namespace NMib::NMeteor::NMeteorManager
 				auto &Package = mp_Options.m_Packages[_PackageName];
 				Package.m_User = _PackageInfo.m_User;
 #ifdef DPlatformFamily_Windows
-				if (!_PackageInfo.m_UserPassword.f_IsEmpty())
+				if (_PackageInfo.m_bPasswordChanged && !_PackageInfo.m_UserPassword.f_IsEmpty())
 				{
 					mp_AppState.m_StateDatabase.m_Data["Users"][_PackageInfo.m_User.m_Name]["Password"] = _PackageInfo.m_UserPassword;
 					mp_AppState.f_SaveStateDatabase() > Continuation;
@@ -514,11 +570,12 @@ namespace NMib::NMeteor::NMeteorManager
 		;
 	}
 	
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Node()
+	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Servers()
 	{
 		TCContinuation<void> Continuation;
 		fp_SetupPrerequisites_OSSetup()
 			+ fp_SetupPrerequisites_NodeExtract()
+			+ fp_SetupPrerequisites_FastCGI()
 			> Continuation / [Continuation, this]
 			{
 				fp_SetupPrerequisites_Packages() > Continuation;

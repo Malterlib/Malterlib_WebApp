@@ -24,8 +24,8 @@ namespace NMib::NMeteor::NMeteorManager
 	CStr CMeteorManagerActor::fp_GetPackageHostname(CStr const &_PackageName, EHostnamePrefix _Prefix) const
 	{
 		auto &Package = mp_Options.m_Packages[_PackageName];
-		if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
-			DMibError("Cannot get package name for non-meteor package");
+		if (!Package.f_IsServer())
+			DMibError("Cannot get package name for non-server package");
 
 		CStr Prefix = Package.m_DomainPrefix;
 
@@ -203,6 +203,7 @@ namespace NMib::NMeteor::NMeteorManager
 		switch(_PackageOptions.m_Type)
 		{
 		case CMeteorManagerOptions::EPackageType_Meteor: AvailableTags["Meteor"]; break;
+		case CMeteorManagerOptions::EPackageType_FastCGI: AvailableTags["FastCGI"]; break;
 		case CMeteorManagerOptions::EPackageType_Npm: AvailableTags["Npm"]; break;
 		case CMeteorManagerOptions::EPackageType_Custom: AvailableTags["Custom"]; break;
 		}
@@ -296,6 +297,17 @@ namespace NMib::NMeteor::NMeteorManager
 			LaunchExecutable = PackageOptions.m_CustomExecutable;
 			Arguments = PackageOptions.m_CustomParams;
 		}
+		else if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_FastCGI)
+		{
+			if (PackageOptions.m_CustomExecutable.f_IsEmpty())
+			{
+				if (_bInitialLaunch)
+					fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Missing executable for FastCGI launch: {}", LaunchKey.m_PackageName))));
+				return;
+			}
+			LaunchExecutable = PackageOptions.m_CustomExecutable;
+			Arguments = PackageOptions.m_CustomParams;
+		}
 		else
 		{
 			if (_bInitialLaunch)
@@ -376,20 +388,31 @@ namespace NMib::NMeteor::NMeteorManager
 		Params.m_bAllowExecutableLocate = true;
 		Params.m_bShowLaunched = false;
 
-		CStr NodeHomePath = fp_GetDataPath("node");
-		auto NodeUser = mp_NodeUser;
+		CStr LaunchHomePath;
+		CUser LaunchUser{"", ""};
+
+		if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_FastCGI)
+		{
+			LaunchHomePath = fp_GetDataPath("FastCGIHome");
+			LaunchUser = mp_FastCGIUser;
+		}
+		else
+		{
+			LaunchHomePath = fp_GetDataPath("node");
+			LaunchUser = mp_NodeUser;
+		}
 
 		if (PackageOptions.m_bSeparateUser)
 		{
-			NodeHomePath = fg_Format("{}/node_{}", ProgramDirectory, LaunchKey.m_PackageName);
-			NodeUser = PackageOptions.m_User;
+			LaunchHomePath = fg_Format("{}/Home_{}", ProgramDirectory, LaunchKey.m_PackageName);
+			LaunchUser = PackageOptions.m_User;
 		}
 
-		Params.m_RunAsUser = NodeUser.m_UserName;
+		Params.m_RunAsUser = LaunchUser.m_UserName;
 #ifdef DPlatformFamily_Windows
-		Params.m_RunAsUserPassword = fp_GetUserPassword(NodeUser.m_Name);
+		Params.m_RunAsUserPassword = fp_GetUserPassword(LaunchUser.m_Name);
 #endif
-		Params.m_RunAsGroup = NodeUser.m_GroupName;
+		Params.m_RunAsGroup = LaunchUser.m_GroupName;
 		{
 			auto &Limit = Params.m_Limits[EProcessLimit_OpenedFiles];
 			Limit.m_Value = CMeteorManagerActor::fs_GetNodeFileLimits();
@@ -398,11 +421,11 @@ namespace NMib::NMeteor::NMeteorManager
 
 		fs_SetupEnvironment(Params);
 		Params.m_bMergeEnvironment = true;
-		Params.m_Environment["HOME"] = NodeHomePath;
-		Params.m_Environment["TMPDIR"] = NodeHomePath + "/.tmp";
+		Params.m_Environment["HOME"] = LaunchHomePath;
+		Params.m_Environment["TMPDIR"] = LaunchHomePath + "/.tmp";
 #ifdef DPlatformFamily_Windows
-		Params.m_Environment["TMP"] = NodeHomePath + "/.tmp";
-		Params.m_Environment["TEMP"] = NodeHomePath + "/.tmp";
+		Params.m_Environment["TMP"] = LaunchHomePath + "/.tmp";
+		Params.m_Environment["TEMP"] = LaunchHomePath + "/.tmp";
 #endif
 		
 		try
@@ -418,8 +441,8 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 			
 			TCMap<CStr, CStr> CalculatedSettings;
-			CalculatedSettings["Home"] = NodeHomePath;
-			CalculatedSettings["TmpDir"] = NodeHomePath + "/.tmp";
+			CalculatedSettings["Home"] = LaunchHomePath;
+			CalculatedSettings["TmpDir"] = LaunchHomePath + "/.tmp";
 			
 			if (mp_bIsStaging)
 				CalculatedSettings["Staging"] = "true";
@@ -427,8 +450,8 @@ namespace NMib::NMeteor::NMeteorManager
 			CalculatedSettings["PackageDirectory"] = PackageDirectory;
 			
 			CalculatedSettings["ManagerInstanceID"] = mp_InstanceId;
-			CalculatedSettings["NodeInstanceID"] = fg_RandomID();
-			CalculatedSettings["NodeSequence"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_iAppSequence);
+			CalculatedSettings["LaunchInstanceID"] = fg_RandomID();
+			CalculatedSettings["LaunchSequence"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_iAppSequence);
 			
 			CalculatedSettings["PackageName"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_PackageName);
 			CalculatedSettings["BackendIdentifier"] = _AppLaunch.m_BackendIdentifier;
@@ -436,7 +459,7 @@ namespace NMib::NMeteor::NMeteorManager
 			CalculatedSettings["WebSSLPort"] = CStr::fs_ToStr(mp_WebSSLPort);
 			CalculatedSettings["WebPort"] = CStr::fs_ToStr(mp_WebPort);
 
-			if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Meteor)
+			if (PackageOptions.f_IsServer())
 			{
 				CStr Hostname = fp_GetPackageHostname(_AppLaunch.f_GetKey().m_PackageName, EHostnamePrefix_None);
 				CStr HostnameStatic = fp_GetPackageHostname(_AppLaunch.f_GetKey().m_PackageName, EHostnamePrefix_Static);
@@ -451,7 +474,7 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 			for (auto &Package : mp_Options.m_Packages)
 			{
-				if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
+				if (Package.f_IsServer())
 					continue;
 				CStr Hostname = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 				CStr HostnameStatic = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static);
@@ -466,8 +489,8 @@ namespace NMib::NMeteor::NMeteorManager
 				CalculatedSettings["IsMultiHost"] = "true";
 				CalculatedSettings["DDPSelf"] = mp_DDPSelf;
 				
-				CStr CaCertificatePath = NodeHomePath + "/certificates/MongoCA.crt";
-				CStr ClientCertificatePath = NodeHomePath + "/certificates/admin.pem";
+				CStr CaCertificatePath = LaunchHomePath + "/certificates/MongoCA.crt";
+				CStr ClientCertificatePath = LaunchHomePath + "/certificates/admin.pem";
 				CStr UserNameEncoded;
 
 				try
@@ -559,7 +582,10 @@ namespace NMib::NMeteor::NMeteorManager
 			
 			fp_PopulateNodeEnvironment(Params.m_Environment, CalculatedSettings, _AppLaunch, PackageOptions);
 
-			Params.m_Environment["METEOR_SETTINGS"] = MeteorSettings.f_ToString();
+			if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Meteor)
+ 				Params.m_Environment["METEOR_SETTINGS"] = MeteorSettings.f_ToString();
+			else
+ 				Params.m_Environment["APPLICATION_SETTINGS"] = MeteorSettings.f_ToString();
 		}
 		catch (NException::CException const &_Exception)
 		{

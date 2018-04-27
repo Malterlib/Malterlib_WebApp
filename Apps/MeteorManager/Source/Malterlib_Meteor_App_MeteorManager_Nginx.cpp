@@ -80,6 +80,68 @@ ch8 const *g_pServerTemplate = R"---(
 	}
 )---";
 
+ch8 const *g_pFastCGIServerTemplate = R"---(
+	server
+	{
+		listen {SSLPort} {ListenOptions};
+		listen [::]:{SSLPort} {ListenOptionsIPV6};
+		server_name {ServerName} {ServerNameExtra_{PackageName}};
+		access_log logs/access_{PackageName}.log upstreamlog;
+		client_max_body_size 10M;
+
+{ServerAccessCheck_{PackageName}}
+
+		# If your application is not compatible with IE <= 10, this will redirect visitors to a page advising a browser update
+		# This works because IE 11 does not present itself as MSIE anymore
+		if ($http_user_agent ~ "MSIE" )
+		{
+			return 303 https://browser-update.org/update.html;
+		}
+
+		location ~* "^/[a-z0-9]{40}\.(css|js)$"
+		{
+			gzip_static always;
+			expires max;
+			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Cache-Control public;
+			root {StaticRoot};
+			access_log logs/static_access_{PackageName}.log;
+		}
+
+{ServerRedirect_{PackageName}}
+
+{StaticPackages}
+
+		# pass all requests to FastCGI
+		location /
+		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+			include {FastCGIFile};
+
+			error_page 502 = @{PackageName}_Fallback;
+
+			fastcgi_pass {UpstreamSticky};
+			fastcgi_keep_conn on;
+
+			gzip off;
+		}
+		location @{PackageName}_Fallback
+		{
+			include {FastCGIFile};
+
+			fastcgi_pass {Upstream};
+			fastcgi_keep_conn on;
+
+			gzip off;
+		}
+
+		location /robots.txt {
+			return 200 "{AllowRobots}";
+		}
+	}
+)---";
+
 ch8 const *g_pServerStaticTemplate = R"---(
 	server
 	{
@@ -136,6 +198,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 		CStr NginxDirectory = fp_GetDataPath("nginx");
 		CStr DhParamFile = NginxDirectory + "/certificates/dhparam.pem";
 		CStr ConfigFile = NginxDirectory + "/nginx.conf";
+		CStr FastCGIFile = NginxDirectory + "/FastCGI.conf";
 		bool bEnableSeparateStaticRoot = fp_GetConfigValue("EnableSeparateStaticRoot", false).f_Boolean();
 
 		CStr CertificateOrganization = fp_GetConfigValue("CertificateOrganization", DProductCompany).f_String();
@@ -158,6 +221,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				, CertificateCountry
 				, CertificateLocality
 				, CertificateOrganizationalUnit
+			 	, FastCGIFile
 			]
 			() mutable -> CResults
 			{
@@ -268,11 +332,12 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				CFile::fs_SetUnixAttributesRecursive(NginxDirectory + "/certificates", EFileAttrib_UserRead, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
 
 				Results.m_ConfigContents = CFile::fs_ReadStringFromFile(ProgramDirectory + "/Source/Malterlib_Meteor_App_MeteorManager_Nginx.conf");
+				CFile::fs_DiffCopyFileOrDirectory(ProgramDirectory + "/Source/Malterlib_Meteor_App_MeteorManager_FastCGI.conf", FastCGIFile, nullptr);
 
 				{
 					for (auto &Package : Packages)
 					{
-						if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
+						if (!Package.f_IsServer())
 							continue;
 
 						if (Package.m_RedirectsFile.f_IsEmpty())
@@ -351,8 +416,10 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				{
 					for (auto &Package : mp_Options.m_Packages)
 					{
-						if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
+						if (!Package.f_IsServer())
 							continue;
+
+						bool bIsFastCGI = Package.m_Type == CMeteorManagerOptions::EPackageType_FastCGI;
 
 						auto &UpstreamName = Upstreams[Package.f_GetName()];
 
@@ -365,12 +432,17 @@ ch8 const *g_pServerStaticTemplate = R"---(
 						if (Package.m_StickyHeader.f_IsEmpty() && Package.m_StickyCookie.f_IsEmpty())
 							UpstreamServers += "		ip_hash; # for sticky sessions\n";
 
+						mint nUpstream = 0;
 						for (auto &AppLaunch : mp_AppLaunches)
 						{
 							if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 								continue;
+							++nUpstream;
 							UpstreamServers += "\t\tserver {}:8080 max_fails=30 fail_timeout=30s;\n"_f << fp_GetAppIPAddress(AppLaunch);
 						}
+
+						if (bIsFastCGI)
+							UpstreamServers += "\t\tkeepalive {};\n"_f << nUpstream;
 
 						UpstreamServers += "	}\n\n";
 
@@ -445,12 +517,18 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				{
 					for (auto &Package : mp_Options.m_Packages)
 					{
-						if (Package.m_Type != CMeteorManagerOptions::EPackageType_Meteor)
+						if (!Package.f_IsServer())
 							continue;
+
+						bool bIsFastCGI = Package.m_Type == CMeteorManagerOptions::EPackageType_FastCGI;
 
 						auto &UpstreamName = Upstreams[Package.f_GetName()];
 
-						CStr Server = g_pServerTemplate;
+						CStr Server;
+						if (bIsFastCGI)
+							Server = g_pFastCGIServerTemplate;
+						else
+							Server = g_pServerTemplate;
 
 						if (bEnableSeparateStaticRoot)
 						{
@@ -466,10 +544,16 @@ ch8 const *g_pServerStaticTemplate = R"---(
 						Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
 						Server = Server.f_Replace("{ServerName}", ServerName);
 
+						if (bIsFastCGI)
+							Server = Server.f_Replace("{FastCGIFile}", FastCGIFile);
+
 						Server = Server.f_Replace("{PackageName}", Package.f_GetName());
 						Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
 						Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
-						Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()));
+						if (bIsFastCGI)
+							Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()));
+						else
+							Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()));
 
 						if (bIsMainServer)
 						{
@@ -497,7 +581,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 						{
 							for (auto &Package : mp_Options.m_Packages)
 							{
-								if (Package.m_Type == CMeteorManagerOptions::EPackageType_Meteor || Package.m_StaticPath.f_IsEmpty())
+								if (Package.f_IsServer() || Package.m_StaticPath.f_IsEmpty())
 									continue;
 
 								StaticPackages += "		location {}\n"_f << Package.m_StaticPath;

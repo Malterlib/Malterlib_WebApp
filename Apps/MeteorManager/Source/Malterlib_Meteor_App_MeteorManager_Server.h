@@ -25,6 +25,7 @@ namespace NMib::NMeteor::NMeteorManager
 			EPackageType_Meteor
 			, EPackageType_Npm
 			, EPackageType_Custom
+			, EPackageType_FastCGI
 		};
 		
 		struct CEnvironmentVariable
@@ -46,6 +47,11 @@ namespace NMib::NMeteor::NMeteorManager
 			{
 				return TCMap<CStr, CPackage>::fs_GetKey(*this);
 			}
+
+			bool f_IsServer() const
+			{
+				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI;
+			}
 			
 			TCVector<CStr> m_StartupDependencies;
 			CStr m_CustomExecutable;
@@ -60,6 +66,7 @@ namespace NMib::NMeteor::NMeteorManager
 			mint m_Concurrency = 1;
 			EPackageType m_Type = EPackageType_Meteor;
 			bool m_bSeparateUser = false;
+			bool m_bOwnPackageDirectory = false;
 			bool m_bAllowRobots = true;
 		};
 		
@@ -231,7 +238,7 @@ namespace NMib::NMeteor::NMeteorManager
 		mint fp_GetNumNodes() const;
 		
 		static CHashDigest_MD5 fsp_GetFileChecksum(CStr const &_File);
-		static void fsp_SetupPrerequisites_NodeUser
+		static void fsp_SetupPrerequisites_ServerUser
 			(
 				CUser &_User
 #ifdef DPlatformFamily_Windows
@@ -242,7 +249,8 @@ namespace NMib::NMeteor::NMeteorManager
 			)
 		;
 		
-		TCContinuation<void> fp_SetupPrerequisites_Node();
+		TCContinuation<void> fp_SetupPrerequisites_Servers();
+		TCContinuation<void> fp_SetupPrerequisites_FastCGI();
 		TCContinuation<void> fp_SetupPrerequisites_Nginx();
 		TCContinuation<void> fp_SetupPrerequisites_Customization();
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
@@ -293,6 +301,7 @@ namespace NMib::NMeteor::NMeteorManager
 		CDistributedAppState &mp_AppState;
 
 		CUser mp_NodeUser;
+		CUser mp_FastCGIUser;
 		CUser mp_NginxUser;
 		CVersion mp_Version_Node{0, 10, 33};
 		TCVector<CStr> mp_VersionHistory;

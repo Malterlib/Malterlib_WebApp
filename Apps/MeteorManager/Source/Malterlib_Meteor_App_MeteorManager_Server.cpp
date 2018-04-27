@@ -14,6 +14,7 @@ namespace NMib::NMeteor::NMeteorManager
 		: mp_AppState(_AppState)
 		, mp_pUniqueUserGroup{fg_Construct("/M/App/MeteorManager-{}"_f << _Options.m_ManagerName)}
 		, mp_NodeUser{mp_pUniqueUserGroup->f_GetUser("mib_node_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_node_{}"_f << _Options.m_ManagerName)}
+		, mp_FastCGIUser{mp_pUniqueUserGroup->f_GetUser("mib_fcgi_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_fcgi_{}"_f << _Options.m_ManagerName)}
 		, mp_NginxUser{mp_pUniqueUserGroup->f_GetUser("mib_nginx_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_nginx_{}"_f << _Options.m_ManagerName)}
 		, mp_pCanDestroyTracker(fg_Construct())
 		, mp_Options(_Options)
@@ -66,7 +67,7 @@ namespace NMib::NMeteor::NMeteorManager
 			fp_ExtractExeFS() > Continuation % "Failed to extract ExeFS" / [this, Continuation]
 			{
 				DLog(Info, "Done extracting ExeFS, setting up node prerequisites and updating version history");
-				fp_SetupPrerequisites_Node() + fp_UpdateVersionHistory() > Continuation / [this, Continuation]
+				fp_SetupPrerequisites_Servers() + fp_UpdateVersionHistory() > Continuation / [this, Continuation]
 				{
 					DLog(Info, "Done setting up node prerequisites and updating version history, setting up customization prerequisites");
 					fp_SetupPrerequisites_Customization() > Continuation / [this, Continuation]
@@ -313,6 +314,8 @@ namespace NMib::NMeteor::NMeteorManager
 			auto &PackageType = PackageJSON.f_Value()["Type"].f_String();
 			if (PackageType == "Meteor")
 				Package.m_Type = EPackageType_Meteor;
+			else if (PackageType == "FastCGI")
+				Package.m_Type = EPackageType_FastCGI;
 			else if (PackageType == "Npm")
 				Package.m_Type = EPackageType_Npm;
 			else if (PackageType == "Custom")
@@ -368,6 +371,9 @@ namespace NMib::NMeteor::NMeteorManager
 			if (auto *pValue = PackageSettings.f_GetMember("SeparateUser"))
 				Package.m_bSeparateUser = pValue->f_Boolean();
 
+			if (auto *pValue = PackageSettings.f_GetMember("OwnPackageDirectory"))
+				Package.m_bOwnPackageDirectory = pValue->f_Boolean();
+
 			if (auto *pValue = PackageSettings.f_GetMember("StaticPath"))
 				Package.m_StaticPath = pValue->f_String();
 
@@ -391,7 +397,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCMap<CStr, CStr> Hostnames;
 		for (auto &Package : m_Packages)
 		{
-			if (Package.m_Type != EPackageType_Meteor)
+			if (Package.f_IsServer())
 				continue;
 			CStr Hostname;
 			if (Package.m_DomainPrefix.f_IsEmpty())

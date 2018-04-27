@@ -25,6 +25,14 @@
 				MalterlibMeteorToolType Meteor
 			}
 		}
+		BuildScript "@('Source/Malterlib_Meteor_BuildExecutable.sh'->MakeAbsolute())"
+		{
+			&
+			{
+				BuildScript ""
+				MalterlibMeteorToolType FastCGI
+			}
+		}
 		BuildScript "@('Source/Malterlib_Meteor_BuildNpm.sh'->MakeAbsolute())"
 		{
 			&
@@ -57,6 +65,49 @@
 			!!PlatformFamily Windows
 		}
 		MalterlibExportEnvironmentMinGW true
+
+		Explodee_TargetIdentity "@(GetProperty('Property', 'TargetIdentity', '@(Explodee)'))"
+		Explodee_MatchesDependencies "true"
+		{
+			|
+			{
+				MalterlibMeteorToolDependencies "@(Explodee_TargetIdentity)"
+				MalterlibMeteorToolDependencies "~*;@(Explodee_TargetIdentity);*"
+				MalterlibMeteorToolDependencies "~*;@(Explodee_TargetIdentity)"
+				MalterlibMeteorToolDependencies "~@(Explodee_TargetIdentity);*"
+				MalterlibMeteorToolDependencies "~*;@(Explodee_TargetIdentity)=*"
+				MalterlibMeteorToolDependencies "~@(Explodee_TargetIdentity)=*"
+			}
+		}
+
+		MalterlibMeteorToolDependenciesFiles_TargetFiles "@(GetProperty('Property', 'MalterlibCloud_VersionUploadSources', '@(Explodee)'))"
+
+		MalterlibMeteorToolDependenciesFiles_Template "@(MalterlibMeteorToolDependenciesFiles_TargetFiles)"
+		{
+			&
+			{
+				!Explodee ""
+				Explodee_MatchesDependencies true
+			}
+		}
+
+		MalterlibMeteorToolDependenciesFiles "@(ExplodeList('@(Target.Dependencies)', ';', 'MalterlibMeteorToolDependenciesFiles_Template'))"
+
+		FirstDependencyExecutable_TargetExecutable "@(GetProperty('Property', 'TargetExecutable', '@(Explodee)'))"
+		FirstDependencyExecutable_TargetIsLaunchableExecutable "@(GetProperty('Property', 'TargetIsLaunchableExecutable', '@(Explodee)'))"
+
+		FirstDependencyExecutable_Template "@(FirstDependencyExecutable_TargetExecutable)"
+		{
+			&
+			{
+				!Explodee ""
+				ExplodedValue ""
+				Explodee_MatchesDependencies true
+				FirstDependencyExecutable_TargetIsLaunchableExecutable true
+			}
+		}
+
+		FirstDependencyExecutable "@(Explode('@(Target.Dependencies)', ';', 'FirstDependencyExecutable_Template'))"
 	}
 	Target
 	{
@@ -75,7 +126,9 @@
 		ExportScriptEnvironment "MalterlibMeteorGitCheckout;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "MalterlibMeteorDebugBundle;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "MalterlibMeteorNodePackagePath;@(Target.ExportScriptEnvironment)"
-		
+		ExportScriptEnvironment "MalterlibMeteorToolDependencies;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment "MalterlibMeteorToolDependenciesFiles;@(Target.ExportScriptEnvironment)"
+
 		Output "@(Builtin.GeneratorStateFile)"
 		Group "Meteor/@(MalterlibMeteorManagerName)/@(MalterlibMeteorToolBuildName)"
 	}
@@ -95,6 +148,7 @@
 	}
 	%Group Source
 	{
+		Compile.AllowNonExisting true
 		Property.ExcludeFiles "*/.meteor/local;@(ExcludeFiles)"
 		%File "@(MeteorBuildDirectory)/^*"
 
@@ -109,11 +163,9 @@
 			}
 			Property.ExcludeFiles "*/tests-proxy;@(ExcludeFiles)"
 			%File "@(MeteorBuildDirectory)/packages/^*"
-			{
-				Compile.AllowNonExisting true
-			}
 		}
 	}
+	%Dependency "@(MalterlibMeteorToolDependencies)"
 }
 
 %Target "Lib_Malterlib_MeteorManager"
@@ -157,11 +209,11 @@
 
 Property
 {
-	MeteorManagerEnvironmment "ROOT_URL(Meteor)=RootURL;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "STATIC_ROOT_URL(Meteor)=StaticRootURL;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "PORT(Meteor)=LocalPort|8080;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "BIND_IP(Meteor)=LocalIP;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "HTTP_FORWARDED_COUNT(Meteor)=HttpForwardedCount|1;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "ROOT_URL(Meteor,FastCGI)=RootURL;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "STATIC_ROOT_URL(Meteor,FastCGI)=StaticRootURL;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "PORT(Meteor,FastCGI)=LocalPort|8080;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "BIND_IP(Meteor,FastCGI)=LocalIP;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "HTTP_FORWARDED_COUNT(Meteor,FastCGI)=HttpForwardedCount|1;@(MeteorManagerEnvironmment)"
 	MeteorManagerEnvironmment "MAIL_URL(!Staging)=SMTP;@(MeteorManagerEnvironmment)"
 	
 	MeteorManagerEnvironmment "BUNDLE_PATH=PackageDirectory;@(MeteorManagerEnvironmment)"
@@ -174,8 +226,10 @@ Property
 	
 	MeteorManagerEnvironmment "METEOR_DDP_SELF=DDPSelf;@(MeteorManagerEnvironmment)"
 	MeteorManagerEnvironmment "METEOR_MANAGER_INSTANCE_ID=ManagerInstanceID;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "METEOR_MANAGER_NODE_INSTANCE_ID=NodeInstanceID;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "METEOR_MANAGER_NODE_SEQUENCE=NodeSequence;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "METEOR_MANAGER_NODE_INSTANCE_ID(!FastCGI)=LaunchInstanceID;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "METEOR_MANAGER_NODE_SEQUENCE(!FastCGI)=LaunchSequence;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "METEOR_MANAGER_LAUNCH_INSTANCE_ID(FastCGI)=LaunchInstanceID;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "METEOR_MANAGER_LAUNCH_SEQUENCE(FastCGI)=LaunchSequence;@(MeteorManagerEnvironmment)"
 	MeteorManagerEnvironmment "METEOR_MANAGER_BACKEND_IDENTIFIER=BackendIdentifier;@(MeteorManagerEnvironmment)"
 }
 
@@ -200,6 +254,7 @@ Property
 
 		MeteorManagerCopySources "@('Source/Malterlib_Meteor_App_MeteorManager_OSSetup.sh'->MakeAbsolute())|Source;@(MeteorManagerCopySources)"
 		MeteorManagerCopySources "@('Source/Malterlib_Meteor_App_MeteorManager_Nginx.conf'->MakeAbsolute())|Source;@(MeteorManagerCopySources)"
+		MeteorManagerCopySources "@('Source/Malterlib_Meteor_App_MeteorManager_FastCGI.conf'->MakeAbsolute())|Source;@(MeteorManagerCopySources)"
 		MeteorManagerCopySources "@(MeteorManagerMongoDatabaseSetupScript)|Source;@(MeteorManagerCopySources)"
 		{
 			!MeteorManagerMongoDatabaseSetupScript ""
@@ -273,24 +328,50 @@ Property
 				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~*;@(Explodee);*" }
 				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~*;@(Explodee);*" }
 				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~*;@(Explodee);*" }
-				
+				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "~*;@(Explodee);*" }
+
 				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~@(Explodee);*" }
 				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~@(Explodee);*" }
 				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~@(Explodee);*" }
-				
+				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "~@(Explodee);*" }
+
 				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~*;@(Explodee)" }
 				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~*;@(Explodee)" }
 				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~*;@(Explodee)" }
-				
+				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "~*;@(Explodee)" }
+
 				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "@(Explodee)" }
 				BuildPackageType "Npm" { !!BuildPackageNames_Npm "@(Explodee)" }
 				BuildPackageType "Custom" { !!BuildPackageNames_Custom "@(Explodee)" }
-				
+				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "@(Explodee)" }
+
 				BuildPackageType "@(Error('Package type could not be deduced for: @(Explodee)'))"
 				{
 					!!BuildPackageType ""
 				}
-		
+
+
+				ToolTargetIdentifier "Group:Meteor.Group:@(MalterlibMeteorManagerName).Group:@(Explodee).Target:Tool_Malterlib_BuildMeteor.Target:Tool_Malterlib_BuildMeteor"
+
+				CustomExecutable "@(Executable_@(Explodee))"
+				CustomExecutable "@(GetProperty('Property', 'FirstDependencyExecutable', '@(ToolTargetIdentifier)'))"
+				{
+					&
+					{
+						CustomExecutable ""
+						BuildPackageType "FastCGI"
+					}
+				}
+
+				CustomParams "@(Params_@(Explodee))"
+				CustomParams "--daemon-run-standalone"
+				{
+					&
+					{
+						CustomParams ""
+						BuildPackageType "FastCGI"
+					}
+				}
 
 				PackageSettings	"@(PackageSettings)"\
 								"			\"Type\": \"@(BuildPackageType)\",\n"
@@ -309,9 +390,20 @@ Property
 				}
 
 				PackageSettings	"@(PackageSettings)"\
-								"			\"CustomExecutable\": \"@(Executable_@(Explodee))\",\n"
+								"			\"CustomExecutable\": \"@(CustomExecutable)\",\n"
 				{
-					!Empty "@(Executable_@(Explodee))"
+					!Empty "@(CustomExecutable)"
+				}
+
+				Params_Template	"\"@(Explodee)\", "
+				{
+					!Explodee ""
+				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"CustomParams\": [@(Builtin.Function->ExplodeList('@(CustomParams)', ';', 'Params_Template'))],\n"
+				{
+					!Empty "@(CustomParams)"
 				}
 
 				PackageSettings	"@(PackageSettings)"\
@@ -327,20 +419,15 @@ Property
 				}
 
 				PackageSettings	"@(PackageSettings)"\
+								"			\"OwnPackageDirectory\": @(OwnPackageDirectory_@(Explodee)),\n"
+				{
+					!Empty "@(OwnPackageDirectory_@(Explodee))"
+				}
+
+				PackageSettings	"@(PackageSettings)"\
 								"			\"AllowRobots\": @(AllowRobots_@(Explodee)),\n"
 				{
 					!Empty "@(AllowRobots_@(Explodee))"
-				}
-
-				Params_Template	"\"@(Explodee)\", "
-				{
-					!Explodee ""
-				}
-				
-				PackageSettings	"@(PackageSettings)"\
-								"			\"CustomParams\": [@(Builtin.Function->ExplodeList('@(Params_@(Explodee))', ';', 'Params_Template'))],\n"
-				{
-					!Empty "@(Params_@(Explodee))"
 				}
 
 				StartupDependencies_Template	"\"@(Explodee)\", "
@@ -556,10 +643,11 @@ Property
 	
 	Property
 	{
-		CheckError "@(Error('You need to specify MeteorBuilds, NpmBuilds and/or CustomBuilds'))"
+		CheckError "@(Error('You need to specify MeteorBuilds, FastCGIBuilds, NpmBuilds and/or CustomBuilds'))"
 		{
 			&
 			{
+				FastCGIBuilds ""
 				MeteorBuilds ""
 				NpmBuilds ""
 				CustomBuilds ""
@@ -577,8 +665,8 @@ Property
 		BuildDependencies_CommonProperties "MalterlibMeteorSourceRoot=@(MalterlibMeteorSourceRoot)*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibMeteorSharedPackages=@(MalterlibMeteorSharedPackages)*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibMeteorCustomBuildScript=@(CustomBuildScript_@(Expand0))*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorToolDependencies=@(Dependencies_@(Expand0))*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibMeteorGitCheckout=@(MalterlibMeteorGitCheckout)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibMeteorDebugBundle=@(MalterlibMeteorDebugBundle)*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibMeteorDebugBundle=@(MalterlibMeteorDebugBundle)*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibMeteorNodePackagePath=@(MalterlibMeteorNodePackagePath)*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibPostCopyProject=@(MalterlibPostCopyProject)*@(BuildDependencies_CommonProperties)"
@@ -591,7 +679,13 @@ Property
 		{
 			!Explodee ""
 		}
-		
+
+		BuildDependencies_FastCGI_Template_Expand "Tool_Malterlib_BuildMeteor=Tool_BuildMeteor_@(MalterlibMeteorManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibMeteorToolType=FastCGI"
+		BuildDependencies_FastCGI_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_FastCGI_Template_Expand'));"
+		{
+			!Explodee ""
+		}
+
 		BuildDependencies_Npm_Template_Expand "Tool_Malterlib_BuildMeteor=Tool_BuildMeteor_@(MalterlibMeteorManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibMeteorToolType=Npm"
 		BuildDependencies_Npm_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Npm_Template_Expand'));"
 		{
@@ -605,24 +699,26 @@ Property
 		}
 		
 		BuildDependencies_Meteor "@(Builtin.Function->ExplodeList('@(MeteorBuilds)', ';', 'BuildDependencies_Meteor_Template'))"
+		BuildDependencies_FastCGI "@(Builtin.Function->ExplodeList('@(FastCGIBuilds)', ';', 'BuildDependencies_FastCGI_Template'))"
 		BuildDependencies_Npm "@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildDependencies_Npm_Template'))"
 		BuildDependencies_Custom "@(Builtin.Function->ExplodeList('@(CustomBuilds)', ';', 'BuildDependencies_Custom_Template'))"
-		BuildDependencies "@(BuildDependencies_Meteor);@(BuildDependencies_Npm);@(BuildDependencies_Custom)"
+		BuildDependencies "@(BuildDependencies_Meteor);@(BuildDependencies_FastCGI);@(BuildDependencies_Npm);@(BuildDependencies_Custom)"
 
 		BuildPackageNames_Template_Expand "@(Expand0)"
 		BuildPackageNames_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildPackageNames_Template_Expand'));"
 		
 		BuildPackageNames_Meteor "@(Builtin.Function->ExplodeList('@(MeteorBuilds)', ';', 'BuildPackageNames_Template'))"
+		BuildPackageNames_FastCGI "@(Builtin.Function->ExplodeList('@(FastCGIBuilds)', ';', 'BuildPackageNames_Template'))"
 		BuildPackageNames_Npm "@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildPackageNames_Template'))"
 		BuildPackageNames_Custom "@(Builtin.Function->ExplodeList('@(CustomBuilds)', ';', 'BuildPackageNames_Template'))"
 		
-		BuildPackageNames "@(BuildPackageNames_Meteor);@(BuildPackageNames_Npm);@(BuildPackageNames_Custom)"
+		BuildPackageNames "@(BuildPackageNames_Meteor);@(BuildPackageNames_FastCGI);@(BuildPackageNames_Npm);@(BuildPackageNames_Custom)"
 	}
 	
 	%Dependency Lib_Malterlib_MeteorManager
 	%Dependency "Lib_Malterlib_Cloud"
 	%Dependency "Lib_Malterlib"
-	%Dependency "@(BuildDependencies_Meteor);@(BuildDependencies_Npm);@(BuildDependencies_Custom)"
+	%Dependency "@(BuildDependencies_Meteor);@(BuildDependencies_FastCGI);@(BuildDependencies_Npm);@(BuildDependencies_Custom)"
 	{
 		Dependency.Link false
 	}
