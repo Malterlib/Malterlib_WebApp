@@ -128,6 +128,7 @@
 		ExportScriptEnvironment "MalterlibMeteorNodePackagePath;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "MalterlibMeteorToolDependencies;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "MalterlibMeteorToolDependenciesFiles;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment "NpmBuildType;@(Target.ExportScriptEnvironment)"
 
 		Output "@(Builtin.GeneratorStateFile)"
 		Group "Meteor/@(MalterlibMeteorManagerName)/@(MalterlibMeteorToolBuildName)"
@@ -246,8 +247,39 @@ Property
 		MalterlibConcurrency_DistributedActors true
 		MalterlibTargetNameType "Normal"
 
-		MalterlibCloudVersionInfo_Application "MeteorManager-@(MalterlibMeteorManagerName)"
-		MalterlibCloudVersionInfo_Executable "MeteorManager_@(MalterlibMeteorManagerName)"
+		MalterlibMeteorManagerPrefix MeteorManager_
+		{
+			&
+			{
+				MalterlibMeteorManagerPrefix ""
+				!MalterlibMeteorManagerPrefix "Empty"
+			}
+		}
+		MalterlibMeteorManagerPrefix ""
+		{
+			!!MalterlibMeteorManagerPrefix "Empty"
+		}
+
+		MalterlibMeteorManagerServiceName "MalterlibMeteorManager_@(MalterlibMeteorManagerName)"
+		{
+			&
+			{
+				MalterlibMeteorManagerServiceName ""
+				MalterlibMeteorManagerPrefix "MeteorManager_"
+			}
+		}
+		MalterlibMeteorManagerServiceName "@(MalterlibMeteorManagerPrefix)@(MalterlibMeteorManagerName)"
+		{
+			!!MalterlibMeteorManagerServiceName ""
+		}
+
+		MalterlibMeteorManagerDescription "Malterlib Web App Manager (@(MalterlibMeteorManagerName))"
+		{
+			!!MalterlibMeteorManagerDescription ""
+		}
+
+		MalterlibCloudVersionInfo_Application "@(MalterlibMeteorManagerPrefix->Replace('_','-'))@(MalterlibMeteorManagerName)"
+		MalterlibCloudVersionInfo_Executable "@(MalterlibMeteorManagerPrefix)@(MalterlibMeteorManagerName)"
 		MalterlibCloud_EnableVersionUpload true
 		
 		MalterlibDoExeFS true
@@ -279,12 +311,13 @@ Property
 		}
 		
 		MalterlibMeteorSettingsPath "@(GeneratedDirectory)MeteorSettings.json"
+
 	}
 	Target
 	{
-		BaseName "MeteorManager_@(MalterlibMeteorManagerName)"
+		BaseName "@(MalterlibMeteorManagerPrefix)@(MalterlibMeteorManagerName)"
 		DebuggerCommandArguments "--daemon-run-debug"
-		BaseFileName "MeteorManager_@(MalterlibMeteorManagerName)"
+		BaseFileName "@(MalterlibMeteorManagerPrefix)@(MalterlibMeteorManagerName)"
 		Group "Meteor/@(MalterlibMeteorManagerName)"
 	}
 	Compile
@@ -293,7 +326,10 @@ Property
 		
 		PrefixHeader "@('Source/Malterlib_Meteor_App_MeteorManager_Server.h'->MakeAbsolute())"
 		
-		PreprocessorDefines "DMibMeteor_ManagerName=\"@(MalterlibMeteorManagerName)\";DMibMeteor_SettingsPath=\"@(MalterlibMeteorSettingsPath)\";@(Compile.PreprocessorDefines)"
+		PreprocessorDefines "DMibMeteor_ManagerName=\"@(MalterlibMeteorManagerName)\";@(Compile.PreprocessorDefines)"
+		PreprocessorDefines "DMibMeteor_ManagerDescription=\"@(MalterlibMeteorManagerDescription)\";@(Compile.PreprocessorDefines)"
+		PreprocessorDefines "DMibMeteor_SettingsPath=\"@(MalterlibMeteorSettingsPath)\";@(Compile.PreprocessorDefines)"
+		PreprocessorDefines "DMibMeteor_ManagerServiceName=\"@(MalterlibMeteorManagerServiceName)\";@(Compile.PreprocessorDefines)"
 		PreprocessorDefines "DMibMeteor_UseInternalNode;@(Compile.PreprocessorDefines)"
 		{
 			!NodeBinariesPath ""
@@ -430,6 +466,12 @@ Property
 					!Empty "@(AllowRobots_@(Explodee))"
 				}
 
+				PackageSettings	"@(PackageSettings)"\
+								"			\"NpmBuildType\": \"@(NpmBuildType_@(Explodee))\",\n"
+				{
+					!Empty "@(NpmBuildType_@(Explodee))"
+				}
+
 				StartupDependencies_Template	"\"@(Explodee)\", "
 				{
 					!Explodee ""
@@ -534,9 +576,12 @@ Property
 				}
 				Contents	"@(Error('You need to specify MeteorManagerMongoDefaultDatabase'))"
 				{
-					!!MeteorManagerMongoDefaultDatabase ""
+					&
+					{
+						MeteorManagerMongoDefaultDatabase ""
+						!MeteorBuilds ""
+					}
 				}
-				
 				
 				Contents	"@(Contents)"\
 							"	},\n"
@@ -551,6 +596,9 @@ Property
 				{
 					!MeteorManagerDefaultDomain ""
 				}
+				Contents	"@(Contents)"\
+							"	\"FullManagerName\": \"@(MalterlibCloudVersionInfo_Executable)\",\n"
+
 				Contents	"@(Error('You need to specify MeteorManagerDefaultDomain'))"
 				{
 					!!MeteorManagerDefaultDomain ""
@@ -643,7 +691,7 @@ Property
 	
 	Property
 	{
-		CheckError "@(Error('You need to specify MeteorBuilds, FastCGIBuilds, NpmBuilds and/or CustomBuilds'))"
+		CheckError "@(Error('You need to specify MeteorBuilds, FastCGIBuilds, NpmBuilds, and/or CustomBuilds'))"
 		{
 			&
 			{
@@ -669,6 +717,13 @@ Property
 		BuildDependencies_CommonProperties "MalterlibMeteorGitCheckout=@(MalterlibMeteorGitCheckout)*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibMeteorDebugBundle=@(MalterlibMeteorDebugBundle)*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibMeteorNodePackagePath=@(MalterlibMeteorNodePackagePath)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorManagerPrefix=@(MalterlibMeteorManagerPrefix)*@(BuildDependencies_CommonProperties)"
+
+		BuildDependencies_CommonProperties "NpmBuildType=@(NpmBuildType_@(Expand0))*@(BuildDependencies_CommonProperties)"
+		{
+			!Empty "@(NpmBuildType_@(Expand0))"
+		}
+
 		BuildDependencies_CommonProperties "MalterlibPostCopyProject=@(MalterlibPostCopyProject)*@(BuildDependencies_CommonProperties)"
 		{
 			!MalterlibPostCopyProject ""

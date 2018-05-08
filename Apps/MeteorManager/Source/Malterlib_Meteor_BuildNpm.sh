@@ -13,6 +13,29 @@ OutputBundleTar="${OutputDir}${Name}.tar.gz"
 
 export PATH=/usr/local/bin:$PATH
 
+if [[ "$MalterlibMeteorNodePackagePath" != "" ]]; then
+	NodeDirectory="`mktemp -d`"
+	function clean_up () {
+	    ARG=$?
+		rm -rf "$NodeDirectory"
+	    exit $ARG
+	} 
+	trap clean_up EXIT
+
+	SysName=$(uname -s)
+	if [[ $SysName ==  Darwin* ]] ; then
+		TarOptions="--disable-copyfile"
+	else
+		TarExtractOptions="--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
+	fi
+
+	pushd "$NodeDirectory" > /dev/null
+
+	tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$MalterlibMeteorNodePackagePath"
+	export PATH="$PWD/bin:$PATH"
+	popd > /dev/null
+fi
+
 if [[ "$Action" == "Rebuild" || "$Action" == "Clean" ]]; then
 	if [ -e "$OutputBundleTar" ]; then
 		rm -rf "$OutputBundleTar"
@@ -41,10 +64,23 @@ cd "$AppDir"
 
 export NPM_CONFIG_PROGRESS=false
 
-npm install --production
-npm run prestart
+if [[ "$NpmBuildType" == "Start" ]]; then
+	SourceDir=.
+	npm install --production
+	npm run prestart
+elif [[ "$NpmBuildType" == "Compile" ]]; then
+	SourceDir=build
+	rm -rf build
+	npm install
+	npm run compile
+elif [[ "$NpmBuildType" == "Build" ]]; then
+	SourceDir=build
+	rm -rf build
+	npm install
+	npm run build
+fi
 
-cp -r . "${OutputDir}$Name"
+cp -r $SourceDir "${OutputDir}$Name"
 
 cd "${OutputDir}"
 
@@ -54,8 +90,6 @@ if [[ $SysName ==  Darwin* ]] ; then
 fi
 
 tar $TarOptions -czf "$OutputBundleTar" "$Name"
-
-
 
 if [[ "$PlatformFamily" != "Windows" ]] ; then
 	md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"
@@ -74,6 +108,6 @@ fi
 ExcludePatterns="*/bin;*/node_modules"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 
-MTool BuildDependencies "OutputFile=`ConvertPath \"$DependencyFile\"`" "Output:ConvertPath `\"$OutputBundleTar\"`" "Input:ConvertPath `\"${BASH_SOURCE[0]}\"`" "Find:`ConvertPath \"$AppDir\"`/*;RIF;33;$ExcludePatterns"
+MTool BuildDependencies "OutputFile=`ConvertPath \"$DependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Find:`ConvertPath \"$AppDir\"`/*;RIF;33;$ExcludePatterns"
 
 exit 0

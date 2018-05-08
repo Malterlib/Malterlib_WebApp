@@ -80,6 +80,42 @@ ch8 const *g_pServerTemplate = R"---(
 	}
 )---";
 
+ch8 const *g_pStaticServerTemplate = R"---(
+	server
+	{
+		listen {SSLPort} {ListenOptions};
+		listen [::]:{SSLPort} {ListenOptionsIPV6};
+		server_name {ServerName} {ServerNameExtra_{PackageName}};
+		access_log logs/access_{PackageName}.log upstreamlog;
+		client_max_body_size 10M;
+
+{ServerAccessCheck_{PackageName}}
+
+		# If your application is not compatible with IE <= 10, this will redirect visitors to a page advising a browser update
+		# This works because IE 11 does not present itself as MSIE anymore
+		if ($http_user_agent ~ "MSIE" )
+		{
+			return 303 https://browser-update.org/update.html;
+		}
+
+{ServerRedirect_{PackageName}}
+{StaticPackages}
+
+		location /
+		{
+			gzip_static always;
+			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Cache-Control public;
+			root {StaticRoot};
+			access_log logs/static_access_{PackageName}.log;
+		}
+
+		location /robots.txt {
+			return 200 "{AllowRobots}";
+		}
+	}
+)---";
+
 ch8 const *g_pFastCGIServerTemplate = R"---(
 	server
 	{
@@ -142,7 +178,7 @@ ch8 const *g_pFastCGIServerTemplate = R"---(
 	}
 )---";
 
-ch8 const *g_pServerStaticTemplate = R"---(
+ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 	server
 	{
 		listen {SSLPort};
@@ -416,7 +452,7 @@ ch8 const *g_pServerStaticTemplate = R"---(
 				{
 					for (auto &Package : mp_Options.m_Packages)
 					{
-						if (!Package.f_IsServer())
+						if (!Package.f_IsServer() || Package.f_IsNpmStatic())
 							continue;
 
 						bool bIsFastCGI = Package.m_Type == CMeteorManagerOptions::EPackageType_FastCGI;
@@ -521,18 +557,21 @@ ch8 const *g_pServerStaticTemplate = R"---(
 							continue;
 
 						bool bIsFastCGI = Package.m_Type == CMeteorManagerOptions::EPackageType_FastCGI;
+						bool bIsStatic = Package.f_IsNpmStatic();
 
 						auto &UpstreamName = Upstreams[Package.f_GetName()];
 
 						CStr Server;
-						if (bIsFastCGI)
+						if (bIsStatic)
+							Server = g_pStaticServerTemplate;
+						else if (bIsFastCGI)
 							Server = g_pFastCGIServerTemplate;
 						else
 							Server = g_pServerTemplate;
 
 						if (bEnableSeparateStaticRoot)
 						{
-							Server += g_pServerStaticTemplate;
+							Server += g_pServerSeparateStaticRootTemplate;
 							Server = Server.f_Replace("{ServerNameStatic}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static));
 							Server = Server.f_Replace("{ServerNameStaticSource}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_StaticSource));
 						}
@@ -550,7 +589,9 @@ ch8 const *g_pServerStaticTemplate = R"---(
 						Server = Server.f_Replace("{PackageName}", Package.f_GetName());
 						Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
 						Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
-						if (bIsFastCGI)
+						if (bIsStatic)
+							Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()));
+						else if (bIsFastCGI)
 							Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()));
 						else
 							Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()));
@@ -565,7 +606,6 @@ ch8 const *g_pServerStaticTemplate = R"---(
 							Server = Server.f_Replace("{ListenOptions}", "");
 							Server = Server.f_Replace("{ListenOptionsIPV6}", "");
 						}
-
 
 						VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
 						VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");

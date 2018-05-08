@@ -48,12 +48,25 @@ namespace NMib::NMeteor::NMeteorManager
 				return TCMap<CStr, CPackage>::fs_GetKey(*this);
 			}
 
+			bool f_IsNpmStatic() const
+			{
+				return
+					m_Type == EPackageType_Npm
+					&&
+					(
+						m_NpmBuildType == "Compile"
+						|| m_NpmBuildType == "Build"
+					)
+				;
+			}
+
 			bool f_IsServer() const
 			{
-				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI;
+				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI || f_IsNpmStatic();
 			}
 			
 			TCVector<CStr> m_StartupDependencies;
+			CStr m_NpmBuildType;
 			CStr m_CustomExecutable;
 			TCVector<CStr> m_CustomParams;
 			CUser m_User{"", ""};
@@ -83,10 +96,12 @@ namespace NMib::NMeteor::NMeteorManager
 			CStr m_DefaultReplicaName = "DefaultReplica";
 		};
 		
-		CMeteorManagerOptions(CStr const &_ManagerName);
+		CMeteorManagerOptions(CStr const &_ManagerName, CStr const &_ManagerDescription);
 		void f_ParseSettings(CStr const &_Settings, CStr const &_FileName);
 		
 		CStr m_ManagerName;
+		CStr m_FullManagerName;
+		CStr m_ManagerDescription;
 		TCMap<CStr, CPackage> m_Packages;
 		TCMap<CStr, CEnvironmentVariable> m_Environment;
 		CMongo m_Mongo;

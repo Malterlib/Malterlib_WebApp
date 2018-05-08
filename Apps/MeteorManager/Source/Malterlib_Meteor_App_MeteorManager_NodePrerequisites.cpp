@@ -319,6 +319,7 @@ namespace NMib::NMeteor::NMeteorManager
 				, MongoSSLDirectory = fp_GetMongoSSLDirectory()
 				, bSeparateUser
 				, bOwnPackageDirectory = PackageOptions.m_bOwnPackageDirectory
+			 	, bIsStatic = PackageOptions.f_IsNpmStatic()
 				, bForceAppsReinstall = mp_bForceAppsReinstall
 			]
 			() mutable -> TCContinuation<CPackageInfo>
@@ -396,16 +397,20 @@ namespace NMib::NMeteor::NMeteorManager
 								TCActorResultVector<CStr> Results;
 								try
 								{
-									if (_Type == CMeteorManagerOptions::EPackageType_Meteor || _Type == CMeteorManagerOptions::EPackageType_FastCGI)
+									if (_Type == CMeteorManagerOptions::EPackageType_Meteor || _Type == CMeteorManagerOptions::EPackageType_FastCGI || bIsStatic)
 									{
 										CStr StaticRoot;
-										if (_Type == CMeteorManagerOptions::EPackageType_FastCGI)
+										if (bIsStatic)
+											StaticRoot = PackageDirectory;
+										else if (_Type == CMeteorManagerOptions::EPackageType_FastCGI)
 											StaticRoot = PackageDirectory + "/static";
 										else
 											StaticRoot = PackageDirectory + "/programs/web.browser";
 
 										TCVector<CStr> Files;
-										if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
+										if (bIsStatic)
+											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*", EFileAttrib_File, true));
+										else if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
 										{
 											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.css", EFileAttrib_File));
 											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.js", EFileAttrib_File));

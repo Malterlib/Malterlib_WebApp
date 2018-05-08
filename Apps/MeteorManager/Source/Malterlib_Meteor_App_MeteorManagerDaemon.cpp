@@ -7,7 +7,7 @@
 namespace NMib::NMeteor::NMeteorManager
 {
 	CMeteorManagerDaemonActor::CMeteorManagerDaemonActor(CMeteorManagerOptions const &_Options)
-		: CDistributedAppActor(CDistributedAppActor_Settings{fg_Format("MeteorManager_{}", _Options.m_ManagerName), false})
+		: CDistributedAppActor(CDistributedAppActor_Settings{_Options.m_FullManagerName, false})
 		, mp_Options(_Options)
 	{
 #ifdef DPlatformFamily_OSX

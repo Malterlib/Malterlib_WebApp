@@ -14,8 +14,8 @@ namespace NMib::NMeteor::NMeteorManager
 
 		o_CommandLine.f_SetProgramDescription
 			(
-				fg_Format("Malterlib Meteor Manager ({})", mp_Options.m_ManagerName)
-				, "Manages metor applications."
+				mp_Options.m_ManagerDescription
+				, "Manages web applications."
 			)
 		;
 		

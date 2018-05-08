@@ -77,7 +77,7 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		for (auto &Package : mp_Options.m_Packages)
 		{
-			if (Package.m_Type == CMeteorManagerOptions::EPackageType_Custom && Package.m_CustomExecutable.f_IsEmpty())
+			if ((Package.m_Type == CMeteorManagerOptions::EPackageType_Custom && Package.m_CustomExecutable.f_IsEmpty()) || Package.f_IsNpmStatic())
 				continue;
 
 			CAppLaunchKey LaunchKey;

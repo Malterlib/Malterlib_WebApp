@@ -12,7 +12,7 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	CMeteorManagerActor::CMeteorManagerActor(CDistributedAppState &_AppState, CMeteorManagerOptions const &_Options)
 		: mp_AppState(_AppState)
-		, mp_pUniqueUserGroup{fg_Construct("/M/App/MeteorManager-{}"_f << _Options.m_ManagerName)}
+		, mp_pUniqueUserGroup{fg_Construct("/M/App/{}"_f << _Options.m_FullManagerName.f_Replace("_", "-"))}
 		, mp_NodeUser{mp_pUniqueUserGroup->f_GetUser("mib_node_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_node_{}"_f << _Options.m_ManagerName)}
 		, mp_FastCGIUser{mp_pUniqueUserGroup->f_GetUser("mib_fcgi_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_fcgi_{}"_f << _Options.m_ManagerName)}
 		, mp_NginxUser{mp_pUniqueUserGroup->f_GetUser("mib_nginx_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_nginx_{}"_f << _Options.m_ManagerName)}
@@ -34,7 +34,7 @@ namespace NMib::NMeteor::NMeteorManager
 			(
 				MeteorManager
 				, Info
-				, "Meteor Manager ({}) starting, {} {}.{}{} {} {}"
+				, "Web App Manager ({}) starting, {} {}.{}{} {} {}"
 				, mp_Options.m_ManagerName
 				, DMalterlibBranch
 				, DMibStringize(DProductVersionMajor)
@@ -297,8 +297,9 @@ namespace NMib::NMeteor::NMeteorManager
 		return CFile::fs_AppendPath(CFile::fs_GetProgramDirectory(), _Path);
 	}
 	
-	CMeteorManagerOptions::CMeteorManagerOptions(CStr const &_ManagerName)
+	CMeteorManagerOptions::CMeteorManagerOptions(CStr const &_ManagerName, CStr const &_ManagerDescription)
 		: m_ManagerName(_ManagerName)
+		, m_ManagerDescription(_ManagerDescription)
 	{
 	}
 
@@ -341,6 +342,9 @@ namespace NMib::NMeteor::NMeteorManager
 				Package.m_Concurrency = fg_Min(fg_Max(EvaluatedExpression.f_ToFloat().f_ToInt(), 1), NSys::fg_Thread_GetVirtualCores());
 			}
 
+			if (auto *pValue = PackageSettings.f_GetMember("NpmBuildType"))
+				Package.m_NpmBuildType = pValue->f_String();
+
 			if (auto *pValue = PackageSettings.f_GetMember("DomainPrefix"))
 				Package.m_DomainPrefix = pValue->f_String();
 
@@ -352,7 +356,7 @@ namespace NMib::NMeteor::NMeteorManager
 			
 			if (auto *pValue = PackageSettings.f_GetMember("StickyHeader"))
 				Package.m_StickyHeader = pValue->f_String();
-			
+
 			if (auto *pValue = PackageSettings.f_GetMember("StartupDependencies"))
 			{
 				for (auto &Dependency : pValue->f_Array())
@@ -380,7 +384,8 @@ namespace NMib::NMeteor::NMeteorManager
 			if (auto *pValue = PackageSettings.f_GetMember("AllowRobots"))
 				Package.m_bAllowRobots = pValue->f_Boolean();
 		}
-		
+
+		m_FullManagerName = Settings["FullManagerName"].f_String();
 		m_DefaultDomain = Settings["DefaultDomain"].f_String();
 
 		if (auto *pValue = Settings.f_GetMember("DefaultWebPort"))

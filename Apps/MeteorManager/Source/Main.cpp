@@ -19,7 +19,7 @@ class CMeteorManagerApp : public CApplication
 {
 	aint f_Main()
 	{
-		CMeteorManagerOptions Options{DMibMeteor_ManagerName};
+		CMeteorManagerOptions Options{DMibMeteor_ManagerName, DMibMeteor_ManagerDescription};
 #ifdef DMibMeteor_UseInternalNode
 		Options.m_bUseInternalNode = true;
 #endif
@@ -35,9 +35,9 @@ class CMeteorManagerApp : public CApplication
 		
 		NConcurrency::CDistributedDaemon Daemon
 			{
-				fg_Format("MalterlibMeteorManager_{}", DMibMeteor_ManagerName)
-				, fg_Format("Malterlib Meteor Manager ({})", DMibMeteor_ManagerName)
-				, "Manages meteor applications"
+				DMibMeteor_ManagerServiceName
+				, DMibMeteor_ManagerDescription
+				, "Manages web applications"
 				, [Options]
 				{
 					return fg_ConstructActor<CMeteorManagerDaemonActor>(Options);
