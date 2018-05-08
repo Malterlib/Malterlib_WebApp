@@ -13,7 +13,7 @@ OutputBundleTar="${OutputDir}${Name}.tar.gz"
 
 export PATH=/usr/local/bin:$PATH
 
-if [[ "$MalterlibMeteorNodePackagePath" != "" ]]; then
+if [[ "$MalterlibMeteorHostNodePackagePath" != "" ]]; then
 	NodeDirectory="`mktemp -d`"
 	function clean_up () {
 	    ARG=$?
@@ -31,7 +31,7 @@ if [[ "$MalterlibMeteorNodePackagePath" != "" ]]; then
 
 	pushd "$NodeDirectory" > /dev/null
 
-	tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$MalterlibMeteorNodePackagePath"
+	tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$MalterlibMeteorHostNodePackagePath"
 	export PATH="$PWD/bin:$PATH"
 	popd > /dev/null
 fi

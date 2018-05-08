@@ -309,7 +309,15 @@ Property
 				!NodeBinariesPath ""
 			}
 		}
-		
+		MalterlibMeteorHostNodePackagePath "@(NodeHostBinariesPath->FindFilesIn('*.tar.gz'))"
+		{
+			&
+			{
+				MalterlibMeteorHostNodePackagePath ""
+				!NodeHostBinariesPath ""
+			}
+		}
+
 		MalterlibMeteorSettingsPath "@(GeneratedDirectory)MeteorSettings.json"
 
 	}
@@ -717,6 +725,7 @@ Property
 		BuildDependencies_CommonProperties "MalterlibMeteorGitCheckout=@(MalterlibMeteorGitCheckout)*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibMeteorDebugBundle=@(MalterlibMeteorDebugBundle)*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibMeteorNodePackagePath=@(MalterlibMeteorNodePackagePath)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties "MalterlibMeteorHostNodePackagePath=@(MalterlibMeteorHostNodePackagePath)*@(BuildDependencies_CommonProperties)"
 		BuildDependencies_CommonProperties "MalterlibMeteorManagerPrefix=@(MalterlibMeteorManagerPrefix)*@(BuildDependencies_CommonProperties)"
 
 		BuildDependencies_CommonProperties "NpmBuildType=@(NpmBuildType_@(Expand0))*@(BuildDependencies_CommonProperties)"
