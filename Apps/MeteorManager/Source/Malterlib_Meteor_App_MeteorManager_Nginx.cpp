@@ -580,7 +580,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 						bool bIsMainServer = ServerName == mp_Domain;
 
-						Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
+						Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots && mp_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
 						Server = Server.f_Replace("{ServerName}", ServerName);
 
 						if (bIsFastCGI)

@@ -356,7 +356,7 @@ namespace NMib::NMeteor::NMeteorManager
 		uint64 mp_WebPort = 3000;
 		uint64 mp_WebSSLPort = 3443;
 		bool mp_bIsStaging = false;
-		
+		bool mp_bAllowRobots = true;
 	};
 }
 

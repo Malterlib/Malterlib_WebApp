@@ -31,6 +31,8 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		if (mp_Tags.f_FindEqual("Staging"))
 			mp_bIsStaging = true;
+
+		mp_bAllowRobots = fp_GetConfigValue("AllowRobots", true).f_Boolean();
 		
 		mp_Domain = fp_GetConfigValue("Domain", mp_Options.m_DefaultDomain).f_String();
 		if (mp_bIsStaging)
