@@ -54,7 +54,7 @@
 			!!BuildScript ""
 		}
 		
-		ExcludeFiles "*/.DS_Store;*/.build.*;*/.gitignore;*/.git;*/node_modules;*/.npm;@(ExcludeFiles)"
+		ExcludeFiles "*/.DS_Store;*/.build.*;*/.gitignore;*/.git;*/node_modules;*/.npm;*/build;@(ExcludeFiles)"
 		MalterlibMeteorToolExcludePatterns "@(MalterlibMeteorToolExcludePatterns->Replace('`','*'))"
 		MalterlibMeteorToolExcludePatterns "@(MalterlibMeteorToolExcludePatterns->Replace('´',';'))"
 		ExcludeFiles "@(MalterlibMeteorToolExcludePatterns);@(ExcludeFiles)"
@@ -210,11 +210,11 @@
 
 Property
 {
-	MeteorManagerEnvironmment "ROOT_URL(Meteor,FastCGI)=RootURL;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "STATIC_ROOT_URL(Meteor,FastCGI)=StaticRootURL;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "PORT(Meteor,FastCGI)=LocalPort|8080;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "BIND_IP(Meteor,FastCGI)=LocalIP;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "HTTP_FORWARDED_COUNT(Meteor,FastCGI)=HttpForwardedCount|1;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "ROOT_URL(Meteor|FastCGI)=RootURL;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "STATIC_ROOT_URL(Meteor|FastCGI)=StaticRootURL;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "PORT(Meteor|FastCGI)=LocalPort|8080;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "BIND_IP(Meteor|FastCGI)=LocalIP;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "HTTP_FORWARDED_COUNT(Meteor|FastCGI)=HttpForwardedCount|1;@(MeteorManagerEnvironmment)"
 	MeteorManagerEnvironmment "MAIL_URL(!Staging)=SMTP;@(MeteorManagerEnvironmment)"
 	
 	MeteorManagerEnvironmment "BUNDLE_PATH=PackageDirectory;@(MeteorManagerEnvironmment)"
@@ -670,7 +670,7 @@ Property
 				}
 				
 				NodeEnvironment "@(NodeEnvironment)"\
-								"			\"Tags\": [@(Builtin.Function->ExplodeList('@(NodeEnvironment_Tags)', ';', 'NodeEnvironment_Tags_Template'))],\n"
+								"			\"Tags\": [@(Builtin.Function->ExplodeList('@(NodeEnvironment_Tags)', ',', 'NodeEnvironment_Tags_Template'))],\n"
 				{
 					!NodeEnvironment_Tags ""
 				}

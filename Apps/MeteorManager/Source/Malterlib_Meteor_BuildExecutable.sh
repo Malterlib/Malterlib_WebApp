@@ -44,6 +44,18 @@ cp -r . "${OutputDir}$Name"
 InputOptions=()
 DepndencyFiles=(${MalterlibMeteorToolDependenciesFiles//;/ })
 
+if [[ "$PlatformFamily" != "Windows" ]] ; then
+	function ConvertPath()
+	{
+		echo "$1"
+	}
+else
+	function ConvertPath()
+	{
+		cygpath -m "$1"
+	}
+fi
+
 for FileEncoded in "${DepndencyFiles[@]}" ; do
 
 	Decoded=(${FileEncoded//\|/ })
@@ -51,13 +63,36 @@ for FileEncoded in "${DepndencyFiles[@]}" ; do
 	File=${Decoded[0]}
 	Destination=${Decoded[1]}
 
-	InputOptions+=("Input:$File")
+	OptionRecursive=0
+	OptionDirectory=0
+	OptionDestinationFile=0
+
+	if [[ "${File//\^}" != "$File" ]]; then
+		File="${File//\^}"
+		OptionRecursive=1
+	fi
+
+	if [[ "${File//\~}" != "$File" ]]; then
+		File="${File//\~}"
+		OptionDirectory=1
+	fi
+
+	if [[ "${Destination//\~}" != "$Destination" ]]; then
+		Destination="${Destination//\~}"
+		OptionDestinationFile=1
+	fi
 
 	if [[ "$Destination" != "" ]]; then
-		MTool DiffCopy "$File" "${OutputDir}$Name/$Destination"
+		DestinationDir="${OutputDir}$Name/$Destination"
 	else
-		MTool DiffCopy "$File" "${OutputDir}$Name"
+		DestinationDir="${OutputDir}$Name"
 	fi
+
+	echo "$File = $Destination"
+
+	InputOptions+=("Input:`ConvertPath \"$File\"`")
+
+	MTool DiffCopy "$File" "$DestinationDir" "" $OptionRecursive 0 $OptionDirectory $OptionDestinationFile
 done
 
 cd "${OutputDir}"
@@ -69,11 +104,15 @@ fi
 
 tar $TarOptions -c "$Name" | gzip > "$OutputBundleTar"
 
-md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5" 
+if [[ "$PlatformFamily" != "Windows" ]] ; then
+	md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"
+else
+	md5sum "$OutputBundleTar" | cut '-d ' -f 1 > "$OutputBundleTar.md5"
+fi
 
 ExcludePatterns="*/bin;*/node_modules"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 
-MTool BuildDependencies "OutputFile=$DependencyFile" "Output:$OutputBundleTar" "Input:${BASH_SOURCE[0]}" "${InputOptions[@]}" "Find:$AppDir/*;RIF;33;$ExcludePatterns"
+MTool BuildDependencies "OutputFile=`ConvertPath \"$DependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "${InputOptions[@]}" "Find:`ConvertPath \"$AppDir\"`/*;RIF;33;$ExcludePatterns"
 
 exit 0

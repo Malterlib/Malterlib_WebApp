@@ -78,6 +78,9 @@ elif [[ "$NpmBuildType" == "Build" ]]; then
 	rm -rf build
 	npm install
 	npm run build
+else
+	echo "Unknown NpmBuildType: '$NpmBuildType'"
+	exit 1
 fi
 
 cp -r $SourceDir "${OutputDir}$Name"
