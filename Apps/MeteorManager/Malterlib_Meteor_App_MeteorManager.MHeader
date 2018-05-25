@@ -202,7 +202,19 @@
 	{
 		Dependency.Indirect true
 	}
+	%Dependency "Lib_Malterlib_Web"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Malterlib_XML"
+	{
+		Dependency.Indirect true
+	}
 	%Dependency "Lib_Malterlib"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_zlib"
 	{
 		Dependency.Indirect true
 	}
@@ -394,7 +406,6 @@ Property
 					!!BuildPackageType ""
 				}
 
-
 				ToolTargetIdentifier "Group:Meteor.Group:@(MalterlibMeteorManagerName).Group:@(Explodee).Target:Tool_Malterlib_BuildMeteor.Target:Tool_Malterlib_BuildMeteor"
 
 				CustomExecutable "@(Executable_@(Explodee))"
@@ -454,6 +465,12 @@ Property
 								"			\"StaticPath\": \"@(StaticPath_@(Explodee))\",\n"
 				{
 					!Empty "@(StaticPath_@(Explodee))"
+				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"UploadS3\": @(UploadS3_@(Explodee)),\n"
+				{
+					!Empty "@(UploadS3_@(Explodee))"
 				}
 
 				PackageSettings	"@(PackageSettings)"\
@@ -634,7 +651,13 @@ Property
 				{
 					!MeteorManagerRedirectWWW ""
 				}
-				
+
+				Contents	"@(Contents)"\
+							"	\"S3BucketPrefix\": \"@(MeteorManagerS3BucketPrefix)\",\n"
+				{
+					!MeteorManagerS3BucketPrefix ""
+				}
+
 				EnvironmentDefaultTags_Template	"\"@(Explodee)\", "
 				{
 					!Explodee ""

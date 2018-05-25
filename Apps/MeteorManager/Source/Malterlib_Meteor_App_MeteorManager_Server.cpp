@@ -143,7 +143,12 @@ namespace NMib::NMeteor::NMeteorManager
 		TCActorResultVector<void> Destroys;
 		for (auto &ToolLaunch : mp_ToolLaunches)
 			ToolLaunch.m_ProcessLaunch->f_Destroy() > Destroys.f_AddResult();
-		
+
+		if (mp_S3Actor)
+			mp_S3Actor->f_Destroy() > Destroys.f_AddResult();
+		if (mp_CurlActor)
+			mp_CurlActor->f_Destroy() > Destroys.f_AddResult();
+
 		Destroys.f_GetResults()
 			> [this, pCanDestroy](auto &&_Results)
 			{
@@ -305,7 +310,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 	void CMeteorManagerOptions::f_ParseSettings(CStr const &_Settings, CStr const &_FileName)
 	{
-		CEJSON Settings = CEJSON::fs_FromString(_Settings, _FileName);
+		CEJSON const Settings = CEJSON::fs_FromString(_Settings, _FileName);
 		
 		for (auto &PackageJSON : Settings["Packages"].f_Object())
 		{
@@ -383,6 +388,9 @@ namespace NMib::NMeteor::NMeteorManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("AllowRobots"))
 				Package.m_bAllowRobots = pValue->f_Boolean();
+
+			if (auto *pValue = PackageSettings.f_GetMember("UploadS3"))
+				Package.m_bUploadS3 = pValue->f_Boolean();
 		}
 
 		m_FullManagerName = Settings["FullManagerName"].f_String();
@@ -398,7 +406,10 @@ namespace NMib::NMeteor::NMeteorManager
 
 		if (auto *pValue = Settings.f_GetMember("RedirectWWW"))
 			m_bRedirectWWW = pValue->f_Boolean();
-		
+
+		if (auto *pValue = Settings.f_GetMember("S3BucketPrefix"))
+			m_S3BucketPrefix = pValue->f_String();
+
 		TCMap<CStr, CStr> Hostnames;
 		for (auto &Package : m_Packages)
 		{

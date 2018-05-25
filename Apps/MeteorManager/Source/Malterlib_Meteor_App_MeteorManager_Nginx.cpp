@@ -105,7 +105,7 @@ ch8 const *g_pStaticServerTemplate = R"---(
 		{
 			gzip_static always;
 			add_header Strict-Transport-Security "max-age=31536000;" always;
-			add_header Cache-Control public;
+			add_header Cache-Control no-cache;
 			root {StaticRoot};
 			access_log logs/static_access_{PackageName}.log;
 		}
@@ -621,12 +621,16 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						{
 							for (auto &Package : mp_Options.m_Packages)
 							{
-								if (Package.f_IsServer() || Package.m_StaticPath.f_IsEmpty())
+								if (Package.f_IsDynamicServer() || Package.m_StaticPath.f_IsEmpty())
 									continue;
 
 								StaticPackages += "		location {}\n"_f << Package.m_StaticPath;
 								StaticPackages += "		{\n";
 								StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
+								if (Package.f_IsNpmStatic())
+									StaticPackages += "			gzip_static always;\n";
+								StaticPackages += "			add_header Strict-Transport-Security \"max-age=31536000;\" always;\n";
+								StaticPackages += "			add_header Cache-Control no-cache;\n";
 								StaticPackages += "			access_log logs/static_access_{}.log;\n"_f << Package.f_GetName();
 								StaticPackages += "		}\n";
 							}
@@ -732,6 +736,27 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 					ConfigContents = ConfigContents.f_Replace("{AllowRobots}", RobotsTxtContents);
 				}
+
+				{
+					CStr ContentTypesContents;
+					for (auto &Extensions : CMeteorManagerActor::fsp_GetContentTypes())
+					{
+						if (Extensions.f_IsEmpty())
+							continue;
+
+						auto &ContentType = TCMap<CStr, TCVector<CStr>>::fs_GetKey(Extensions);
+
+						ContentTypesContents += "		{}	"_f << ContentType;
+
+						for (auto &Extension : Extensions)
+							ContentTypesContents += " {}"_f << Extension;
+
+						ContentTypesContents += ";\n";
+
+					}
+					ConfigContents = ConfigContents.f_Replace("{ContentTypes}", ContentTypesContents);
+				}
+
 
 
 				(g_Dispatch(*mp_FileActors) > [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_UserName, GroupName = mp_NginxUser.m_GroupName, NginxDirectory]()

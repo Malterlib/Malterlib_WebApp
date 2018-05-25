@@ -13,6 +13,8 @@
 #include <Mib/Mongo/Client>
 #include <Mib/Storage/Optional>
 #include <Mib/Security/UniqueUserGroup>
+#include <Mib/Web/AWS/S3>
+#include <Mib/Web/Curl>
 
 #include "Malterlib_Meteor_App_MeteorManager_Helpers.h"
 
@@ -60,9 +62,14 @@ namespace NMib::NMeteor::NMeteorManager
 				;
 			}
 
+			bool f_IsDynamicServer() const
+			{
+				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI;
+			}
+
 			bool f_IsServer() const
 			{
-				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI || f_IsNpmStatic();
+				return f_IsDynamicServer() || f_IsNpmStatic();
 			}
 			
 			TCVector<CStr> m_StartupDependencies;
@@ -81,6 +88,7 @@ namespace NMib::NMeteor::NMeteorManager
 			bool m_bSeparateUser = false;
 			bool m_bOwnPackageDirectory = false;
 			bool m_bAllowRobots = true;
+			bool m_bUploadS3 = true;
 		};
 		
 		struct CMongo
@@ -107,6 +115,7 @@ namespace NMib::NMeteor::NMeteorManager
 		CMongo m_Mongo;
 		CStr m_DefaultDomain;
 		CStr m_HTTPRedirectReferrerCookie;
+		CStr m_S3BucketPrefix;
 		uint16 m_DefaultWebPort = 3000;
 		uint16 m_DefaultWebSSLPort = 3443;
 		uint8 m_LoopbackPrefix = 0;
@@ -270,6 +279,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> fp_SetupPrerequisites_Customization();
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
 		TCContinuation<void> fp_SetupPrerequisites_Packages();
+		TCContinuation<void> fp_SetupPrerequisites_UploadS3();
 		TCContinuation<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type);
 		TCContinuation<void> fp_SetupPrerequisites_OSSetup();
 		
@@ -305,6 +315,9 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> fp_StartApps();
 		TCContinuation<void> fp_DestroyApps();
 
+		static TCMap<CStr, TCVector<CStr>> fsp_GetContentTypes();
+		static CStr fsp_GetContentTypeForExtension(CStr const &_Extension);
+
 		TCSharedPointer<CUniqueUserGroup> mp_pUniqueUserGroup;
 
 		CMeteorManagerOptions mp_Options;
@@ -335,9 +348,12 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> mp_AppLaunchesContinuation;
 		
 		CStr mp_InstanceId;
-		
+
 		TCActor<CProcessLaunchActor> mp_NginxLaunch;
 		CActorSubscription mp_NginxLaunchSubscription;
+
+		TCActor<CCurlActor> mp_CurlActor;
+		TCActor<CAwsS3Actor> mp_S3Actor;
 		
 		// Precalculated config
 		

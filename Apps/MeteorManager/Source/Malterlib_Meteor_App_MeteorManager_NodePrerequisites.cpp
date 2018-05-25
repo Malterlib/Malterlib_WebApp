@@ -583,7 +583,11 @@ namespace NMib::NMeteor::NMeteorManager
 			+ fp_SetupPrerequisites_FastCGI()
 			> Continuation / [Continuation, this]
 			{
-				fp_SetupPrerequisites_Packages() > Continuation;
+				fp_SetupPrerequisites_Packages() > Continuation / [Continuation, this]
+					{
+						fp_SetupPrerequisites_UploadS3() > Continuation;
+					}
+				;
 			}
 		;
 		return Continuation;
