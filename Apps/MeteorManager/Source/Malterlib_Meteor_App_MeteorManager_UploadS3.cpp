@@ -54,11 +54,12 @@ namespace NMib::NMeteor::NMeteorManager
 
 		DLog(Info, "Uploading static files to S3");
 
-		CAwsS3Actor::CCredentials AWSCredentials;
+		CAwsCredentials AWSCredentials;
 
 		AWSCredentials.m_Region = fp_GetConfigValue("S3Region", "").f_String();
-		AWSCredentials.m_AccessKeyID = fp_GetConfigValue("S3AccessKeyID", "").f_String();
-		AWSCredentials.m_SecretKey = fp_GetConfigValue("S3SecretKey", "").f_String();
+		AWSCredentials.m_AccessKeyID = fp_GetConfigValue("AWSAccessKeyID", "").f_String();
+		AWSCredentials.m_SecretKey = fp_GetConfigValue("AWSSecretKey", "").f_String();
+		CStr CloudFrontDistribution = fp_GetConfigValue("CloudFrontDistribution", "").f_String();
 
 		if (AWSCredentials.m_Region.f_IsEmpty())
 		{
@@ -68,13 +69,13 @@ namespace NMib::NMeteor::NMeteorManager
 
 		if (AWSCredentials.m_AccessKeyID.f_IsEmpty())
 		{
-			DMibLogWithCategory(MeteorManager, Warning, "S3AccessKeyID value not specified in config, skipping S3 upload");
+			DMibLogWithCategory(MeteorManager, Warning, "AWSAccessKeyID value not specified in config, skipping S3 upload");
 			return fg_Explicit();
 		}
 
 		if (AWSCredentials.m_SecretKey.f_IsEmpty())
 		{
-			DMibLogWithCategory(MeteorManager, Warning, "S3SecretKey value not specified in config, skipping S3 upload");
+			DMibLogWithCategory(MeteorManager, Warning, "AWSSecretKey value not specified in config, skipping S3 upload");
 			return fg_Explicit();
 		}
 
@@ -104,6 +105,7 @@ namespace NMib::NMeteor::NMeteorManager
 				CBinaryStreamMemory<> Stream;
 				Stream << uint32(2); // Version
 				Stream << bAllowRobots;
+				Stream << CloudFrontDistribution;
 
 				fAddChecksum(CHash_MD5::fs_DigestFromData(Stream.f_GetVector()));
 
@@ -139,6 +141,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 				mp_CurlActor = fg_Construct(fg_Construct(), "S3 curl actor");
 				mp_S3Actor = fg_Construct(mp_CurlActor, AWSCredentials);
+				mp_CloudFrontActor = fg_Construct(mp_CurlActor, AWSCredentials);
 
 				CStr BucketName = mp_Options.m_S3BucketPrefix + mp_Domain;
 
@@ -208,12 +211,29 @@ namespace NMib::NMeteor::NMeteorManager
 										if (!fg_CombineResults(Continuation, fg_Move(_Results)))
 											return;
 
-										g_Dispatch(*mp_FileActors) > [=]()
+										TCContinuation<void> CloudFrontInvalidateResult;
+										if (CloudFrontDistribution.f_IsEmpty())
+											CloudFrontInvalidateResult.f_SetResult();
+										else
+										{
+											TCVector<CStr> PathsToInvalidate = {"/*"};
+											mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, CloudFrontDistribution, PathsToInvalidate) > CloudFrontInvalidateResult / [=]
+												{
+													CloudFrontInvalidateResult.f_SetResult();
+												}
+											;
+										}
+
+										CloudFrontInvalidateResult > Continuation / [=]
 											{
-												CFile::fs_WriteStringToFile(_SourceCheckResults.m_ChecksumFile, _SourceCheckResults.m_ChecksumStr, false);
-												DLog(Info, "Done uploading static files to S3");
+												g_Dispatch(*mp_FileActors) > [=]()
+													{
+														CFile::fs_WriteStringToFile(_SourceCheckResults.m_ChecksumFile, _SourceCheckResults.m_ChecksumStr, false);
+														DLog(Info, "Done uploading static files to S3");
+													}
+													> Continuation
+												;
 											}
-										 	> Continuation
 										;
 									}
 								;

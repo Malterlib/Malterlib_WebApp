@@ -14,6 +14,7 @@
 #include <Mib/Storage/Optional>
 #include <Mib/Security/UniqueUserGroup>
 #include <Mib/Web/AWS/S3>
+#include <Mib/Web/AWS/CloudFront>
 #include <Mib/Web/Curl>
 
 #include "Malterlib_Meteor_App_MeteorManager_Helpers.h"
@@ -354,7 +355,8 @@ namespace NMib::NMeteor::NMeteorManager
 
 		TCActor<CCurlActor> mp_CurlActor;
 		TCActor<CAwsS3Actor> mp_S3Actor;
-		
+		TCActor<CAwsCloudFrontActor> mp_CloudFrontActor;
+
 		// Precalculated config
 		
 		CStr mp_Domain;
