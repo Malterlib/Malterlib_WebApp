@@ -10,6 +10,102 @@
 
 namespace NMib::NMeteor::NMeteorManager
 {
+	namespace
+	{
+		constexpr uint32 gc_UpdateVersion = 14;
+	}
+
+	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials)
+	{
+		CStr CloudFrontDistribution = fp_GetConfigValue("AWSCloudFrontDistribution", "").f_String();
+		CStr AWSLambdaRole = fp_GetConfigValue("AWSLambdaRole", "").f_String();
+
+		if (CloudFrontDistribution.f_IsEmpty())
+		{
+			DMibLogWithCategory(MeteorManager, Warning, "AWSCloudFrontDistribution value not specified in config, skipping Lambda creation");
+			return fg_Explicit();
+		}
+
+		if (AWSLambdaRole.f_IsEmpty())
+		{
+			DMibLogWithCategory(MeteorManager, Warning, "AWSLambdaRole value not specified in config, skipping Lambda creation");
+			return fg_Explicit();
+		}
+
+		auto AWSCredentials = _AWSCredentials;
+		AWSCredentials.m_Region = "us-east-1";
+
+		mp_LambdaActor = fg_Construct(mp_CurlActor, AWSCredentials);
+
+		TCContinuation<void> Continuation;
+
+		CStr FunctionName = CStr("originrequest.{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain).f_ReplaceChar('.', '_');
+		TCMap<CStr, CStr> Files;
+		CAwsLambdaActor::CFunctionConfiguration Config;
+
+		Config.m_Handler = "index.handler";
+		Config.m_Runtime = "nodejs8.10";
+		Config.m_Role = AWSLambdaRole;
+		Config.m_MemorySizeMB = 128;
+		Config.m_TimeoutSeconds = 3;
+		Config.m_bPublish = true;
+
+		Files["index.js"] = R"----(
+'use strict';
+exports.handler = (event, context, callback) => {
+	// Version 2
+
+    // Extract the request from the CloudFront event that is sent to Lambda@Edge
+    var request = event.Records[0].cf.request;
+
+    // Extract the URI from the request
+    var olduri = request.uri;
+
+    if (/\/(.*\/)*.*\..*/.test(olduri))
+        return callback(null, request); // Something with . in name
+
+    // Match any '/' that occurs at the end of a URI. Replace it with a default index
+    var newuri;
+    if (/\/$/.test(olduri))
+        newuri = olduri.replace(/\/$/, '\/index.html');
+    else
+        newuri = olduri.replace(/$/, '\/index.html');
+
+    // Log the URI as received by CloudFront and the new URI to be used to fetch from origin
+    //console.log("Old URI: " + olduri);
+    //console.log("New URI: " + newuri);
+
+    // Replace the received URI with the URI that includes the index page
+    request.uri = newuri;
+
+    // Return to CloudFront
+    return callback(null, request);
+};
+)----";
+
+		mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, FunctionName, Files, Config) > Continuation % "Update AWS Lambda function" / [=](CAwsLambdaActor::CFunctionInfo &&_Info)
+			{
+				if (_Info.m_Version.f_IsEmpty() || _Info.m_Version == "$LATEST")
+				{
+					Continuation.f_SetResult();
+					return;
+				}
+
+				NContainer::TCMap<CAwsCloudFrontActor::EFunctionEventType, NStr::CStr> FunctionAssociations;
+				FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginRequest] = _Info.m_Arn;
+
+				mp_CloudFrontActor(&CAwsCloudFrontActor::f_UpdateDistributionLambdaFunctions, CloudFrontDistribution, FunctionAssociations)
+					> Continuation % "Associate AWS Lambda function with CloudFront distribution" / [=]
+					{
+						Continuation.f_SetResult();
+					}
+				;
+			}
+		;
+
+		return Continuation;
+	}
+
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3()
 	{
 		TCContinuation<void> Continuation;
@@ -56,14 +152,14 @@ namespace NMib::NMeteor::NMeteorManager
 
 		CAwsCredentials AWSCredentials;
 
-		AWSCredentials.m_Region = fp_GetConfigValue("S3Region", "").f_String();
+		AWSCredentials.m_Region = fp_GetConfigValue("AWSS3Region", "").f_String();
 		AWSCredentials.m_AccessKeyID = fp_GetConfigValue("AWSAccessKeyID", "").f_String();
 		AWSCredentials.m_SecretKey = fp_GetConfigValue("AWSSecretKey", "").f_String();
-		CStr CloudFrontDistribution = fp_GetConfigValue("CloudFrontDistribution", "").f_String();
+		CStr CloudFrontDistribution = fp_GetConfigValue("AWSCloudFrontDistribution", "").f_String();
 
 		if (AWSCredentials.m_Region.f_IsEmpty())
 		{
-			DMibLogWithCategory(MeteorManager, Warning, "S3Region value not specified in config, skipping S3 upload");
+			DMibLogWithCategory(MeteorManager, Warning, "AWSS3Region value not specified in config, skipping S3 upload");
 			return fg_Explicit();
 		}
 
@@ -103,7 +199,7 @@ namespace NMib::NMeteor::NMeteorManager
 				;
 
 				CBinaryStreamMemory<> Stream;
-				Stream << uint32(2); // Version
+				Stream << gc_UpdateVersion; // Version
 				Stream << bAllowRobots;
 				Stream << CloudFrontDistribution;
 
@@ -224,7 +320,7 @@ namespace NMib::NMeteor::NMeteorManager
 											;
 										}
 
-										CloudFrontInvalidateResult > Continuation / [=]
+										CloudFrontInvalidateResult + fp_SetupPrerequisites_UpdateAWSLambda(AWSCredentials) > Continuation / [=]
 											{
 												g_Dispatch(*mp_FileActors) > [=]()
 													{

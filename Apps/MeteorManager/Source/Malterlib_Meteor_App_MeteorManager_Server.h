@@ -15,6 +15,7 @@
 #include <Mib/Security/UniqueUserGroup>
 #include <Mib/Web/AWS/S3>
 #include <Mib/Web/AWS/CloudFront>
+#include <Mib/Web/AWS/Lambda>
 #include <Mib/Web/Curl>
 
 #include "Malterlib_Meteor_App_MeteorManager_Helpers.h"
@@ -89,7 +90,7 @@ namespace NMib::NMeteor::NMeteorManager
 			bool m_bSeparateUser = false;
 			bool m_bOwnPackageDirectory = false;
 			bool m_bAllowRobots = true;
-			bool m_bUploadS3 = true;
+			bool m_bUploadS3 = false;
 		};
 		
 		struct CMongo
@@ -281,6 +282,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
 		TCContinuation<void> fp_SetupPrerequisites_Packages();
 		TCContinuation<void> fp_SetupPrerequisites_UploadS3();
+		TCContinuation<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials);
 		TCContinuation<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type);
 		TCContinuation<void> fp_SetupPrerequisites_OSSetup();
 		
@@ -356,6 +358,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCActor<CCurlActor> mp_CurlActor;
 		TCActor<CAwsS3Actor> mp_S3Actor;
 		TCActor<CAwsCloudFrontActor> mp_CloudFrontActor;
+		TCActor<CAwsLambdaActor> mp_LambdaActor;
 
 		// Precalculated config
 		

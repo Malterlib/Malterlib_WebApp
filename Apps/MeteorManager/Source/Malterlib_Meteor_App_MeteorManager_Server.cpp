@@ -148,6 +148,8 @@ namespace NMib::NMeteor::NMeteorManager
 			mp_S3Actor->f_Destroy() > Destroys.f_AddResult();
 		if (mp_CloudFrontActor)
 			mp_CloudFrontActor->f_Destroy() > Destroys.f_AddResult();
+		if (mp_LambdaActor)
+			mp_LambdaActor->f_Destroy() > Destroys.f_AddResult();
 		if (mp_CurlActor)
 			mp_CurlActor->f_Destroy() > Destroys.f_AddResult();
 
