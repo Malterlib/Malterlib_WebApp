@@ -118,6 +118,15 @@ namespace NMib::NMeteor::NMeteorManager
 		CStr m_DefaultDomain;
 		CStr m_HTTPRedirectReferrerCookie;
 		CStr m_S3BucketPrefix;
+
+		CStr m_ContentSecurity_ScriptSrc;
+		CStr m_ContentSecurity_ImgSrc;
+		CStr m_ContentSecurity_FontSrc;
+		CStr m_ContentSecurity_StyleSrc;
+		CStr m_ContentSecurity_FrameSrc;
+		CStr m_ContentSecurity_ConnectSrc;
+		CStr m_ContentSecurity_ObjectSrc;
+
 		uint16 m_DefaultWebPort = 3000;
 		uint16 m_DefaultWebSSLPort = 3443;
 		uint8 m_LoopbackPrefix = 0;

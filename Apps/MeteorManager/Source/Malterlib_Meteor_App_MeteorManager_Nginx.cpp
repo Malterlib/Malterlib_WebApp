@@ -41,7 +41,7 @@ ch8 const *g_pServerTemplate = R"---(
 		{
 			gzip_static always;
 			expires max;
-			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
 			add_header Cache-Control public;
 			root {StaticRoot};
 			access_log logs/static_access_{PackageName}.log;
@@ -104,7 +104,7 @@ ch8 const *g_pStaticServerTemplate = R"---(
 		location /
 		{
 			gzip_static always;
-			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
 			add_header Cache-Control no-cache;
 			root {StaticRoot};
 			access_log logs/static_access_{PackageName}.log;
@@ -138,7 +138,7 @@ ch8 const *g_pFastCGIServerTemplate = R"---(
 		{
 			gzip_static always;
 			expires max;
-			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
 			add_header Cache-Control public;
 			root {StaticRoot};
 			access_log logs/static_access_{PackageName}.log;
@@ -188,7 +188,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		client_max_body_size 10M;
 
 		add_header 'Access-Control-Allow-Origin' 'https://{ServerName}{SSLPortRewrite}';
-		add_header Strict-Transport-Security "max-age=31536000;" always;
+		add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
 		add_header Cache-Control public;
 
 		location ~* "^/[a-z0-9]{40}\.(css|js)$"
@@ -629,7 +629,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 								StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
 								if (Package.f_IsNpmStatic())
 									StaticPackages += "			gzip_static always;\n";
-								StaticPackages += "			add_header Strict-Transport-Security \"max-age=31536000;\" always;\n";
+								StaticPackages += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload;\" always;\n";
 								StaticPackages += "			add_header Cache-Control no-cache;\n";
 								StaticPackages += "			access_log logs/static_access_{}.log;\n"_f << Package.f_GetName();
 								StaticPackages += "		}\n";
@@ -652,7 +652,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		location /
 		{
-			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
 			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{DomainName}";
 			return 302 https://{DomainName}{SSLPortRewrite}$request_uri;
 		}

@@ -414,6 +414,24 @@ namespace NMib::NMeteor::NMeteorManager
 		if (auto *pValue = Settings.f_GetMember("S3BucketPrefix"))
 			m_S3BucketPrefix = pValue->f_String();
 
+		if (auto *pContentSecurity = Settings.f_GetMember("ContentSecurity"))
+		{
+			if (auto *pValue = pContentSecurity->f_GetMember("ScriptSrc"))
+				m_ContentSecurity_ScriptSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("ImgSrc"))
+				m_ContentSecurity_ImgSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("FontSrc"))
+				m_ContentSecurity_FontSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("StyleSrc"))
+				m_ContentSecurity_StyleSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("FrameSrc"))
+				m_ContentSecurity_FrameSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("ConnectSrc"))
+				m_ContentSecurity_ConnectSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("ObjectSrc"))
+				m_ContentSecurity_ObjectSrc = pValue->f_String();
+		}
+
 		TCMap<CStr, CStr> Hostnames;
 		for (auto &Package : m_Packages)
 		{

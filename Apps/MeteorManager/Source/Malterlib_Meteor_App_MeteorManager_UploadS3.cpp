@@ -12,7 +12,7 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	namespace
 	{
-		constexpr uint32 gc_UpdateVersion = 14;
+		constexpr uint32 gc_UpdateVersion = 20;
 	}
 
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials)
@@ -39,18 +39,19 @@ namespace NMib::NMeteor::NMeteorManager
 
 		TCContinuation<void> Continuation;
 
-		CStr FunctionName = CStr("originrequest.{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain).f_ReplaceChar('.', '_');
-		TCMap<CStr, CStr> Files;
-		CAwsLambdaActor::CFunctionConfiguration Config;
+		CStr OriginRequestFunctionName = CStr("originrequest.{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain).f_ReplaceChar('.', '_');
+		TCMap<CStr, CStr> OriginRequestFiles;
+		CAwsLambdaActor::CFunctionConfiguration OriginRequestConfig;
 
-		Config.m_Handler = "index.handler";
-		Config.m_Runtime = "nodejs8.10";
-		Config.m_Role = AWSLambdaRole;
-		Config.m_MemorySizeMB = 128;
-		Config.m_TimeoutSeconds = 3;
-		Config.m_bPublish = true;
+		{
+			OriginRequestConfig.m_Handler = "index.handler";
+			OriginRequestConfig.m_Runtime = "nodejs8.10";
+			OriginRequestConfig.m_Role = AWSLambdaRole;
+			OriginRequestConfig.m_MemorySizeMB = 128;
+			OriginRequestConfig.m_TimeoutSeconds = 3;
+			OriginRequestConfig.m_bPublish = true;
 
-		Files["index.js"] = R"----(
+			OriginRequestFiles["index.js"] = R"----(
 'use strict';
 exports.handler = (event, context, callback) => {
 	// Version 2
@@ -82,17 +83,70 @@ exports.handler = (event, context, callback) => {
     return callback(null, request);
 };
 )----";
+		}
 
-		mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, FunctionName, Files, Config) > Continuation % "Update AWS Lambda function" / [=](CAwsLambdaActor::CFunctionInfo &&_Info)
+		CStr OriginResponseFunctionName = CStr("originresponse.{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain).f_ReplaceChar('.', '_');
+		TCMap<CStr, CStr> OriginResponseFiles;
+		CAwsLambdaActor::CFunctionConfiguration OriginResponseConfig;
+
+		{
+			OriginResponseConfig.m_Handler = "index.handler";
+			OriginResponseConfig.m_Runtime = "nodejs8.10";
+			OriginResponseConfig.m_Role = AWSLambdaRole;
+			OriginResponseConfig.m_MemorySizeMB = 128;
+			OriginResponseConfig.m_TimeoutSeconds = 3;
+			OriginResponseConfig.m_bPublish = true;
+
+			CStr ContentSecurityPolicy = "default-src 'none' ;";
+			ContentSecurityPolicy += " img-src 'self' data: {} ;"_f << mp_Options.m_ContentSecurity_ImgSrc;
+			ContentSecurityPolicy += " font-src 'self' data: {} ;"_f << mp_Options.m_ContentSecurity_FontSrc;
+			ContentSecurityPolicy += " script-src 'self' *.{0} {0} {1};"_f << mp_Domain << mp_Options.m_ContentSecurity_ScriptSrc;
+			ContentSecurityPolicy += " style-src 'self' {} ;"_f << mp_Options.m_ContentSecurity_StyleSrc;
+			ContentSecurityPolicy += " frame-src 'self' {} ;"_f << mp_Options.m_ContentSecurity_FrameSrc;
+			ContentSecurityPolicy += " connect-src 'self' {} ;"_f << mp_Options.m_ContentSecurity_ConnectSrc;
+			ContentSecurityPolicy += " object-src 'none' {} ;"_f << mp_Options.m_ContentSecurity_ObjectSrc;
+
+			OriginResponseFiles["index.js"] = CStr(R"----(
+'use strict';
+exports.handler = (event, context, callback) => {
+
+	// Get contents of response
+	const response = event.Records[0].cf.response;
+	const headers = response.headers;
+
+	// Set new headers
+	headers['strict-transport-security'] = [{key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubdomains; preload'}];
+	headers['content-security-policy'] = [{key: 'Content-Security-Policy', value: "{ContentSecurityPolicy}"}];
+	headers['x-content-type-options'] = [{key: 'X-Content-Type-Options', value: 'nosniff'}];
+	headers['x-frame-options'] = [{key: 'X-Frame-Options', value: 'DENY'}];
+	headers['x-xss-protection'] = [{key: 'X-XSS-Protection', value: '1; mode=block'}];
+	headers['referrer-policy'] = [{key: 'Referrer-Policy', value: 'same-origin'}];
+
+	//Return modified response
+	callback(null, response);
+};
+)----").f_Replace("{ContentSecurityPolicy}", ContentSecurityPolicy);
+		}
+
+		mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, OriginRequestFunctionName, OriginRequestFiles, OriginRequestConfig)
+			+ mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, OriginResponseFunctionName, OriginResponseFiles, OriginResponseConfig)
+			> Continuation % "Update AWS Lambda functions" / [=](CAwsLambdaActor::CFunctionInfo &&_OriginRequestInfo, CAwsLambdaActor::CFunctionInfo &&_OriginResponseInfo)
 			{
-				if (_Info.m_Version.f_IsEmpty() || _Info.m_Version == "$LATEST")
+				if
+					(
+					 	_OriginRequestInfo.m_Version.f_IsEmpty()
+					 	|| _OriginRequestInfo.m_Version == "$LATEST"
+					 	|| _OriginResponseInfo.m_Version.f_IsEmpty()
+					 	|| _OriginResponseInfo.m_Version == "$LATEST"
+					)
 				{
 					Continuation.f_SetResult();
 					return;
 				}
 
 				NContainer::TCMap<CAwsCloudFrontActor::EFunctionEventType, NStr::CStr> FunctionAssociations;
-				FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginRequest] = _Info.m_Arn;
+				FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginRequest] = _OriginRequestInfo.m_Arn;
+				FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginResponse] = _OriginResponseInfo.m_Arn;
 
 				mp_CloudFrontActor(&CAwsCloudFrontActor::f_UpdateDistributionLambdaFunctions, CloudFrontDistribution, FunctionAssociations)
 					> Continuation % "Associate AWS Lambda function with CloudFront distribution" / [=]
@@ -188,7 +242,7 @@ exports.handler = (event, context, callback) => {
 			CDirectoryManifest m_DirectoryManifest;
 		};
 
-		g_Dispatch(*mp_FileActors) > [=]() mutable -> CSourceCheckResults
+		g_Dispatch(*mp_FileActors) > [=, Options = mp_Options, Domain = mp_Domain]() mutable -> CSourceCheckResults
 			{
 				CHash_MD5 Checksum;
 
@@ -202,6 +256,14 @@ exports.handler = (event, context, callback) => {
 				Stream << gc_UpdateVersion; // Version
 				Stream << bAllowRobots;
 				Stream << CloudFrontDistribution;
+				Stream << Options.m_ContentSecurity_ImgSrc;
+				Stream << Options.m_ContentSecurity_FontSrc;
+				Stream << Domain;
+				Stream << Options.m_ContentSecurity_ScriptSrc;
+				Stream << Options.m_ContentSecurity_StyleSrc;
+				Stream << Options.m_ContentSecurity_FrameSrc;
+				Stream << Options.m_ContentSecurity_ConnectSrc;
+				Stream << Options.m_ContentSecurity_ObjectSrc;
 
 				fAddChecksum(CHash_MD5::fs_DigestFromData(Stream.f_GetVector()));
 

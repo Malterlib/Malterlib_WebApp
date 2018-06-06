@@ -658,6 +658,54 @@ Property
 					!MeteorManagerS3BucketPrefix ""
 				}
 
+				Contents	"@(Contents)"\
+							"	\"ContentSecurity\": {\n"
+
+				Contents	"@(Contents)"\
+							"		\"ScriptSrc\": \"@(ContentSecurity_ScriptSrc)\",\n"
+				{
+					!ContentSecurity_ScriptSrc ""
+				}
+
+				Contents	"@(Contents)"\
+							"		\"ImgSrc\": \"@(ContentSecurity_ImgSrc)\",\n"
+				{
+					!ContentSecurity_ImgSrc ""
+				}
+
+				Contents	"@(Contents)"\
+							"		\"FontSrc\": \"@(ContentSecurity_FontSrc)\",\n"
+				{
+					!ContentSecurity_FontSrc ""
+				}
+
+				Contents	"@(Contents)"\
+							"		\"StyleSrc\": \"@(ContentSecurity_StyleSrc)\",\n"
+				{
+					!ContentSecurity_StyleSrc ""
+				}
+
+				Contents	"@(Contents)"\
+							"		\"FrameSrc\": \"@(ContentSecurity_FrameSrc)\",\n"
+				{
+					!ContentSecurity_FrameSrc ""
+				}
+
+				Contents	"@(Contents)"\
+							"		\"ConnectSrc\": \"@(ContentSecurity_ConnectSrc)\",\n"
+				{
+					!ContentSecurity_ConnectSrc ""
+				}
+
+				Contents	"@(Contents)"\
+							"		\"ObjectSrc\": \"@(ContentSecurity_ObjectSrc)\",\n"
+				{
+					!ContentSecurity_ObjectSrc ""
+				}
+
+				Contents	"@(Contents)"\
+							"	},\n"
+
 				EnvironmentDefaultTags_Template	"\"@(Explodee)\", "
 				{
 					!Explodee ""
