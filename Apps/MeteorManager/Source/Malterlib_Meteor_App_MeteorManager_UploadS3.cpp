@@ -98,12 +98,12 @@ exports.handler = (event, context, callback) => {
 			OriginResponseConfig.m_bPublish = true;
 
 			CStr ContentSecurityPolicy = "default-src 'none' ;";
-			ContentSecurityPolicy += " img-src 'self' data: {} ;"_f << mp_Options.m_ContentSecurity_ImgSrc;
-			ContentSecurityPolicy += " font-src 'self' data: {} ;"_f << mp_Options.m_ContentSecurity_FontSrc;
+			ContentSecurityPolicy += " img-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ImgSrc;
+			ContentSecurityPolicy += " font-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FontSrc;
 			ContentSecurityPolicy += " script-src 'self' *.{0} {0} {1};"_f << mp_Domain << mp_Options.m_ContentSecurity_ScriptSrc;
-			ContentSecurityPolicy += " style-src 'self' {} ;"_f << mp_Options.m_ContentSecurity_StyleSrc;
-			ContentSecurityPolicy += " frame-src 'self' {} ;"_f << mp_Options.m_ContentSecurity_FrameSrc;
-			ContentSecurityPolicy += " connect-src 'self' {} ;"_f << mp_Options.m_ContentSecurity_ConnectSrc;
+			ContentSecurityPolicy += " style-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_StyleSrc;
+			ContentSecurityPolicy += " frame-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FrameSrc;
+			ContentSecurityPolicy += " connect-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ConnectSrc;
 			ContentSecurityPolicy += " object-src 'none' {} ;"_f << mp_Options.m_ContentSecurity_ObjectSrc;
 
 			OriginResponseFiles["index.js"] = CStr(R"----(
@@ -364,7 +364,9 @@ exports.handler = (event, context, callback) => {
 								for (auto &File : FilesToDelete)
 									mp_S3Actor(&CAwsS3Actor::f_DeleteObject, BucketName, File) > DeleteFilesResults.f_AddResult();
 
-								DeleteFilesResults.f_GetResults() > Continuation / [=](TCVector<TCAsyncResult<void>> &&_Results)
+								DeleteFilesResults.f_GetResults()
+									+ fp_SetupPrerequisites_UpdateAWSLambda(AWSCredentials)
+									> Continuation / [=](TCVector<TCAsyncResult<void>> &&_Results, CVoidTag)
 									{
 										if (!fg_CombineResults(Continuation, fg_Move(_Results)))
 											return;
@@ -382,7 +384,7 @@ exports.handler = (event, context, callback) => {
 											;
 										}
 
-										CloudFrontInvalidateResult + fp_SetupPrerequisites_UpdateAWSLambda(AWSCredentials) > Continuation / [=]
+										CloudFrontInvalidateResult > Continuation / [=]
 											{
 												g_Dispatch(*mp_FileActors) > [=]()
 													{
