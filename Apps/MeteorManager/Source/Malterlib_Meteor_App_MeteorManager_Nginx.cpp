@@ -19,7 +19,43 @@ namespace NMib::NMeteor::NMeteorManager
 		return fs_GetNginxWorkerFileLimits() * _nNodes + 8192;
 	}
 
-ch8 const *g_pServerTemplate = R"---(
+ch8 const *g_pServerTemplate[2] =
+	{
+R"---(
+		location ~* "^/{SubPath}/[a-z0-9]{40}\.(css|js)$"
+		{
+			gzip_static always;
+			expires max;
+			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Cache-Control public;
+			root {StaticRoot};
+			access_log logs/static_access_{PackageName}.log;
+		}
+
+		# pass all requests to Meteor
+		location /{SubPath}/
+		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+			error_page 502 = @{PackageName}_Fallback;
+			proxy_pass http://{UpstreamSticky};
+			proxy_http_version 1.1;
+			proxy_set_header Host $host;
+			proxy_set_header Upgrade $http_upgrade; # allow websockets
+			proxy_set_header Connection $connection_upgrade;
+			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+		}
+		location @{PackageName}_Fallback
+		{
+			proxy_pass http://{Upstream};
+			proxy_http_version 1.1;
+			proxy_set_header Host $host;
+			proxy_set_header Upgrade $http_upgrade; # allow websockets
+			proxy_set_header Connection $connection_upgrade;
+			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+		}
+)---"
+, R"---(
 	server
 	{
 		listen {SSLPort} {ListenOptions};
@@ -50,6 +86,7 @@ ch8 const *g_pServerTemplate = R"---(
 {ServerRedirect_{PackageName}}
 
 {StaticPackages}
+{SubPackages}
 
 		# pass all requests to Meteor
 		location /
@@ -78,9 +115,23 @@ ch8 const *g_pServerTemplate = R"---(
 			return 200 "{AllowRobots}";
 		}
 	}
-)---";
+)---"
+	}
+;
 
-ch8 const *g_pStaticServerTemplate = R"---(
+ch8 const *g_pStaticServerTemplate[2] =
+	{
+R"---(
+		location /{SubPath}/
+		{
+			gzip_static always;
+			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Cache-Control no-cache;
+			root {StaticRoot};
+			access_log logs/static_access_{PackageName}.log;
+		}
+)---"
+, R"---(
 	server
 	{
 		listen {SSLPort} {ListenOptions};
@@ -100,6 +151,7 @@ ch8 const *g_pStaticServerTemplate = R"---(
 
 {ServerRedirect_{PackageName}}
 {StaticPackages}
+{SubPackages}
 
 		location /
 		{
@@ -114,9 +166,48 @@ ch8 const *g_pStaticServerTemplate = R"---(
 			return 200 "{AllowRobots}";
 		}
 	}
-)---";
+)---"
+	}
+;
 
-ch8 const *g_pFastCGIServerTemplate = R"---(
+ch8 const *g_pFastCGIServerTemplate[2] =
+	{
+R"---(
+		location ~* "^/{SubPath}/[a-z0-9]{40}\.(css|js)$"
+		{
+			gzip_static always;
+			expires max;
+			add_header Strict-Transport-Security "max-age=31536000;" always;
+			add_header Cache-Control public;
+			root {StaticRoot};
+			access_log logs/static_access_{PackageName}.log;
+		}
+
+		# pass all requests to FastCGI
+		location /{SubPath}/
+		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+			include {FastCGIFile};
+
+			error_page 502 = @{PackageName}_Fallback;
+
+			fastcgi_pass {UpstreamSticky};
+			fastcgi_keep_conn on;
+
+			gzip off;
+		}
+		location @{PackageName}_Fallback
+		{
+			include {FastCGIFile};
+
+			fastcgi_pass {Upstream};
+			fastcgi_keep_conn on;
+
+			gzip off;
+		}
+)---"
+, R"---(
 	server
 	{
 		listen {SSLPort} {ListenOptions};
@@ -147,6 +238,7 @@ ch8 const *g_pFastCGIServerTemplate = R"---(
 {ServerRedirect_{PackageName}}
 
 {StaticPackages}
+{SubPackages}
 
 		# pass all requests to FastCGI
 		location /
@@ -176,7 +268,89 @@ ch8 const *g_pFastCGIServerTemplate = R"---(
 			return 200 "{AllowRobots}";
 		}
 	}
-)---";
+)---"
+	}
+;
+
+ch8 const *g_pWebsocketServerTemplate[2] =
+	{
+R"---(
+		# pass all requests to Websocket
+		location /{SubPath}
+		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+			error_page 502 = @{PackageName}_Fallback;
+			proxy_pass http://{UpstreamSticky};
+			proxy_http_version 1.1;
+			proxy_set_header Host $host;
+			proxy_set_header Upgrade $http_upgrade; # allow websockets
+			proxy_set_header Connection $connection_upgrade;
+			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+		}
+		location @{PackageName}_Fallback
+		{
+			proxy_pass http://{Upstream};
+			proxy_http_version 1.1;
+			proxy_set_header Host $host;
+			proxy_set_header Upgrade $http_upgrade; # allow websockets
+			proxy_set_header Connection $connection_upgrade;
+			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+		}
+)---"
+, R"---(
+	server
+	{
+		listen {SSLPort} {ListenOptions};
+		listen [::]:{SSLPort} {ListenOptionsIPV6};
+		server_name {ServerName} {ServerNameExtra_{PackageName}};
+		access_log logs/access_{PackageName}.log upstreamlog;
+		client_max_body_size 10M;
+
+{ServerAccessCheck_{PackageName}}
+
+		# If your application is not compatible with IE <= 10, this will redirect visitors to a page advising a browser update
+		# This works because IE 11 does not present itself as MSIE anymore
+		if ($http_user_agent ~ "MSIE" )
+		{
+			return 303 https://browser-update.org/update.html;
+		}
+
+{ServerRedirect_{PackageName}}
+
+{StaticPackages}
+{SubPackages}
+
+		# pass all requests to Websocket
+		location /
+		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+			error_page 502 = @{PackageName}_Fallback;
+			proxy_pass http://{UpstreamSticky};
+			proxy_http_version 1.1;
+			proxy_set_header Host $host;
+			proxy_set_header Upgrade $http_upgrade; # allow websockets
+			proxy_set_header Connection $connection_upgrade;
+			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+		}
+		location @{PackageName}_Fallback
+		{
+			proxy_pass http://{Upstream};
+			proxy_http_version 1.1;
+			proxy_set_header Host $host;
+			proxy_set_header Upgrade $http_upgrade; # allow websockets
+			proxy_set_header Connection $connection_upgrade;
+			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+		}
+
+		location /robots.txt {
+			return 200 "{AllowRobots}";
+		}
+	}
+)---"
+	}
+;
 
 ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 	server
@@ -551,97 +725,113 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				CStr Servers;
 				TCMap<CStr, CStr> VariablesToReplace;
 				{
-					for (auto &Package : mp_Options.m_Packages)
+					TCMap<CStr, CStr> SubPathServers;
+					for (int i = 0; i < 2; ++i)
 					{
-						if (!Package.f_IsServer())
-							continue;
+						bool bIsSubPackage = i == 0;
 
-						bool bIsFastCGI = Package.m_Type == CMeteorManagerOptions::EPackageType_FastCGI;
-						bool bIsStatic = Package.f_IsNpmStatic();
-
-						auto &UpstreamName = Upstreams[Package.f_GetName()];
-
-						CStr Server;
-						if (bIsStatic)
-							Server = g_pStaticServerTemplate;
-						else if (bIsFastCGI)
-							Server = g_pFastCGIServerTemplate;
-						else
-							Server = g_pServerTemplate;
-
-						if (bEnableSeparateStaticRoot)
+						for (auto &Package : mp_Options.m_Packages)
 						{
-							Server += g_pServerSeparateStaticRootTemplate;
-							Server = Server.f_Replace("{ServerNameStatic}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static));
-							Server = Server.f_Replace("{ServerNameStaticSource}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_StaticSource));
-						}
+							if (!Package.f_IsServer())
+								continue;
 
-						CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
+							if (bIsSubPackage && Package.m_SubPath.f_IsEmpty())
+								continue;
+							else if (!bIsSubPackage && !Package.m_SubPath.f_IsEmpty())
+								continue;
 
-						bool bIsMainServer = ServerName == mp_Domain;
+							bool bIsFastCGI = Package.m_Type == CMeteorManagerOptions::EPackageType_FastCGI;
+							bool bIsWebsocket = Package.m_Type == CMeteorManagerOptions::EPackageType_Websocket;
+							bool bIsStatic = Package.f_IsNpmStatic();
 
-						Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots && mp_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
-						Server = Server.f_Replace("{ServerName}", ServerName);
+							auto &UpstreamName = Upstreams[Package.f_GetName()];
 
-						if (bIsFastCGI)
-							Server = Server.f_Replace("{FastCGIFile}", FastCGIFile);
+							CStr Server;
+							if (bIsStatic)
+								Server = g_pStaticServerTemplate[i];
+							else if (bIsFastCGI)
+								Server = g_pFastCGIServerTemplate[i];
+							else if (bIsWebsocket)
+								Server = g_pWebsocketServerTemplate[i];
+							else
+								Server = g_pServerTemplate[i];
 
-						Server = Server.f_Replace("{PackageName}", Package.f_GetName());
-						Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
-						Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
-						if (bIsStatic)
-							Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()));
-						else if (bIsFastCGI)
-							Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()));
-						else
-							Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()));
-
-						if (bIsMainServer)
-						{
-							Server = Server.f_Replace("{ListenOptions}", "default_server ssl http2 backlog=1024");
-							Server = Server.f_Replace("{ListenOptionsIPV6}", "default_server ssl http2 ipv6only=on backlog=1024");
-						}
-						else
-						{
-							Server = Server.f_Replace("{ListenOptions}", "");
-							Server = Server.f_Replace("{ListenOptionsIPV6}", "");
-						}
-
-						VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
-						VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");
-
-						VariablesToRemove[("{{ServerNameExtra_{}}"_f << Package.f_GetName()).f_GetStr()];
-						VariablesToRemove[("{{ServerAccessCheck_{}}"_f << Package.f_GetName()).f_GetStr()];
-						VariablesToRemove[("{{ServerRedirect_{}}"_f << Package.f_GetName()).f_GetStr()];
-						VariablesToRemove[("{{ServerRootOptions_{}}"_f << Package.f_GetName()).f_GetStr()];
-
-						CStr StaticPackages;
-
-						if (bIsMainServer)
-						{
-							for (auto &Package : mp_Options.m_Packages)
+							if (!bIsSubPackage && bEnableSeparateStaticRoot && Package.m_Type == CMeteorManagerOptions::EPackageType_Meteor)
 							{
-								if (Package.f_IsDynamicServer() || Package.m_StaticPath.f_IsEmpty())
-									continue;
-
-								StaticPackages += "		location {}\n"_f << Package.m_StaticPath;
-								StaticPackages += "		{\n";
-								StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
-								if (Package.f_IsNpmStatic())
-									StaticPackages += "			gzip_static always;\n";
-								StaticPackages += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload;\" always;\n";
-								StaticPackages += "			add_header Cache-Control no-cache;\n";
-								StaticPackages += "			access_log logs/static_access_{}.log;\n"_f << Package.f_GetName();
-								StaticPackages += "		}\n";
+								Server += g_pServerSeparateStaticRootTemplate;
+								Server = Server.f_Replace("{ServerNameStatic}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static));
+								Server = Server.f_Replace("{ServerNameStaticSource}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_StaticSource));
 							}
-						}
 
-						Server = Server.f_Replace("{StaticPackages}", StaticPackages);
-						Server = Server.f_Replace("{PathRedirect}",  _Results.m_Redirects[Package.f_GetName()]);
+							CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 
-						if (bIsMainServer && mp_Options.m_bRedirectWWW)
-						{
-							Server += R"---(
+							bool bIsMainServer = ServerName == mp_Domain && Package.m_SubPath.f_IsEmpty();
+
+							Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots && mp_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
+							Server = Server.f_Replace("{ServerName}", ServerName);
+							Server = Server.f_Replace("{SubPath}", Package.m_SubPath);
+
+							if (bIsFastCGI)
+								Server = Server.f_Replace("{FastCGIFile}", FastCGIFile);
+
+							Server = Server.f_Replace("{PackageName}", Package.f_GetName());
+							Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
+							Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
+							if (bIsStatic)
+								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()));
+							else if (bIsFastCGI)
+								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()));
+							else if (!bIsWebsocket)
+								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()));
+
+							if (bIsMainServer)
+							{
+								Server = Server.f_Replace("{ListenOptions}", "default_server ssl http2 backlog=1024");
+								Server = Server.f_Replace("{ListenOptionsIPV6}", "default_server ssl http2 ipv6only=on backlog=1024");
+							}
+							else
+							{
+								Server = Server.f_Replace("{ListenOptions}", "");
+								Server = Server.f_Replace("{ListenOptionsIPV6}", "");
+							}
+
+							VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
+							VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");
+
+							VariablesToRemove[("{{ServerNameExtra_{}}"_f << Package.f_GetName()).f_GetStr()];
+							VariablesToRemove[("{{ServerAccessCheck_{}}"_f << Package.f_GetName()).f_GetStr()];
+							VariablesToRemove[("{{ServerRedirect_{}}"_f << Package.f_GetName()).f_GetStr()];
+							VariablesToRemove[("{{ServerRootOptions_{}}"_f << Package.f_GetName()).f_GetStr()];
+
+							CStr StaticPackages;
+
+							if (bIsMainServer)
+							{
+								for (auto &Package : mp_Options.m_Packages)
+								{
+									if (Package.f_IsDynamicServer() || Package.m_StaticPath.f_IsEmpty())
+										continue;
+
+									StaticPackages += "		location {}\n"_f << Package.m_StaticPath;
+									StaticPackages += "		{\n";
+									StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
+									if (Package.f_IsNpmStatic())
+										StaticPackages += "			gzip_static always;\n";
+									StaticPackages += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload;\" always;\n";
+									StaticPackages += "			add_header Cache-Control no-cache;\n";
+									StaticPackages += "			access_log logs/static_access_{}.log;\n"_f << Package.f_GetName();
+									StaticPackages += "		}\n";
+								}
+							}
+
+							Server = Server.f_Replace("{StaticPackages}", StaticPackages);
+							if (!bIsSubPackage)
+								Server = Server.f_Replace("{SubPackages}", SubPathServers[ServerName]);
+							Server = Server.f_Replace("{PathRedirect}",  _Results.m_Redirects[Package.f_GetName()]);
+
+							if (bIsMainServer && mp_Options.m_bRedirectWWW)
+							{
+								Server += R"---(
 	server
 	{
 		listen {SSLPort};
@@ -659,17 +849,24 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		return 302 https://{DomainName}{SSLPortRewrite}$request_uri;
 	}
 )---";
-						}
+							}
 
-						if (bIsMainServer)
-						{
-							Server += "\n";
-							Servers = Server + Servers;
-						}
-						else
-						{
-							Servers += "\n";
-							Servers += Server;
+							if (bIsMainServer)
+							{
+								Server += "\n";
+								Servers = Server + Servers;
+							}
+							else if (bIsSubPackage)
+							{
+								auto &ParentServer = SubPathServers[ServerName];
+								ParentServer += "\n";
+								ParentServer += Server;
+							}
+							else
+							{
+								Servers += "\n";
+								Servers += Server;
+							}
 						}
 					}
 					Servers += "{MeteorManagerServers}\n";

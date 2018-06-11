@@ -204,6 +204,7 @@ namespace NMib::NMeteor::NMeteorManager
 		{
 		case CMeteorManagerOptions::EPackageType_Meteor: AvailableTags["Meteor"]; break;
 		case CMeteorManagerOptions::EPackageType_FastCGI: AvailableTags["FastCGI"]; break;
+		case CMeteorManagerOptions::EPackageType_Websocket: AvailableTags["Websocket"]; break;
 		case CMeteorManagerOptions::EPackageType_Npm: AvailableTags["Npm"]; break;
 		case CMeteorManagerOptions::EPackageType_Custom: AvailableTags["Custom"]; break;
 		}
@@ -308,6 +309,17 @@ namespace NMib::NMeteor::NMeteorManager
 			LaunchExecutable = PackageOptions.m_CustomExecutable;
 			Arguments = PackageOptions.m_CustomParams;
 		}
+		else if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Websocket)
+		{
+			if (PackageOptions.m_CustomExecutable.f_IsEmpty())
+			{
+				if (_bInitialLaunch)
+					fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Missing executable for Websocket launch: {}", LaunchKey.m_PackageName))));
+				return;
+			}
+			LaunchExecutable = PackageOptions.m_CustomExecutable;
+			Arguments = PackageOptions.m_CustomParams;
+		}
 		else
 		{
 			if (_bInitialLaunch)
@@ -395,6 +407,11 @@ namespace NMib::NMeteor::NMeteorManager
 		{
 			LaunchHomePath = fp_GetDataPath("FastCGIHome");
 			LaunchUser = mp_FastCGIUser;
+		}
+		else if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Websocket)
+		{
+			LaunchHomePath = fp_GetDataPath("WebsocketHome");
+			LaunchUser = mp_WebsocketUser;
 		}
 		else
 		{

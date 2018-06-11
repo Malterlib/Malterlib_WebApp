@@ -121,8 +121,15 @@ namespace NMib::NMeteor::NMeteorManager
 
 		for (auto &Package : mp_Options.m_Packages)
 		{
-			if (Package.m_Type != CMeteorManagerOptions::EPackageType_FastCGI)
+			if
+				(
+				 	Package.m_Type != CMeteorManagerOptions::EPackageType_FastCGI
+				 	&& Package.m_Type != CMeteorManagerOptions::EPackageType_Websocket
+				 	&& !Package.f_IsNpmStatic()
+				)
+			{
 				bNeedNode = true;
+			}
 		}
 
 		TCContinuation<void> Continuation;
@@ -300,7 +307,7 @@ namespace NMib::NMeteor::NMeteorManager
 				, mp_pUniqueUserGroup->f_GetGroup("mib_pkg_{}_{}"_f << mp_Options.m_ManagerName << _PackageName)
 			}
 		;
-		auto DefaultUser = (_Type == CMeteorManagerOptions::EPackageType_FastCGI) ? mp_FastCGIUser : mp_NodeUser;
+		auto DefaultUser = (_Type == CMeteorManagerOptions::EPackageType_FastCGI) ? mp_FastCGIUser : (_Type == CMeteorManagerOptions::EPackageType_Websocket) ? mp_WebsocketUser : mp_NodeUser;
 		bool bSeparateUser = PackageOptions.m_bSeparateUser;
 
 		g_Dispatch(*mp_FileActors) >
@@ -338,7 +345,14 @@ namespace NMib::NMeteor::NMeteorManager
 #endif
 
 					auto User = DefaultUser;
-					CStr UserHomePath = ProgramDirectory / (_Type == CMeteorManagerOptions::EPackageType_FastCGI ? "FastCGIHome" : "node");
+					CStr UserHomePath = ProgramDirectory
+						/
+						(
+						 	_Type == CMeteorManagerOptions::EPackageType_FastCGI
+						 	? "FastCGIHome"
+						 	: (_Type == CMeteorManagerOptions::EPackageType_Websocket ? "WebsocketHome" : "node")
+						)
+					;
 
 					if (bSeparateUser)
 					{
@@ -389,7 +403,7 @@ namespace NMib::NMeteor::NMeteorManager
 					{
 						if (CFile::fs_FileExists(MeteorPackageChecksumFileName))
 							CFile::fs_DeleteFile(MeteorPackageChecksumFileName); // Make sure to retry the next time if failure below
-						if (CFile::fs_FileExists(PackageDirectory))
+						if (!bOwnPackageDirectory && CFile::fs_FileExists(PackageDirectory))
 							CFile::fs_DeleteDirectoryRecursive(PackageDirectory, true);
 
 						ThisActor(&CMeteorManagerActor::f_ExtractTar, MeteorPackageFileName, ProgramDirectory) > InstallContinuation / [=]
@@ -581,6 +595,7 @@ namespace NMib::NMeteor::NMeteorManager
 		fp_SetupPrerequisites_OSSetup()
 			+ fp_SetupPrerequisites_NodeExtract()
 			+ fp_SetupPrerequisites_FastCGI()
+			+ fp_SetupPrerequisites_Websocket()
 			> Continuation / [Continuation, this]
 			{
 				fp_SetupPrerequisites_Packages() > Continuation / [Continuation, this]

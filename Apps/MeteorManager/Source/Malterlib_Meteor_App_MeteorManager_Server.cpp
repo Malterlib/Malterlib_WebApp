@@ -15,6 +15,7 @@ namespace NMib::NMeteor::NMeteorManager
 		, mp_pUniqueUserGroup{fg_Construct("/M/App/{}"_f << _Options.m_FullManagerName.f_Replace("_", "-"))}
 		, mp_NodeUser{mp_pUniqueUserGroup->f_GetUser("mib_node_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_node_{}"_f << _Options.m_ManagerName)}
 		, mp_FastCGIUser{mp_pUniqueUserGroup->f_GetUser("mib_fcgi_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_fcgi_{}"_f << _Options.m_ManagerName)}
+		, mp_WebsocketUser{mp_pUniqueUserGroup->f_GetUser("mib_ws_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_ws_{}"_f << _Options.m_ManagerName)}
 		, mp_NginxUser{mp_pUniqueUserGroup->f_GetUser("mib_nginx_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_nginx_{}"_f << _Options.m_ManagerName)}
 		, mp_pCanDestroyTracker(fg_Construct())
 		, mp_Options(_Options)
@@ -326,6 +327,8 @@ namespace NMib::NMeteor::NMeteorManager
 				Package.m_Type = EPackageType_Meteor;
 			else if (PackageType == "FastCGI")
 				Package.m_Type = EPackageType_FastCGI;
+			else if (PackageType == "Websocket")
+				Package.m_Type = EPackageType_Websocket;
 			else if (PackageType == "Npm")
 				Package.m_Type = EPackageType_Npm;
 			else if (PackageType == "Custom")
@@ -356,6 +359,9 @@ namespace NMib::NMeteor::NMeteorManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("DomainPrefix"))
 				Package.m_DomainPrefix = pValue->f_String();
+
+			if (auto *pValue = PackageSettings.f_GetMember("SubPath"))
+				Package.m_SubPath = pValue->f_String();
 
 			if (auto *pValue = PackageSettings.f_GetMember("RedirectsFile"))
 				Package.m_RedirectsFile = pValue->f_String();
@@ -442,10 +448,22 @@ namespace NMib::NMeteor::NMeteorManager
 				Hostname = m_DefaultDomain;
 			else
 				Hostname = fg_Format("{}.{}", Package.m_DomainPrefix, m_DefaultDomain);
-			
+
+			if (Package.m_SubPath.f_IsEmpty())
+				Hostname += "/{}"_f << Package.m_SubPath;
+
 			auto &PackageName = *Hostnames(Hostname, Package.f_GetName());
 			if (PackageName != Package.f_GetName())
-				DMibError(fg_Format("Package '{0}' and '{1}' resolves to the same hostname '{2}'. Set DomainPrefix_{0} or DomainPrefix_{1}", PackageName, Package.f_GetName(), Hostname));
+			{
+				DMibError
+					(
+						"Package '{0}' and '{1}' resolves to the same hostname '{2}'. Set DomainPrefix_{0}, DomainPrefix_{1}, SubPath_{0} or SubPath_{1}"_f
+					 	<< PackageName
+					 	<< Package.f_GetName()
+					 	<< Hostname
+					)
+				;
+			}
 		}
 		
 		if (auto *pValue = Settings.f_GetMember("LoopbackPrefix"))

@@ -30,6 +30,7 @@ namespace NMib::NMeteor::NMeteorManager
 			, EPackageType_Npm
 			, EPackageType_Custom
 			, EPackageType_FastCGI
+			, EPackageType_Websocket
 		};
 		
 		struct CEnvironmentVariable
@@ -66,7 +67,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 			bool f_IsDynamicServer() const
 			{
-				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI;
+				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket;
 			}
 
 			bool f_IsServer() const
@@ -80,6 +81,7 @@ namespace NMib::NMeteor::NMeteorManager
 			TCVector<CStr> m_CustomParams;
 			CUser m_User{"", ""};
 			CStr m_DomainPrefix;
+			CStr m_SubPath;
 			CStr m_RedirectsFile;
 			CStr m_StickyCookie;
 			CStr m_StickyHeader;
@@ -286,6 +288,7 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		TCContinuation<void> fp_SetupPrerequisites_Servers();
 		TCContinuation<void> fp_SetupPrerequisites_FastCGI();
+		TCContinuation<void> fp_SetupPrerequisites_Websocket();
 		TCContinuation<void> fp_SetupPrerequisites_Nginx();
 		TCContinuation<void> fp_SetupPrerequisites_Customization();
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
@@ -342,6 +345,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		CUser mp_NodeUser;
 		CUser mp_FastCGIUser;
+		CUser mp_WebsocketUser;
 		CUser mp_NginxUser;
 		CVersion mp_Version_Node{0, 10, 33};
 		TCVector<CStr> mp_VersionHistory;
