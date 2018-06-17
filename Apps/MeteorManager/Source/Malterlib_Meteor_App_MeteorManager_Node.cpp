@@ -15,10 +15,17 @@ namespace NMib::NMeteor::NMeteorManager
 	
 	CStr CMeteorManagerActor::fp_GetNodeExecutable(CStr const &_Executable)
 	{
+#ifdef DPlatformFamily_Windows
+		if (mp_Options.m_bUseInternalNode)
+			return CFile::fs_GetProgramDirectory() + "/node_dist/node.exe";
+		else
+			return "node.exe";
+#else
 		if (mp_Options.m_bUseInternalNode)
 			return CFile::fs_GetProgramDirectory() + "/node_dist/bin/node";
 		else
 			return "node";
+#endif
 	}
 	
 	CStr CMeteorManagerActor::fp_GetPackageHostname(CStr const &_PackageName, EHostnamePrefix _Prefix) const
@@ -273,16 +280,22 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Meteor)
 		{
+#ifdef DPlatformFamily_Windows
+			LaunchExecutable = ProgramDirectory + "/node_dist/node.exe";
+#else
 			LaunchExecutable = ProgramDirectory + "/node_dist/bin/node";
-			
+#endif
 			fp_SetupNodeArguments(Arguments, _AppLaunch, PackageOptions);
 			
 			Arguments.f_Insert(fg_Format("{}/{}/main.js", ProgramDirectory, LaunchKey.m_PackageName));
 		}
 		else if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Npm)
 		{
+#ifdef DPlatformFamily_Windows
+			LaunchExecutable = ProgramDirectory + "/node_dist/node.exe";
+#else
 			LaunchExecutable = ProgramDirectory + "/node_dist/bin/node";
-
+#endif
 			fp_SetupNodeArguments(Arguments, _AppLaunch, PackageOptions);
 			
 			Arguments.f_Insert(fg_Format("{}/{}/bin/main.js", ProgramDirectory, LaunchKey.m_PackageName));
@@ -295,7 +308,7 @@ namespace NMib::NMeteor::NMeteorManager
 					fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Missing executable for custom launch: {}", LaunchKey.m_PackageName))));
 				return;
 			}
-			LaunchExecutable = PackageOptions.m_CustomExecutable;
+			LaunchExecutable = ProgramDirectory / LaunchKey.m_PackageName / PackageOptions.m_CustomExecutable;
 			Arguments = PackageOptions.m_CustomParams;
 		}
 		else if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_FastCGI)
@@ -306,7 +319,7 @@ namespace NMib::NMeteor::NMeteorManager
 					fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Missing executable for FastCGI launch: {}", LaunchKey.m_PackageName))));
 				return;
 			}
-			LaunchExecutable = PackageOptions.m_CustomExecutable;
+			LaunchExecutable = ProgramDirectory / LaunchKey.m_PackageName / PackageOptions.m_CustomExecutable;
 			Arguments = PackageOptions.m_CustomParams;
 		}
 		else if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Websocket)
@@ -317,7 +330,7 @@ namespace NMib::NMeteor::NMeteorManager
 					fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Missing executable for Websocket launch: {}", LaunchKey.m_PackageName))));
 				return;
 			}
-			LaunchExecutable = PackageOptions.m_CustomExecutable;
+			LaunchExecutable = ProgramDirectory / LaunchKey.m_PackageName / PackageOptions.m_CustomExecutable;
 			Arguments = PackageOptions.m_CustomParams;
 		}
 		else
@@ -427,7 +440,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		Params.m_RunAsUser = LaunchUser.m_UserName;
 #ifdef DPlatformFamily_Windows
-		Params.m_RunAsUserPassword = fp_GetUserPassword(LaunchUser.m_Name);
+		Params.m_RunAsUserPassword = fp_GetUserPassword(LaunchUser.m_UserName);
 #endif
 		Params.m_RunAsGroup = LaunchUser.m_GroupName;
 		{

@@ -604,7 +604,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 #ifdef DPlatformFamily_Windows
 				if (!_Results.m_UserPassword.f_IsEmpty())
 				{
-					mp_AppState.m_StateDatabase.m_Data["Users"][mp_NginxUser.m_Name]["Password"] = _Results.m_UserPassword;
+					mp_AppState.m_StateDatabase.m_Data["Users"][mp_NginxUser.m_UserName]["Password"] = _Results.m_UserPassword;
 					mp_AppState.f_SaveStateDatabase() > Continuation;
 					return;
 				}

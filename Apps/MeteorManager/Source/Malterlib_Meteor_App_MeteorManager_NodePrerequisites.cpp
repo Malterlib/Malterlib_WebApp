@@ -255,7 +255,7 @@ namespace NMib::NMeteor::NMeteorManager
 #ifdef DPlatformFamily_Windows
 				if (!_NodeInfo.m_UserPassword.f_IsEmpty())
 				{
-					mp_AppState.m_StateDatabase.m_Data["Users"][_NodeInfo.m_User.m_Name]["Password"] = _NodeInfo.m_UserPassword;
+					mp_AppState.m_StateDatabase.m_Data["Users"][_NodeInfo.m_User.m_UserName]["Password"] = _NodeInfo.m_UserPassword;
 					mp_AppState.f_SaveStateDatabase() > Continuation;
 					return;
 				}
@@ -564,7 +564,7 @@ namespace NMib::NMeteor::NMeteorManager
 #ifdef DPlatformFamily_Windows
 				if (_PackageInfo.m_bPasswordChanged && !_PackageInfo.m_UserPassword.f_IsEmpty())
 				{
-					mp_AppState.m_StateDatabase.m_Data["Users"][_PackageInfo.m_User.m_Name]["Password"] = _PackageInfo.m_UserPassword;
+					mp_AppState.m_StateDatabase.m_Data["Users"][_PackageInfo.m_User.m_UserName]["Password"] = _PackageInfo.m_UserPassword;
 					mp_AppState.f_SaveStateDatabase() > Continuation;
 					return;
 				}
