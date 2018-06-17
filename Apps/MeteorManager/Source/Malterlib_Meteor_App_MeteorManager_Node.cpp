@@ -403,7 +403,7 @@ namespace NMib::NMeteor::NMeteorManager
 							AppLaunch.m_Launch.f_Clear();
 							AppLaunch.m_LaunchSubscription.f_Clear();
 							if (_bInitialLaunch)
-								fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Mongod launch failed: {}", _Change.f_Get<EProcessLaunchState_LaunchFailed>()))));
+								fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Launch failed: {}", _Change.f_Get<EProcessLaunchState_LaunchFailed>()))));
 						}
 						break;
 					}

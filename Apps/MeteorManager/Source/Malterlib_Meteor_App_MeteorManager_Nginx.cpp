@@ -913,8 +913,12 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				ConfigContents = ConfigContents.f_Replace("{CertificateKey}", _Results.m_CertificateKeyFile);
 				ConfigContents = ConfigContents.f_Replace("{PidFile}", PidFile);
 				ConfigContents = ConfigContents.f_Replace("{WorkerMaxOpenedFiles}", CStr::fs_ToStr(fs_GetNginxWorkerFileLimits()));
-				ConfigContents = ConfigContents.f_Replace("{NgnixUser}", mp_NginxUser.m_UserName);
-				ConfigContents = ConfigContents.f_Replace("{NgnixGroup}", mp_NginxUser.m_GroupName);
+				
+#ifdef DPlatformFamily_Windows
+				ConfigContents = ConfigContents.f_Replace("{NgnixUserLine}", "");
+#else
+				ConfigContents = ConfigContents.f_Replace("{NgnixUserLine}", ("user {} {};"_f << mp_NginxUser.m_UserName << mp_NginxUser.m_GroupName).f_GetStr());
+#endif
 
 				{
 					if (_Results.m_bHasDHParamFile)
@@ -1060,6 +1064,13 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 #ifdef DPlatformFamily_Windows
 		Params.m_Environment["TMP"] = NginxDirectory + "/.tmp";
 		Params.m_Environment["TEMP"] = NginxDirectory + "/.tmp";
+#endif
+
+#ifdef DPlatformFamily_Windows
+		// This causes access denied when trying to create memory mapping in nginx process
+		//Params.m_RunAsUser = mp_NginxUser.m_UserName;
+		//Params.m_RunAsUserPassword = fp_GetUserPassword(mp_NginxUser.m_UserName);
+		//Params.m_RunAsGroup = mp_NginxUser.m_GroupName;
 #endif
 
 		mp_NginxLaunch = fg_ConstructActor<CProcessLaunchActor>();
