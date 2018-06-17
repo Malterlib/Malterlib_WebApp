@@ -353,7 +353,10 @@ namespace NMib::NMeteor::NMeteorManager
 
 		bool mp_bStopped = false;
 		bool mp_bForceAppsReinstall = false;
-		
+		bool mp_bNeedNode = false;
+		bool mp_bNeedFCGI = false;
+		bool mp_bNeedWebsocket = false;
+
 		TCLinkedList<CToolLaunch> mp_ToolLaunches;
 		
 		TCMap<CAppLaunchKey, CAppLaunch> mp_AppLaunches;

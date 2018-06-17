@@ -317,7 +317,11 @@ Property
 		}
 		MalterlibExeFSExtraFiles "@(NodeBinariesPath)/*;@(MalterlibExeFSExtraFiles)"
 		{
-			!NodeBinariesPath ""
+			&
+			{
+				!NodeBinariesPath ""
+				!BuildNeedNodeBinaries ""
+			}
 		}
 		
 		MalterlibMeteorNodePackagePath "@(NodeBinariesPath->FindFilesIn('*.tar.gz'))"
@@ -885,6 +889,20 @@ Property
 		BuildPackageNames_Custom "@(Builtin.Function->ExplodeList('@(CustomBuilds)', ';', 'BuildPackageNames_Template'))"
 		
 		BuildPackageNames "@(BuildPackageNames_Meteor);@(BuildPackageNames_FastCGI);@(BuildPackageNames_Websocket);@(BuildPackageNames_Npm);@(BuildPackageNames_Custom)"
+
+		BuildNeedNodeBinaries_NpmBuildType "@(NpmBuildType_@(Expand0))"
+
+		BuildNeedNodeBinaries_Template_Expand "true"
+		{
+			&
+			{
+				!BuildNeedNodeBinaries_NpmBuildType "Compile"
+				!BuildNeedNodeBinaries_NpmBuildType "Build"
+			}
+		}
+		BuildNeedNodeBinaries_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildNeedNodeBinaries_Template_Expand'))"
+
+		BuildNeedNodeBinaries "@(BuildPackageNames_Meteor)@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildNeedNodeBinaries_Template'))"
 	}
 	
 	%Dependency Lib_Malterlib_MeteorManager

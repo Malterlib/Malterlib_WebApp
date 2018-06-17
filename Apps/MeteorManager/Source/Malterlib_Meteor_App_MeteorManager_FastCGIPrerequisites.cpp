@@ -7,6 +7,9 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_FastCGI()
 	{
+		if (!mp_bNeedFCGI)
+			return fg_Explicit();
+
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr FastCGIDirectory = fp_GetDataPath("FastCGIHome");
 		
@@ -43,8 +46,6 @@ namespace NMib::NMeteor::NMeteorManager
 #else
 					fsp_SetupPrerequisites_ServerUser(Info.m_User, FastCGIDirectory, MongoSSLDirectory);
 #endif
-					
-
 					Continuation.f_SetResult(Info);
 					return Continuation;
 				}

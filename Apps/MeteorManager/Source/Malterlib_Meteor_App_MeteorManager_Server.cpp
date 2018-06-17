@@ -77,7 +77,14 @@ namespace NMib::NMeteor::NMeteorManager
 						fp_SetupPrerequisites_Nginx() > Continuation / [this, Continuation]
 						{
 							DLog(Info, "Done setting up nginx prerequisites, checking node version");
-							fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node) > Continuation / [this, Continuation]
+
+							TCContinuation<void> NodeVersionCheckContinuation;
+							if (mp_bNeedNode)
+								NodeVersionCheckContinuation = fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node);
+							else
+								NodeVersionCheckContinuation.f_SetResult();
+
+							NodeVersionCheckContinuation > Continuation / [this, Continuation]
 							{
 								DLog(Info, "Done checking node version, setting up mongo");
 								fp_SetupMongo() > Continuation / [this, Continuation]

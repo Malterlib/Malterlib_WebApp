@@ -87,6 +87,13 @@ namespace NMib::NMeteor::NMeteorManager
 			if ((Package.m_Type == CMeteorManagerOptions::EPackageType_Custom && Package.m_CustomExecutable.f_IsEmpty()) || Package.f_IsNpmStatic())
 				continue;
 
+			if (Package.m_Type == CMeteorManagerOptions::EPackageType_Websocket)
+				mp_bNeedWebsocket = true;
+			else if (Package.m_Type == CMeteorManagerOptions::EPackageType_FastCGI)
+				mp_bNeedFCGI = true;
+			else
+				mp_bNeedNode = true;
+
 			CAppLaunchKey LaunchKey;
 			LaunchKey.m_PackageName = Package.f_GetName();
 			for (mint i = 0; i < Package.m_Concurrency; ++i)

@@ -7,6 +7,9 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Websocket()
 	{
+		if (!mp_bNeedWebsocket)
+			return fg_Explicit();
+
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr WebsocketDirectory = fp_GetDataPath("WebsocketHome");
 		
@@ -36,7 +39,6 @@ namespace NMib::NMeteor::NMeteorManager
 #else
 					fsp_SetupPrerequisites_ServerUser(Info.m_User, WebsocketDirectory, MongoSSLDirectory);
 #endif
-					
 					Continuation.f_SetResult(Info);
 					return Continuation;
 				}

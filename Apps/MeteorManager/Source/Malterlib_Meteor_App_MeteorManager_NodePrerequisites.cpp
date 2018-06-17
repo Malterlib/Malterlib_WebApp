@@ -105,6 +105,9 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_NodeExtract()
 	{
+		if (!mp_bNeedNode)
+			return fg_Explicit();
+
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr NodeDirectory = fp_GetDataPath("node");
 		
