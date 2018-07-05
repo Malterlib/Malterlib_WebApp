@@ -100,6 +100,7 @@ exports.handler = (event, context, callback) => {
 			CStr ContentSecurityPolicy = "default-src 'none' ;";
 			ContentSecurityPolicy += " img-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ImgSrc;
 			ContentSecurityPolicy += " font-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FontSrc;
+			ContentSecurityPolicy += " media-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_MediaSrc;
 			ContentSecurityPolicy += " script-src 'self' *.{0} {0} {1};"_f << mp_Domain << mp_Options.m_ContentSecurity_ScriptSrc;
 			ContentSecurityPolicy += " style-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_StyleSrc;
 			ContentSecurityPolicy += " frame-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FrameSrc;
@@ -257,6 +258,7 @@ exports.handler = (event, context, callback) => {
 				Stream << bAllowRobots;
 				Stream << CloudFrontDistribution;
 				Stream << Options.m_ContentSecurity_ImgSrc;
+				Stream << Options.m_ContentSecurity_MediaSrc;
 				Stream << Options.m_ContentSecurity_FontSrc;
 				Stream << Domain;
 				Stream << Options.m_ContentSecurity_ScriptSrc;

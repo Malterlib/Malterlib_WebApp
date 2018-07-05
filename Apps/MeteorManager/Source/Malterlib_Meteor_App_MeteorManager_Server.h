@@ -123,6 +123,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		CStr m_ContentSecurity_ScriptSrc;
 		CStr m_ContentSecurity_ImgSrc;
+		CStr m_ContentSecurity_MediaSrc;
 		CStr m_ContentSecurity_FontSrc;
 		CStr m_ContentSecurity_StyleSrc;
 		CStr m_ContentSecurity_FrameSrc;

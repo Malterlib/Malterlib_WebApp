@@ -703,6 +703,12 @@ Property
 				}
 
 				Contents	"@(Contents)"\
+							"		\"MediaSrc\": \"@(ContentSecurity_MediaSrc)\",\n"
+				{
+					!ContentSecurity_MediaSrc ""
+				}
+
+				Contents	"@(Contents)"\
 							"		\"FontSrc\": \"@(ContentSecurity_FontSrc)\",\n"
 				{
 					!ContentSecurity_FontSrc ""

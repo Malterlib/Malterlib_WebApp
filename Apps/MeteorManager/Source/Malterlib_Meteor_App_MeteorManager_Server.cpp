@@ -433,6 +433,8 @@ namespace NMib::NMeteor::NMeteorManager
 				m_ContentSecurity_ScriptSrc = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("ImgSrc"))
 				m_ContentSecurity_ImgSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("MediaSrc"))
+				m_ContentSecurity_MediaSrc = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("FontSrc"))
 				m_ContentSecurity_FontSrc = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("StyleSrc"))
