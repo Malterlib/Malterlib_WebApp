@@ -330,6 +330,7 @@ namespace NMib::NMeteor::NMeteorManager
 				, bSeparateUser
 				, bOwnPackageDirectory = PackageOptions.m_bOwnPackageDirectory
 			 	, bIsStatic = PackageOptions.f_IsNpmStatic()
+				, ExcludeGzipPatterns = PackageOptions.m_ExcludeGzipPatterns
 				, bForceAppsReinstall = mp_bForceAppsReinstall
 			]
 			() mutable -> TCContinuation<CPackageInfo>
@@ -426,7 +427,24 @@ namespace NMib::NMeteor::NMeteorManager
 
 										TCVector<CStr> Files;
 										if (bIsStatic)
-											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*", EFileAttrib_File, true));
+										{
+											for (auto &File : CFile::fs_FindFiles(StaticRoot + "/*", EFileAttrib_File, true))
+											{
+												CStr RelativePath = CFile::fs_MakePathRelative(File, StaticRoot);
+												bool bExcluded = false;
+												for (auto &Pattern : ExcludeGzipPatterns)
+												{
+													if (NStr::fg_StrMatchWildcard(RelativePath.f_GetStr(), Pattern.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
+													{
+														bExcluded = true;
+														break;
+													}
+												}
+												if (bExcluded)
+													continue;
+												Files.f_Insert(File);
+											}
+										}
 										else if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
 										{
 											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.css", EFileAttrib_File));

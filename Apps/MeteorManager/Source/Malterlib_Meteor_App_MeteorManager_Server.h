@@ -86,6 +86,7 @@ namespace NMib::NMeteor::NMeteorManager
 			CStr m_StickyCookie;
 			CStr m_StickyHeader;
 			CStr m_StaticPath;
+			TCVector<CStr> m_ExcludeGzipPatterns;
 			fp64 m_MemoryPerNode = 1.5;
 			mint m_Concurrency = 1;
 			EPackageType m_Type = EPackageType_Meteor;

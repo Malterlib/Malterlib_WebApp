@@ -400,6 +400,12 @@ namespace NMib::NMeteor::NMeteorManager
 			if (auto *pValue = PackageSettings.f_GetMember("OwnPackageDirectory"))
 				Package.m_bOwnPackageDirectory = pValue->f_Boolean();
 
+			if (auto *pValue = PackageSettings.f_GetMember("ExcludeGzipPatterns"))
+			{
+				for (auto &Dependency : pValue->f_Array())
+					Package.m_ExcludeGzipPatterns.f_Insert(Dependency.f_String());
+			}
+
 			if (auto *pValue = PackageSettings.f_GetMember("StaticPath"))
 				Package.m_StaticPath = pValue->f_String();
 

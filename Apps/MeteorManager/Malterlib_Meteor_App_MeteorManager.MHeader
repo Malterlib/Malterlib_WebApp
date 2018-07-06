@@ -531,6 +531,17 @@ Property
 					!Empty "@(StartDependencies_@(Explodee))"
 				}
 
+				ExcludeGzipPatterns_Template	"\"@(Explodee)\", "
+				{
+					!Explodee ""
+				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"ExcludeGzipPatterns\": [@(Builtin.Function->ExplodeList('@(ExcludeGzipPatterns_@(Explodee))', ';', 'ExcludeGzipPatterns_Template'))],\n"
+				{
+					!Empty "@(ExcludeGzipPatterns_@(Explodee))"
+				}
+
 				PackageSettings	"@(PackageSettings)"\
 								"			\"DomainPrefix\": \"@(DomainPrefix_@(Explodee))\",\n"
 				{
