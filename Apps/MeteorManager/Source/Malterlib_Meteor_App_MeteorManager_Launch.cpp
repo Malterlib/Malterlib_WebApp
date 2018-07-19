@@ -33,6 +33,48 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCContinuation<CStr> CMeteorManagerActor::f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir)
 	{
+#ifdef DPlatformFamily_Windows
+		if (CSystem::ms_PlatformVersion >= 10'0'017063)
+		{
+			// Tar ships with Windows
+			return f_LaunchTool
+				(
+					"tar"
+					, _DestinationDir
+					, fg_CreateVector<CStr>
+					(
+						"--no-same-owner"
+						, "-xf"
+						, _TarFile
+					)
+					, CStr{"ExtractArchive"}
+					, ELogVerbosity_Errors
+					, {}
+					, true
+				)
+			;
+		}
+		else
+		{
+			return f_LaunchTool
+				(
+					"tar"
+					, _DestinationDir
+					, fg_CreateVector<CStr>
+					(
+						"--no-same-owner"
+						, "--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
+						, "-xf"
+						, NFile::NPlatform::fg_ConvertToMinGWPath(_TarFile)
+					)
+					, CStr{"ExtractArchive"}
+					, ELogVerbosity_Errors
+					, {}
+					, true
+				)
+			;
+		}
+#else
 		return f_LaunchTool
 			(
 				"tar"
@@ -44,11 +86,7 @@ namespace NMib::NMeteor::NMeteorManager
 					, "--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
 #endif
 					, "-xf"
-#ifdef DPlatformFamily_Windows
-					, NFile::NPlatform::fg_ConvertToMinGWPath(_TarFile)
-#else
 					, _TarFile
-#endif
 				)
 				, CStr{"ExtractArchive"}
 				, ELogVerbosity_Errors
@@ -56,6 +94,7 @@ namespace NMib::NMeteor::NMeteorManager
 				, true
 			)
 		;
+#endif
 	}
 
 	TCContinuation<CStr> CMeteorManagerActor::f_LaunchTool

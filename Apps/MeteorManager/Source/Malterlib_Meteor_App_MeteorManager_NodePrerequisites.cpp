@@ -278,8 +278,10 @@ namespace NMib::NMeteor::NMeteorManager
 			fp_SetupPrerequisites_Package(Package.f_GetName(), Package.m_Type) > Results.f_AddResult();
 	
 		TCContinuation<void> Continuation;
-		Results.f_GetResults() > Continuation / [Continuation]
+		Results.f_GetResults() > Continuation / [Continuation](TCVector<TCAsyncResult<void>> &&_Results)
 			{
+				if (!fg_CombineResults(Continuation, fg_Move(_Results)))
+					return;
 				Continuation.f_SetResult();
 			}
 		;
@@ -520,19 +522,19 @@ namespace NMib::NMeteor::NMeteorManager
 											return;
 
 										// Make package directory read only for node process
-										DMibLogCategoryStr(_PackageName);
-										DLog
-											(
-												Info
-												, "Setting owner on package directory: {} ({}) - {} ({})"
-												, NSys::fg_UserManagement_GetProcessRealUserName()
-												, NSys::fg_UserManagement_GetProcessRealUser()
-												, NSys::fg_UserManagement_GetProcessRealGroupName()
-												, NSys::fg_UserManagement_GetProcessRealGroup()
-											)
-										;
 										try
 										{
+											DMibLogCategoryStr(_PackageName);
+											DLog
+												(
+													Info
+													, "Setting owner on package directory: {} ({}) - {} ({})"
+													, NSys::fg_UserManagement_GetProcessRealUserName()
+													, NSys::fg_UserManagement_GetProcessRealUser()
+													, NSys::fg_UserManagement_GetProcessRealGroupName()
+													, NSys::fg_UserManagement_GetProcessRealGroup()
+												)
+											;
 											CStr UserName;
 											if (bOwnPackageDirectory)
 												CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, User.m_UserName, User.m_GroupName);
@@ -548,6 +550,8 @@ namespace NMib::NMeteor::NMeteorManager
 											}
 
 											CFile::fs_WriteStringToFile(MeteorPackageChecksumFileName, NewChecksum, false);
+
+											InstallContinuation.f_SetResult();
 										}
 										catch (NException::CException const &)
 										{
