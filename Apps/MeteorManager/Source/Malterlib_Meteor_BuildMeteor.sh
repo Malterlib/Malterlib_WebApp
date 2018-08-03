@@ -13,6 +13,7 @@ MeteorDir="$MeteorBuildDirectory"
 SharedPackagesDir="$MalterlibMeteorSharedPackages"
 PlatformFamily="$PlatformFamily"
 MeteorGitCheckout="$MalterlibMeteorGitCheckout"
+MeteorCheckedOutPath="$MalterlibMeteorCheckedOutPath"
 MeteorDebugPackage="$MalterlibMeteorDebugBundle"
 NodePackage="$MalterlibMeteorNodePackagePath"
 
@@ -43,7 +44,9 @@ if [ -e "$OutputBundleTar" ] && [ -e "$DependencyFile" ]; then
 	exit 0
 fi
 
-if [ -n "$MeteorGitCheckout" ]; then
+if [ -n "$MeteorCheckedOutPath" ]; then
+	PATH="$MeteorCheckedOutPath:$PATH"
+elif [ -n "$MeteorGitCheckout" ]; then
 	echo Using Meteor from git checkout
 	if [ ! -e ./.latestmeteor ]; then
 		git clone https://github.com/meteor/meteor ./.latestmeteor
