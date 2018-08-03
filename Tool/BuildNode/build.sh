@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+
+set -e
+
+OutputDir="$1"
+IntermediateDir="$2"
+
+if [[ "$OutputDir" == "" ]]; then
+	echo "No output dir specified"
+	exit 1
+fi
+
+if [[ "$IntermediateDir" == "" ]]; then
+	IntermediateDir="/CompiledFiles/BuildNode"
+	rm -rf "$IntermediateDir"
+fi
+
+SysName=$(uname -s)
+ProcessorArch=$(uname -m)
+
+if [[ $SysName ==  Darwin* ]] ; then
+	NodePlatform=darwin
+	OutputPlatform=OSX
+	NumCPUs=`sysctl -n hw.ncpu`
+	BuildPlatform=OSX10.7
+	StripCommand="strip -u -r"
+elif [[ $SysName ==  Linux* ]] ; then
+	NodePlatform=linux
+	OutputPlatform=Linux/Ubuntu1604
+	NumCPUs=`grep -c "processor" /proc/cpuinfo`
+	BuildPlatform=Linux2.6
+	StripCommand="strip --strip-unneeded"
+else
+	echo "Couldn't detect system"
+	exit 1
+fi
+
+if [[ $ProcessorArch == i*86 ]] ; then
+	BuildArch=x86
+elif [[ $ProcessorArch == x86_64 ]] ; then
+	BuildArch=x64
+else
+	echo $ProcessorArch is not a recognized architecture
+	exit 1
+fi
+
+function AbsolutePath() 
+{
+	pushd "$(dirname "$1")" > /dev/null
+	printf "%s/%s\n" "$(pwd)" "$(basename "$1")"
+	popd > /dev/null
+}
+
+MalterlibRoot=`AbsolutePath "../../../.."`
+OpenSSLBuildDir="$IntermediateDir/boringssl"
+
+OutputBinDir="$OutputDir/$OutputPlatform/node"
+mkdir -p "$OutputBinDir"
+
+function BuildBoringSSL()
+{
+	#rm -rf "$OpenSSLBuildDir"
+	mkdir -p "$OpenSSLBuildDir"
+	pushd "$OpenSSLBuildDir" > /dev/null
+
+	export MACOSX_DEPLOYMENT_TARGET=10.7
+	cmake -GNinja "$MalterlibRoot/External/boringssl" -DCMAKE_BUILD_TYPE=Release
+	ninja
+	#ninja -C "$OpenSSLBuildDir" run_tests
+
+	popd > /dev/null
+
+	mkdir -p "$OpenSSLBuildDir/bin"
+	cp "$OpenSSLBuildDir/crypto/libcrypto.a" "$OpenSSLBuildDir/bin"
+	cp "$OpenSSLBuildDir/ssl/libssl.a" "$OpenSSLBuildDir/bin"
+	cp "$OpenSSLBuildDir/decrepit/libdecrepit.a" "$OpenSSLBuildDir/bin"
+}
+
+function BuildNode()
+{
+	pushd "$MalterlibRoot/External/node" > /dev/null
+
+	./configure --prefix "$IntermediateDir/node_bin" --shared-openssl --shared-openssl-includes "$MalterlibRoot/External/boringssl/include" --shared-openssl-libname crypto,ssl,decrepit --shared-openssl-libpath "$OpenSSLBuildDir/bin"
+
+	NumCPUs=`sysctl -n hw.ncpu`
+
+	make "-j${NumCPUs}"
+	make install
+	pushd "$IntermediateDir/node_bin/bin" > /dev/null
+	export PATH="$PWD:$PATH"
+	./npm install -g npm
+	popd > /dev/null
+	pushd "$IntermediateDir"  > /dev/null
+
+	NodePackageName=node-`./node_bin/bin/node --version`-$NodePlatform-$BuildArch
+
+	mv node_bin $NodePackageName
+	tar -czf "$OutputBinDir/$NodePackageName.tar.gz" $NodePackageName
+	md5 -q "$OutputBinDir/$NodePackageName.tar.gz" > "$OutputBinDir/$NodePackageName.tar.gz.md5"
+	echo "Built to $OutputBinDir/$NodePackageName.tar.gz"
+
+	popd > /dev/null
+	popd > /dev/null
+}
+
+BuildBoringSSL
+BuildNode
