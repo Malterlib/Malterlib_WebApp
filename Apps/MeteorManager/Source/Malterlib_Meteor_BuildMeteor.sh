@@ -78,7 +78,7 @@ fi
 
 export NPM_CONFIG_PROGRESS=false
 
-$MeteorCommand npm install --production
+$MeteorCommand npm ci --production
 
 mkdir -p "${OutputDir}bundle"
 
@@ -104,7 +104,7 @@ if [[ "$PlatformFamily" == "Linux" ]] ; then
 		MTool BuildServerTool Tool=MeteorBuild_Ubuntu1604 "$ScriptDir/Malterlib_Meteor_BuildMeteorNpmInstall.sh" "$OutputBundleTar" "$NodePackage" "$Name"
 		popd
 	else
-		echo npm install not supported for Linux
+		echo npm ci not supported for Linux
 	fi
 else
 	"$ScriptDir/Malterlib_Meteor_BuildMeteorNpmInstall.sh" "$OutputBundleTar" "$NodePackage" "$Name"
@@ -129,6 +129,7 @@ ExcludePatterns="$ExcludePatterns;*/tests/jasmine/server/unit/package-stubs.js"
 ExcludePatterns="$ExcludePatterns;*/tests/jasmine/server/unit/packageMocksSpec.js"
 ExcludePatterns="$ExcludePatterns;*/packages/tests-proxy"
 ExcludePatterns="$ExcludePatterns;*/node_modules"
+ExcludePatterns="$ExcludePatterns;*/example"
 ExcludePatterns="$ExcludePatterns;*/.npm"
 ExcludePatterns="$ExcludePatterns;*/.git"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"

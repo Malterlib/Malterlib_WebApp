@@ -66,17 +66,17 @@ export NPM_CONFIG_PROGRESS=false
 
 if [[ "$NpmBuildType" == "Start" ]]; then
 	SourceDir=.
-	npm install --production
+	npm ci --production
 	npm run prestart
 elif [[ "$NpmBuildType" == "Compile" ]]; then
 	SourceDir=build
 	rm -rf build
-	npm install
+	npm ci
 	npm run compile
 elif [[ "$NpmBuildType" == "Build" ]]; then
 	SourceDir=build
 	rm -rf build
-	npm install
+	npm ci
 	npm run build
 else
 	echo "Unknown NpmBuildType: '$NpmBuildType'"
