@@ -136,13 +136,14 @@ namespace NMib::NMeteor::NMeteorManager
 		uint8 m_LoopbackPrefix = 0;
 		bool m_bUseInternalNode = false;
 		bool m_bRedirectWWW = false;
+		bool m_bServeAllSubdomains = false;
 	};
 	
 	struct ICMeteorManagerCustomization
 	{
 		ICMeteorManagerCustomization();
 		virtual ~ICMeteorManagerCustomization();
-		virtual void f_SetupPrerequisites(TCSet<CStr> const &_Tags);
+		virtual void f_SetupPrerequisites(TCSet<CStr> const &_Tags, TCMap<CStr, CUser> const &_Users);
 		virtual void f_CalculateSettings
 			(
 				TCMap<CStr, CStr> &o_Settings
@@ -294,6 +295,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> fp_SetupPrerequisites_Nginx();
 		TCContinuation<void> fp_SetupPrerequisites_Customization();
 		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
+		TCContinuation<void> fp_SetupPrerequisites_Mongo();
 		TCContinuation<void> fp_SetupPrerequisites_Packages();
 		TCContinuation<void> fp_SetupPrerequisites_UploadS3();
 		TCContinuation<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials);
@@ -391,7 +393,8 @@ namespace NMib::NMeteor::NMeteorManager
 		CStr mp_MongoSSLDirectory;
 		CStr mp_MongoDatabase;
 		CStr mp_MongoReplicaName;
-		
+		CStr mp_MongoAdminUserName;
+
 		uint64 mp_WebPort = 3000;
 		uint64 mp_WebSSLPort = 3443;
 		bool mp_bIsStaging = false;

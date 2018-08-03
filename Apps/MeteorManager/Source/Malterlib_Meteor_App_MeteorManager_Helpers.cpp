@@ -13,6 +13,11 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 	}
 
+	void CUser::f_Format(NStr::CStrAggregate &o_Str) const
+	{
+		o_Str += "[{}, {}]"_f << m_UserName << m_GroupName;
+	}
+
 	CVersion::CVersion(uint32 _Major, uint32 _Minor, uint32 _Revision)
 		: m_Major(_Major)
 		, m_Minor(_Minor)

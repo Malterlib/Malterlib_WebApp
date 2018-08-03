@@ -511,7 +511,7 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 			for (auto &Package : mp_Options.m_Packages)
 			{
-				if (Package.f_IsServer())
+				if (!Package.f_IsServer())
 					continue;
 				CStr Hostname = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 				CStr HostnameStatic = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static);
@@ -530,16 +530,8 @@ namespace NMib::NMeteor::NMeteorManager
 				CStr ClientCertificatePath = LaunchHomePath + "/certificates/admin.pem";
 				CStr UserNameEncoded;
 
-				try
-				{
-					CStr UserName = CSSLContext::fs_GetCertificateDistinguishedName_RFC2253(CFile::fs_ReadFile(ClientCertificatePath));
-					NHTTP::CURL::fs_PercentEncode(UserNameEncoded, UserName);
-				}
-				catch (CException const &_Error)
-				{
-					DMibError(fg_Format("Failed to extract user name from Mongo certificate file: {}", _Error));
-				}
-				
+				NHTTP::CURL::fs_PercentEncode(UserNameEncoded, mp_MongoAdminUserName, nullptr, true);
+
 				CalculatedSettings["MongoHost"] = mp_MongoHost;
 				CalculatedSettings["MongoURL"] = fg_Format
 					(

@@ -430,6 +430,9 @@ namespace NMib::NMeteor::NMeteorManager
 		if (auto *pValue = Settings.f_GetMember("RedirectWWW"))
 			m_bRedirectWWW = pValue->f_Boolean();
 
+		if (auto *pValue = Settings.f_GetMember("ServeAllSubdomains"))
+			m_bServeAllSubdomains = pValue->f_Boolean();
+
 		if (auto *pValue = Settings.f_GetMember("S3BucketPrefix"))
 			m_S3BucketPrefix = pValue->f_String();
 
@@ -609,7 +612,7 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 	}
 	
-	void ICMeteorManagerCustomization::f_SetupPrerequisites(TCSet<CStr> const &_Tags)
+	void ICMeteorManagerCustomization::f_SetupPrerequisites(TCSet<CStr> const &_Tags, TCMap<CStr, CUser> const &_Users)
 	{
 	}
 }

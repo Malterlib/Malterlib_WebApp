@@ -606,10 +606,24 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		if (!mp_pCustomization)
 			return fg_Explicit();
-		
-		return g_Dispatch(*mp_FileActors) > [pCustomization = mp_pCustomization, Tags = mp_Tags]
+
+		TCMap<CStr, CUser> Users;
+
+		Users("node", mp_NodeUser);
+		Users("fcgi", mp_FastCGIUser);
+		Users("websocket", mp_WebsocketUser);
+		Users("nginx", mp_NginxUser);
+
+		for (auto &Package : mp_Options.m_Packages)
+		{
+			if (!Package.m_bSeparateUser)
+				continue;
+			Users(("package_{}"_f << mp_Options.m_Packages.fs_GetKey(Package)).f_GetStr(), Package.m_User);
+		}
+
+		return g_Dispatch(*mp_FileActors) > [pCustomization = mp_pCustomization, Tags = mp_Tags, Users]
 			{
-				pCustomization->f_SetupPrerequisites(Tags);
+				pCustomization->f_SetupPrerequisites(Tags, Users);
 			}
 		;
 	}
@@ -618,6 +632,7 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		TCContinuation<void> Continuation;
 		fp_SetupPrerequisites_OSSetup()
+			+ fp_SetupPrerequisites_Mongo()
 			+ fp_SetupPrerequisites_NodeExtract()
 			+ fp_SetupPrerequisites_FastCGI()
 			+ fp_SetupPrerequisites_Websocket()

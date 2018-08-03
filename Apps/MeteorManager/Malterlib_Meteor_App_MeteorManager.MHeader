@@ -694,6 +694,12 @@ Property
 				}
 
 				Contents	"@(Contents)"\
+							"	\"ServeAllSubdomains\": @(MeteorManagerServeAllSubdomains),\n"
+				{
+					!MeteorManagerServeAllSubdomains ""
+				}
+
+				Contents	"@(Contents)"\
 							"	\"S3BucketPrefix\": \"@(MeteorManagerS3BucketPrefix)\",\n"
 				{
 					!MeteorManagerS3BucketPrefix ""

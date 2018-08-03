@@ -13,6 +13,8 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		CUser(CStr const &_UserName, CStr const &_GroupName);
 
+		void f_Format(NStr::CStrAggregate &o_Str) const;
+
 		CStr m_UserName;
 		CStr m_GroupName;
 		CStr m_GroupID;

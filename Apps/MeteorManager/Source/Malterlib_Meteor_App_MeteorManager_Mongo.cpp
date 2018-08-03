@@ -28,6 +28,56 @@ namespace NMib::NMeteor::NMeteorManager
 			)
 		;
 	}
+
+	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Mongo()
+	{
+		TCContinuation<void> Continuation;
+
+		struct CSetupResult
+		{
+			CStr m_MongoAdminUserName;
+		};
+
+		g_Dispatch(*mp_FileActors) > [=, MongoSSLDirectory = fp_GetMongoSSLDirectory()]() -> CSetupResult
+			{
+				CSetupResult SetupResult;
+
+				if (!MongoSSLDirectory.f_IsEmpty())
+				{
+					if (CFile::fs_FileExists(MongoSSLDirectory) && MongoSSLDirectory.f_StartsWith(CFile::fs_GetProgramDirectory() + "/"))
+					{
+						CFile::fs_SetUnixAttributesRecursive
+							(
+								MongoSSLDirectory
+								, EFileAttrib_UserRead
+								, EFileAttrib_UserRead | EFileAttrib_UserExecute
+							)
+						;
+					}
+
+					CStr ClientCertificatePath = MongoSSLDirectory / "admin.pem";
+
+					try
+					{
+						SetupResult.m_MongoAdminUserName = CSSLContext::fs_GetCertificateDistinguishedName_RFC2253(CFile::fs_ReadFile(ClientCertificatePath));
+					}
+					catch (CException const &_Error)
+					{
+						DMibError("Failed to read certificate file for admin user: {}"_f << _Error);
+					}
+				}
+
+				return SetupResult;
+			}
+			> Continuation / [=](CSetupResult &&_SetupResult)
+			{
+				mp_MongoAdminUserName = _SetupResult.m_MongoAdminUserName;
+				Continuation.f_SetResult();
+			}
+		;
+
+		return Continuation;
+	}
 	
 	CStr CMeteorManagerActor::fp_GetMongoSSLDirectory() const
 	{
@@ -74,16 +124,6 @@ namespace NMib::NMeteor::NMeteorManager
 		{
 			CStr CACertificatePath = MongoSSLDirectory + "/MongoCA.crt";
 			CStr ClientCertificatePath = MongoSSLDirectory + "/admin.pem";
-			CStr UserName;
-
-			try
-			{
-				UserName = CSSLContext::fs_GetCertificateDistinguishedName_RFC2253(CFile::fs_ReadFile(ClientCertificatePath));
-			}
-			catch (CException const &_Error)
-			{
-				return DMibErrorInstance(fg_Format("Failed to read certificate file: {}", _Error));
-			}
 
 			CommandLineArgs << fg_CreateVector<NStr::CStr>
 				(
@@ -97,7 +137,7 @@ namespace NMib::NMeteor::NMeteorManager
 					, "--sslPEMKeyFile"
 					, ClientCertificatePath
 					, "-u"
-					, UserName
+					, mp_MongoAdminUserName
 				)
 			;
 		}

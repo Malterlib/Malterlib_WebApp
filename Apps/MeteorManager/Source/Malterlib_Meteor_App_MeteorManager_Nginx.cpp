@@ -58,11 +58,13 @@ R"---(
 , R"---(
 	server
 	{
-		listen {SSLPort} {ListenOptions};
-		listen [::]:{SSLPort} {ListenOptionsIPV6};
+		listen {SSLPort};
+		listen [::]:{SSLPort};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
+
+{CheckServerNameLogic}
 
 {ServerAccessCheck_{PackageName}}
 
@@ -134,11 +136,13 @@ R"---(
 , R"---(
 	server
 	{
-		listen {SSLPort} {ListenOptions};
-		listen [::]:{SSLPort} {ListenOptionsIPV6};
+		listen {SSLPort};
+		listen [::]:{SSLPort};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
+
+{CheckServerNameLogic}
 
 {ServerAccessCheck_{PackageName}}
 
@@ -210,11 +214,13 @@ R"---(
 , R"---(
 	server
 	{
-		listen {SSLPort} {ListenOptions};
-		listen [::]:{SSLPort} {ListenOptionsIPV6};
+		listen {SSLPort};
+		listen [::]:{SSLPort};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
+
+{CheckServerNameLogic}
 
 {ServerAccessCheck_{PackageName}}
 
@@ -301,11 +307,13 @@ R"---(
 , R"---(
 	server
 	{
-		listen {SSLPort} {ListenOptions};
-		listen [::]:{SSLPort} {ListenOptionsIPV6};
+		listen {SSLPort};
+		listen [::]:{SSLPort};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
+
+{CheckServerNameLogic}
 
 {ServerAccessCheck_{PackageName}}
 
@@ -768,7 +776,38 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							bool bIsMainServer = ServerName == mp_Domain && Package.m_SubPath.f_IsEmpty();
 
 							Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots && mp_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
-							Server = Server.f_Replace("{ServerName}", ServerName);
+
+							if (bIsMainServer)
+							{
+								CStr Section = R"---(
+		set $invalid_host "true";
+
+		if ($host ~ "^{DomainNameEscaped}$" )
+		{
+			set $invalid_host "false";
+		}
+
+		if ($host ~ "^[a-z0-9-]*\.{DomainNameEscaped}$" )
+		{
+			set $invalid_host "false";
+		}
+
+		if ($invalid_host = "true")
+		{
+			return 444;
+		}
+)---";
+
+								Server = Server.f_Replace("{CheckServerNameLogic}", Section);
+							}
+							else
+								Server = Server.f_Replace("{CheckServerNameLogic}", "");
+
+							if (bIsMainServer && mp_Options.m_bServeAllSubdomains)
+								Server = Server.f_Replace("{ServerName}", ("{} ~^[a-z0-9-]*\\.{}$"_f << ServerName << ServerName.f_Replace(".", "\\.")).f_GetStr());
+							else
+								Server = Server.f_Replace("{ServerName}", ServerName);
+
 							Server = Server.f_Replace("{SubPath}", Package.m_SubPath);
 
 							if (bIsFastCGI)
@@ -783,17 +822,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()));
 							else if (!bIsWebsocket)
 								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()));
-
-							if (bIsMainServer)
-							{
-								Server = Server.f_Replace("{ListenOptions}", "default_server ssl http2 backlog=1024");
-								Server = Server.f_Replace("{ListenOptionsIPV6}", "default_server ssl http2 ipv6only=on backlog=1024");
-							}
-							else
-							{
-								Server = Server.f_Replace("{ListenOptions}", "");
-								Server = Server.f_Replace("{ListenOptionsIPV6}", "");
-							}
 
 							VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
 							VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");
@@ -902,6 +930,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					ConfigContents = ConfigContents.f_Replace(VariablesToReplace.fs_GetKey(ReplaceWith), ReplaceWith);
 
 				ConfigContents = ConfigContents.f_Replace("{DomainName}", mp_Domain);
+				ConfigContents = ConfigContents.f_Replace("{DomainNameEscaped}", mp_Domain.f_Replace(".", "\\."));
+
 				ConfigContents = ConfigContents.f_Replace("{Root}", NginxDirectory + "/root");
 				ConfigContents = ConfigContents.f_Replace("{Port}", CStr::fs_ToStr(mp_WebPort));
 				ConfigContents = ConfigContents.f_Replace("{SSLPort}", CStr::fs_ToStr(mp_WebSSLPort));
