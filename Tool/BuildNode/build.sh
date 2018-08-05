@@ -24,12 +24,20 @@ if [[ $SysName ==  Darwin* ]] ; then
 	NumCPUs=`getconf _NPROCESSORS_ONLN`
 	BuildPlatform=OSX10.7
 	StripCommand="strip -u -r"
+	function RunMD5()
+	{
+		md5 -q "$1"
+	}
 elif [[ $SysName ==  Linux* ]] ; then
 	NodePlatform=linux
 	OutputPlatform=Linux/Ubuntu1604
 	NumCPUs=`getconf _NPROCESSORS_ONLN`
 	BuildPlatform=Linux2.6
 	StripCommand="strip --strip-unneeded"
+	function RunMD5()
+	{
+		md5sum "$1" | cut '-d ' -f 1 
+	}
 else
 	echo "Couldn't detect system"
 	exit 1
@@ -94,7 +102,7 @@ function BuildNode()
 
 	mv node_bin $NodePackageName
 	tar -czf "$OutputBinDir/$NodePackageName.tar.gz" $NodePackageName
-	md5 -q "$OutputBinDir/$NodePackageName.tar.gz" > "$OutputBinDir/$NodePackageName.tar.gz.md5"
+	RunMD5 "$OutputBinDir/$NodePackageName.tar.gz" > "$OutputBinDir/$NodePackageName.tar.gz.md5"
 	echo "Built to $OutputBinDir/$NodePackageName.tar.gz"
 
 	popd > /dev/null
