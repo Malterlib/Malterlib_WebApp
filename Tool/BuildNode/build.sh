@@ -30,7 +30,7 @@ if [[ $SysName ==  Darwin* ]] ; then
 	}
 elif [[ $SysName ==  Linux* ]] ; then
 	NodePlatform=linux
-	OutputPlatform=Linux/Ubuntu1604
+	OutputPlatform=Linux
 	NumCPUs=`getconf _NPROCESSORS_ONLN`
 	BuildPlatform=Linux2.6
 	StripCommand="strip --strip-unneeded"
