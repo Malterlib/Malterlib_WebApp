@@ -21,13 +21,13 @@ ProcessorArch=$(uname -m)
 if [[ $SysName ==  Darwin* ]] ; then
 	NodePlatform=darwin
 	OutputPlatform=OSX
-	NumCPUs=`sysctl -n hw.ncpu`
+	NumCPUs=`getconf _NPROCESSORS_ONLN`
 	BuildPlatform=OSX10.7
 	StripCommand="strip -u -r"
 elif [[ $SysName ==  Linux* ]] ; then
 	NodePlatform=linux
 	OutputPlatform=Linux/Ubuntu1604
-	NumCPUs=`grep -c "processor" /proc/cpuinfo`
+	NumCPUs=`getconf _NPROCESSORS_ONLN`
 	BuildPlatform=Linux2.6
 	StripCommand="strip --strip-unneeded"
 else
@@ -81,8 +81,6 @@ function BuildNode()
 	pushd "$MalterlibRoot/External/node" > /dev/null
 
 	./configure --prefix "$IntermediateDir/node_bin" --shared-openssl --shared-openssl-includes "$MalterlibRoot/External/boringssl/include" --shared-openssl-libname crypto,ssl,decrepit --shared-openssl-libpath "$OpenSSLBuildDir/bin"
-
-	NumCPUs=`sysctl -n hw.ncpu`
 
 	make "-j${NumCPUs}"
 	make install
