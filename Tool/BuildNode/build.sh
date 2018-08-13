@@ -94,8 +94,34 @@ function BuildNode()
 	make "-j${NumCPUs}"
 	make install
 	pushd "$IntermediateDir/node_bin/bin" > /dev/null
+
 	export PATH="$PWD:$PATH"
-	./npm install -g npm
+	if [[ "$MalterlibNpmSource" != "" ]]; then
+		echo "Installing npm from local checkout: $MalterlibNpmSource"
+		if [ -d "$MalterlibNpmSource/../cipm" ]; then
+			pushd "$MalterlibNpmSource/../cipm" > /dev/null
+			rm -f *.tgz
+			npm pack
+			CipmPackagePath="`ls $PWD/*.tgz`"
+			popd > /dev/null
+		fi
+		pushd "$MalterlibNpmSource" > /dev/null
+		if [[ "$CipmPackagePath" != "" ]]; then
+			rm -rf node_modules package-lock.json
+			cp "$CipmPackagePath" .
+			npm install
+			npm install "`basename "$CipmPackagePath"`"
+		fi
+		rm -f *.tgz
+		npm pack
+		PackagePath="`ls $PWD/*.tgz`"
+		popd > /dev/null
+		./npm install -g "$PackagePath"
+	else
+		echo "Installing npm from global"
+		./npm install -g npm
+	fi
+
 	popd > /dev/null
 	pushd "$IntermediateDir"  > /dev/null
 
