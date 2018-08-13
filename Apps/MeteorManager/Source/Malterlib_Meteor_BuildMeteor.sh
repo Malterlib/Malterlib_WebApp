@@ -12,7 +12,6 @@ Name="$MalterlibMeteorToolBuildName"
 MeteorDir="$MeteorBuildDirectory"
 SharedPackagesDir="$MalterlibMeteorSharedPackages"
 PlatformFamily="$PlatformFamily"
-MeteorGitCheckout="$MalterlibMeteorGitCheckout"
 MeteorCheckedOutPath="$MalterlibMeteorCheckedOutPath"
 MeteorDebugPackage="$MalterlibMeteorDebugBundle"
 NodePackage="$MalterlibMeteorNodePackagePath"
@@ -46,20 +45,6 @@ fi
 
 if [ -n "$MeteorCheckedOutPath" ]; then
 	PATH="$MeteorCheckedOutPath:$PATH"
-elif [ -n "$MeteorGitCheckout" ]; then
-	echo Using Meteor from git checkout
-	if [ ! -e ./.latestmeteor ]; then
-		git clone https://github.com/meteor/meteor ./.latestmeteor
-	fi
-	pushd ./.latestmeteor
-	git clean -df
-	git reset --hard HEAD
-	git remote add hansoft https://github.com/Hansoft/meteor.git 2> /dev/null || true
-	git fetch ${MeteorGitCheckout/\// }
-	git checkout "$MeteorGitCheckout"
-	git submodule update --init --recursive
-	popd
-	PATH="$PWD/.latestmeteor:$PATH"
 fi
 
 echo Building meteor bundle
