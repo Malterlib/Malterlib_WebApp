@@ -122,6 +122,7 @@ function BuildNode()
 	fi
 
 	./npm install -g retire
+	./npm install -g npm-check-updates
 
 	popd > /dev/null
 	pushd "$IntermediateDir"  > /dev/null
