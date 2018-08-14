@@ -107,7 +107,6 @@ function BuildNode()
 		fi
 		pushd "$MalterlibNpmSource" > /dev/null
 		if [[ "$CipmPackagePath" != "" ]]; then
-			rm -rf node_modules package-lock.json
 			cp "$CipmPackagePath" .
 			npm install
 			npm install "`basename "$CipmPackagePath"`"
@@ -121,6 +120,8 @@ function BuildNode()
 		echo "Installing npm from global"
 		./npm install -g npm
 	fi
+
+	./npm install -g retire
 
 	popd > /dev/null
 	pushd "$IntermediateDir"  > /dev/null
