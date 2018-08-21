@@ -130,6 +130,7 @@ function BuildNode()
 	NodePackageName=node-`./node_bin/bin/node --version`-$NodePlatform-$BuildArch
 
 	mv node_bin $NodePackageName
+	rm -f "$OutputBinDir"/node-*
 	tar -czf "$OutputBinDir/$NodePackageName.tar.gz" $NodePackageName
 	RunMD5 "$OutputBinDir/$NodePackageName.tar.gz" > "$OutputBinDir/$NodePackageName.tar.gz.md5"
 	echo "Built to $OutputBinDir/$NodePackageName.tar.gz"
