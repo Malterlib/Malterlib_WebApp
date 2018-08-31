@@ -1025,7 +1025,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		CProcessLaunchActor::CLaunch Launch = CProcessLaunchParams::fs_LaunchExecutable
 			(
-				ProgramDirectory + "/nginx_exe/nginx"
+				ProgramDirectory + "/bin/nginx"
 				, Arguments
 				, NginxDirectory
 				, [this, Continuation](CProcessLaunchStateChangeVariant const &_Change, fp64 _TimeSinceStart)

@@ -935,11 +935,21 @@ Property
 	{
 		Dependency.Link false
 	}
-	%Dependency "Exe_nginx=Com_nginx_@(MalterlibMeteorManagerName)*NgnixTargetBaseName=nginx_@(MalterlibMeteorManagerName)*NgnixTargetGroup=Meteor/@(MalterlibMeteorManagerName)*HTTP_SSL=true*HTTP_V2=true*NGX_USER=mib_nginx_@(MalterlibMeteorManagerName)*NGX_GROUP=mib_nginx_@(MalterlibMeteorManagerName)*HTTP_GZIP_STATIC=true*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=nginx_exe/"
+	%Dependency "Exe_nginx=Com_nginx_@(MalterlibMeteorManagerName)*NgnixTargetBaseName=nginx_@(MalterlibMeteorManagerName)*NgnixTargetGroup=Meteor/@(MalterlibMeteorManagerName)*HTTP_SSL=true*HTTP_V2=true*NGX_USER=mib_nginx_@(MalterlibMeteorManagerName)*NGX_GROUP=mib_nginx_@(MalterlibMeteorManagerName)*HTTP_GZIP_STATIC=true*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=bin/"
 	{
 		Dependency.Link false
 	}
-	
+	%Dependency "Exe_bsdtar=Com_bsdtar*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=bin/"
+	{
+		Dependency.Link false
+	}
+	%Dependency "Exe_gzip=Com_gzip*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=bin/"
+	{
+		!!PlatformFamily Windows
+		Dependency.Link false
+	}
+
+
 	Property
 	{
 		CloudUploadSources_Template "@(Builtin.Function->GetProperty('Property', 'MalterlibBuildServerPutSources', 'Group:@(Explodee).Target:Tool_Malterlib_BuildMeteor.Target:Tool_Malterlib_BuildMeteor'));"
@@ -948,7 +958,12 @@ Property
 		}
 		CloudUploadSources "@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'CloudUploadSources_Template'));@(CloudUploadSources)"
 		
-		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_nginx.Target:Exe_nginx'))|/nginx_exe;@(CloudUploadSources)"
+		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_nginx.Target:Exe_nginx'))|/bin;@(CloudUploadSources)"
+		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_bsdtar.Target:Exe_bsdtar'))|/bin;@(CloudUploadSources)"
+		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_gzip.Target:Exe_bsdtar'))|/bin;@(CloudUploadSources)"
+		{
+			!!PlatformFamily Windows
+		}
 
 		MalterlibCloud_VersionUploadSources "@(CloudUploadSources);@(MalterlibCloud_VersionUploadSources)"
 	}

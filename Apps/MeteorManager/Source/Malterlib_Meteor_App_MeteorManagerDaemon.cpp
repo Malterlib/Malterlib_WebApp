@@ -67,12 +67,12 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		if (mp_pManager)
 		{
-			DMibLogWithCategory(Mib/Mongo/MongoManager/Daemon, Info, "Shutting down");
+			DMibLogWithCategory(Daemon, Info, "Shutting down");
 			
 			mp_pManager->f_Destroy() > [pCanDestroy](TCAsyncResult<void> &&_Result)
 				{
 					if (!_Result)
-						DMibLogWithCategory(Mib/Mongo/MongoManager/Daemon, Error, "Failed to shut down server: {}", _Result.f_GetExceptionStr());
+						DMibLogWithCategory(Daemon, Error, "Failed to shut down server: {}", _Result.f_GetExceptionStr());
 				}
 			;
 			mp_pManager = nullptr;
@@ -86,13 +86,13 @@ namespace NMib::NMeteor::NMeteorManager
 		if (!mp_pManager)
 			return fg_Explicit();
 
-		DMibLogWithCategory(Mib/Mongo/MongoManager/Daemon, Info, "Running pre-stop");
+		DMibLogWithCategory(Daemon, Info, "Running pre-stop");
 		
 		TCContinuation<void> Continuation;
 		mp_pManager(&CMeteorManagerActor::f_PreStop) > [Continuation](TCAsyncResult<void> &&_Result)
 			{
 				if (!_Result)
-					DMibLogWithCategory(Mib/Mongo/MongoManager/Daemon, Error, "Failed to pre-stop down server: {}", _Result.f_GetExceptionStr());
+					DMibLogWithCategory(Daemon, Error, "Failed to pre-stop down server: {}", _Result.f_GetExceptionStr());
 				Continuation.f_SetResult();
 			}
 		;

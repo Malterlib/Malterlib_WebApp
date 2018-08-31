@@ -15,6 +15,11 @@ namespace NMib::NMeteor::NMeteorManager
 		_Params.m_Environment["LANGUAGE"] = "en_US.UTF-8";
 		_Params.m_Environment["LANG"] = "en_US.UTF-8";
 		_Params.m_Environment["LC_ALL"] = "en_US.UTF-8";
+#ifdef DPlatformFamily_Windows
+		_Params.m_Environment["PATH"] = CFile::fs_GetProgramDirectory() / "bin;" + fg_GetSys()->f_GetEnvironmentVariable("PATH");
+#else
+		_Params.m_Environment["PATH"] = CFile::fs_GetProgramDirectory() / "bin:" + fg_GetSys()->f_GetEnvironmentVariable("PATH");
+#endif
 	}
 
 	CStr CMeteorManagerActor::fp_ConcatOutput(CStr const &_StdOut, CStr const &_StdErr) const
@@ -33,58 +38,13 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCContinuation<CStr> CMeteorManagerActor::f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir)
 	{
-#ifdef DPlatformFamily_Windows
-		if (CSystem::ms_PlatformVersion >= 10'0'017063)
-		{
-			// Tar ships with Windows
-			return f_LaunchTool
-				(
-					"tar"
-					, _DestinationDir
-					, fg_CreateVector<CStr>
-					(
-						"--no-same-owner"
-						, "-xf"
-						, _TarFile
-					)
-					, CStr{"ExtractArchive"}
-					, ELogVerbosity_Errors
-					, {}
-					, true
-				)
-			;
-		}
-		else
-		{
-			return f_LaunchTool
-				(
-					"tar"
-					, _DestinationDir
-					, fg_CreateVector<CStr>
-					(
-						"--no-same-owner"
-						, "--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
-						, "-xf"
-						, NFile::NPlatform::fg_ConvertToMinGWPath(_TarFile)
-					)
-					, CStr{"ExtractArchive"}
-					, ELogVerbosity_Errors
-					, {}
-					, true
-				)
-			;
-		}
-#else
 		return f_LaunchTool
 			(
-				"tar"
+				CFile::fs_GetProgramDirectory() / "bin/bsdtar"
 				, _DestinationDir
 				, fg_CreateVector<CStr>
 				(
 					"--no-same-owner"
-#if !defined(DPlatformFamily_OSX)
-					, "--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
-#endif
 					, "-xf"
 					, _TarFile
 				)
@@ -94,7 +54,6 @@ namespace NMib::NMeteor::NMeteorManager
 				, true
 			)
 		;
-#endif
 	}
 
 	TCContinuation<CStr> CMeteorManagerActor::f_LaunchTool
