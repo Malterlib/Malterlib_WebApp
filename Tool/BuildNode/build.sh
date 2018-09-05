@@ -100,14 +100,17 @@ function BuildNode()
 		echo "Installing npm from local checkout: $MalterlibNpmSource"
 		if [ -d "$MalterlibNpmSource/../cipm" ]; then
 			pushd "$MalterlibNpmSource/../cipm" > /dev/null
-			rm -f *.tgz
 			npm pack
 			CipmPackagePath="`ls $PWD/*.tgz`"
 			popd > /dev/null
 		fi
 		pushd "$MalterlibNpmSource" > /dev/null
+		if ! [[ -z $(git status -s) ]]; then
+			echo $PWD contains changes, please commit before building
+			exit 1
+		fi
 		if [[ "$CipmPackagePath" != "" ]]; then
-			cp "$CipmPackagePath" .
+			mv "$CipmPackagePath" .
 			npm install
 			npm install "`basename "$CipmPackagePath"`"
 		fi
@@ -116,6 +119,11 @@ function BuildNode()
 		PackagePath="`ls $PWD/*.tgz`"
 		popd > /dev/null
 		./npm install -g "$PackagePath"
+
+		pushd "$MalterlibNpmSource" > /dev/null
+		git reset --hard
+		git clean -fd
+		popd > /dev/null
 	else
 		echo "Installing npm from global"
 		./npm install -g npm
