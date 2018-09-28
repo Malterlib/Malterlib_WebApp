@@ -72,7 +72,7 @@ function BuildBoringSSL()
 	mkdir -p "$OpenSSLBuildDir"
 	pushd "$OpenSSLBuildDir" > /dev/null
 
-	export MACOSX_DEPLOYMENT_TARGET=10.7
+	export MACOSX_DEPLOYMENT_TARGET=10.9
 	cmake -GNinja "$MalterlibRoot/External/boringssl" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="$ExtraBoringSSLFlags" -DCMAKE_C_FLAGS="$ExtraBoringSSLFlags"
 	ninja
 	#ninja -C "$OpenSSLBuildDir" run_tests
