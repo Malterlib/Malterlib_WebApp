@@ -110,11 +110,8 @@ else
 fi
 
 ExcludePatterns="*/.meteor/local"
-ExcludePatterns="$ExcludePatterns;*/tests/jasmine/server/unit/package-stubs.js"
-ExcludePatterns="$ExcludePatterns;*/tests/jasmine/server/unit/packageMocksSpec.js"
-ExcludePatterns="$ExcludePatterns;*/packages/tests-proxy"
 ExcludePatterns="$ExcludePatterns;*/node_modules"
-ExcludePatterns="$ExcludePatterns;*/example"
+ExcludePatterns="$ExcludePatterns;*/.example"
 ExcludePatterns="$ExcludePatterns;*/.npm"
 ExcludePatterns="$ExcludePatterns;*/.git"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
