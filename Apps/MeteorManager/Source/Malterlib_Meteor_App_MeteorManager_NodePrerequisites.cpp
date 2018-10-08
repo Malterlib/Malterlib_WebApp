@@ -20,6 +20,9 @@ namespace NMib::NMeteor::NMeteorManager
 	
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_OSSetup()
 	{
+#ifdef DPlatformFamily_Windows
+		return fg_Explicit();
+#else
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr SetupOSFile = ProgramDirectory + "/Source/Malterlib_Meteor_App_MeteorManager_OSSetup.sh";
 
@@ -31,6 +34,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> Continuation;
 		f_LaunchTool(CProcessLaunch::fs_GetBashPath(), ProgramDirectory, {SetupOSFile}, "OSSetup", ELogVerbosity_Errors, Environment) > Continuation.f_ReceiveAny();
 		return Continuation;
+#endif
 	}
 	
 	CHashDigest_MD5 CMeteorManagerActor::fsp_GetFileChecksum(CStr const &_File)
@@ -463,7 +467,11 @@ namespace NMib::NMeteor::NMeteorManager
 											ThisActor
 												(
 													&CMeteorManagerActor::f_LaunchTool
+#ifdef DPlatformFamily_Windows
+													, CFile::fs_GetProgramDirectory() / "bin/gzip"
+#else
 													, "gzip"
+#endif
 													, PackageDirectory
 													, fg_CreateVector<CStr>("-k", "-9", File)
 													, CStr{"GZipStatic"}
@@ -483,10 +491,9 @@ namespace NMib::NMeteor::NMeteorManager
 										
 										if (!CFile::fs_FileExists(PackageDirectory + "/.installed"))
 										{
-											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, User.m_UserName, User.m_GroupName);
-
 											if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
 											{
+												CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, User.m_UserName, User.m_GroupName);
 												ThisActor
 													(
 														&CMeteorManagerActor::f_LaunchTool

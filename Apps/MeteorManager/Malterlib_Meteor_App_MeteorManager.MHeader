@@ -959,8 +959,8 @@ Property
 		CloudUploadSources "@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'CloudUploadSources_Template'));@(CloudUploadSources)"
 		
 		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_nginx.Target:Exe_nginx'))|/bin;@(CloudUploadSources)"
-		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_bsdtar.Target:Exe_bsdtar'))|/bin;@(CloudUploadSources)"
-		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_gzip.Target:Exe_bsdtar'))|/bin;@(CloudUploadSources)"
+		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Group:External.Group:libarchive.Target:Exe_bsdtar.Target:Exe_bsdtar'))|/bin;@(CloudUploadSources)"
+		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_gzip.Target:Exe_gzip'))|/bin;@(CloudUploadSources)"
 		{
 			!!PlatformFamily Windows
 		}

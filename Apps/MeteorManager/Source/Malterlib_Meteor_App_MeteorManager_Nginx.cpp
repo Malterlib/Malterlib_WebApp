@@ -440,6 +440,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				, CertificateLocality
 				, CertificateOrganizationalUnit
 			 	, FastCGIFile
+				, ManagerName = mp_Options.m_ManagerName
 			]
 			() mutable -> CResults
 			{
@@ -505,7 +506,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					else
 					{
 						CSSLContext::CCertificateOptions Options;
-						Options.m_CommonName = fg_Format("Meteor Manager Debug CA {nfh,sj16,sf0}", fg_GetHighEntropyRandomInteger<uint64>());
+						Options.m_CommonName = fg_Format("{} CA {nfh,sj16,sf0}", ManagerName, fg_GetHighEntropyRandomInteger<uint64>());
 						Options.m_RelativeDistinguishedNames = RelativeDistinguishedNames;
 						Options.m_KeySetting = KeySettings;
 						Options.f_MakeCA();
@@ -521,6 +522,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							)
 						;
 						CFile::fs_WriteFile(CaCertData, CaCertificateFile);
+#ifdef DPlatformFamily_Windows
+						CFile::fs_WriteFile(CaCertData, NginxDirectory + "/certificates/web_ca.crt");
+#endif
 						CFile::fs_WriteFile(CaKeyData, CaCertificateKeyFile);
 					}
 
