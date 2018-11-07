@@ -67,11 +67,7 @@ namespace NMib::NMeteor::NMeteorManager
 			, {"application/xspf+xml", TCVector<CStr>{"xspf"}}
 			, {"application/zip", TCVector<CStr>{"zip"}}
 
-			, {"application/octet-stream", TCVector<CStr>{"bin", "exe", "dll"}}
-			, {"application/octet-stream", TCVector<CStr>{"deb"}}
-			, {"application/octet-stream", TCVector<CStr>{"dmg"}}
-			, {"application/octet-stream", TCVector<CStr>{"iso", "img"}}
-			, {"application/octet-stream", TCVector<CStr>{"msi", "msp", "msm"}}
+			, {"application/octet-stream", TCVector<CStr>{"bin", "exe", "dll", "deb", "dmg", "iso", "img", "msi", "msp", "msm", "gz", "tar"}}
 
 			, {"application/vnd.openxmlformats-officedocument.wordprocessingml.document", TCVector<CStr>{"docx"}}
 			, {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", TCVector<CStr>{"xlsx"}}

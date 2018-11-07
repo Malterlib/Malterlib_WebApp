@@ -340,6 +340,8 @@ namespace NMib::NMeteor::NMeteorManager
 				Package.m_Type = EPackageType_Npm;
 			else if (PackageType == "Custom")
 				Package.m_Type = EPackageType_Custom;
+			else if (PackageType == "Static")
+				Package.m_Type = EPackageType_Static;
 			else
 				DMibError(fg_Format("Unknown package type: {}", PackageType));
 			
@@ -414,6 +416,9 @@ namespace NMib::NMeteor::NMeteorManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("UploadS3"))
 				Package.m_bUploadS3 = pValue->f_Boolean();
+
+			if (auto *pValue = PackageSettings.f_GetMember("ExternalRoot"))
+				Package.m_ExternalRoot = pValue->f_String();
 		}
 
 		m_FullManagerName = Settings["FullManagerName"].f_String();

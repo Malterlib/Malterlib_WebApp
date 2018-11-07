@@ -45,6 +45,14 @@
 				MalterlibMeteorToolType Npm
 			}
 		}
+		BuildScript "@('Source/Malterlib_Meteor_BuildStatic.sh'->MakeAbsolute())"
+		{
+			&
+			{
+				BuildScript ""
+				MalterlibMeteorToolType Static
+			}
+		}
 		BuildScript "@(MalterlibMeteorCustomBuildScript)"
 		{
 			&
@@ -394,24 +402,28 @@ Property
 				
 				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~*;@(Explodee);*" }
 				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~*;@(Explodee);*" }
+				BuildPackageType "Static" { !!BuildPackageNames_Static "~*;@(Explodee);*" }
 				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~*;@(Explodee);*" }
 				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "~*;@(Explodee);*" }
 				BuildPackageType "Websocket" { !!BuildPackageNames_Websocket "~*;@(Explodee);*" }
 
 				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~@(Explodee);*" }
 				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~@(Explodee);*" }
+				BuildPackageType "Static" { !!BuildPackageNames_Static "~@(Explodee);*" }
 				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~@(Explodee);*" }
 				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "~@(Explodee);*" }
 				BuildPackageType "Websocket" { !!BuildPackageNames_Websocket "~@(Explodee);*" }
 
 				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~*;@(Explodee)" }
 				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~*;@(Explodee)" }
+				BuildPackageType "Static" { !!BuildPackageNames_Static "~*;@(Explodee)" }
 				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~*;@(Explodee)" }
 				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "~*;@(Explodee)" }
 				BuildPackageType "Websocket" { !!BuildPackageNames_Websocket "~*;@(Explodee)" }
 
 				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "@(Explodee)" }
 				BuildPackageType "Npm" { !!BuildPackageNames_Npm "@(Explodee)" }
+				BuildPackageType "Static" { !!BuildPackageNames_Static "@(Explodee)" }
 				BuildPackageType "Custom" { !!BuildPackageNames_Custom "@(Explodee)" }
 				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "@(Explodee)" }
 				BuildPackageType "Websocket" { !!BuildPackageNames_Websocket "@(Explodee)" }
@@ -494,6 +506,12 @@ Property
 								"			\"UploadS3\": @(UploadS3_@(Explodee)),\n"
 				{
 					!Empty "@(UploadS3_@(Explodee))"
+				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"ExternalRoot\": \"@(ExternalRoot_@(Explodee))\",\n"
+				{
+					!Empty "@(ExternalRoot_@(Explodee))"
 				}
 
 				PackageSettings	"@(PackageSettings)"\
@@ -822,7 +840,7 @@ Property
 	
 	Property
 	{
-		CheckError "@(Error('You need to specify MeteorBuilds, FastCGIBuilds, WebsocketBuilds, NpmBuilds, and/or CustomBuilds'))"
+		CheckError "@(Error('You need to specify MeteorBuilds, FastCGIBuilds, WebsocketBuilds, NpmBuilds, StaticBuilds, and/or CustomBuilds'))"
 		{
 			&
 			{
@@ -830,6 +848,7 @@ Property
 				WebsocketBuilds ""
 				MeteorBuilds ""
 				NpmBuilds ""
+				StaticBuilds ""
 				CustomBuilds ""
 			}
 		}
@@ -889,6 +908,12 @@ Property
 			!Explodee ""
 		}
 
+		BuildDependencies_Static_Template_Expand "Tool_Malterlib_BuildMeteor=Tool_BuildMeteor_@(MalterlibMeteorManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibMeteorToolType=Static"
+		BuildDependencies_Static_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Static_Template_Expand'));"
+		{
+			!Explodee ""
+		}
+
 		BuildDependencies_Custom_Template_Expand "Tool_Malterlib_BuildMeteor=Tool_BuildMeteor_@(MalterlibMeteorManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibMeteorToolType=Custom"
 		BuildDependencies_Custom_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Custom_Template_Expand'));"
 		{
@@ -899,8 +924,9 @@ Property
 		BuildDependencies_FastCGI "@(Builtin.Function->ExplodeList('@(FastCGIBuilds)', ';', 'BuildDependencies_FastCGI_Template'))"
 		BuildDependencies_Websocket "@(Builtin.Function->ExplodeList('@(WebsocketBuilds)', ';', 'BuildDependencies_Websocket_Template'))"
 		BuildDependencies_Npm "@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildDependencies_Npm_Template'))"
+		BuildDependencies_Static "@(Builtin.Function->ExplodeList('@(StaticBuilds)', ';', 'BuildDependencies_Static_Template'))"
 		BuildDependencies_Custom "@(Builtin.Function->ExplodeList('@(CustomBuilds)', ';', 'BuildDependencies_Custom_Template'))"
-		BuildDependencies "@(BuildDependencies_Meteor);@(BuildDependencies_FastCGI);@(BuildDependencies_Websocket);@(BuildDependencies_Npm);@(BuildDependencies_Custom)"
+		BuildDependencies "@(BuildDependencies_Meteor);@(BuildDependencies_FastCGI);@(BuildDependencies_Websocket);@(BuildDependencies_Npm);@(BuildDependencies_Static);@(BuildDependencies_Custom)"
 
 		BuildPackageNames_Template_Expand "@(Expand0)"
 		BuildPackageNames_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildPackageNames_Template_Expand'));"
@@ -909,9 +935,10 @@ Property
 		BuildPackageNames_FastCGI "@(Builtin.Function->ExplodeList('@(FastCGIBuilds)', ';', 'BuildPackageNames_Template'))"
 		BuildPackageNames_Websocket "@(Builtin.Function->ExplodeList('@(WebsocketBuilds)', ';', 'BuildPackageNames_Template'))"
 		BuildPackageNames_Npm "@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildPackageNames_Template'))"
+		BuildPackageNames_Static "@(Builtin.Function->ExplodeList('@(StaticBuilds)', ';', 'BuildPackageNames_Template'))"
 		BuildPackageNames_Custom "@(Builtin.Function->ExplodeList('@(CustomBuilds)', ';', 'BuildPackageNames_Template'))"
 		
-		BuildPackageNames "@(BuildPackageNames_Meteor);@(BuildPackageNames_FastCGI);@(BuildPackageNames_Websocket);@(BuildPackageNames_Npm);@(BuildPackageNames_Custom)"
+		BuildPackageNames "@(BuildPackageNames_Meteor);@(BuildPackageNames_FastCGI);@(BuildPackageNames_Websocket);@(BuildPackageNames_Npm);@(BuildPackageNames_Static);@(BuildPackageNames_Custom)"
 
 		BuildNeedNodeBinaries_NpmBuildType "@(NpmBuildType_@(Expand0))"
 
@@ -931,7 +958,7 @@ Property
 	%Dependency Lib_Malterlib_MeteorManager
 	%Dependency "Lib_Malterlib_Cloud"
 	%Dependency "Lib_Malterlib"
-	%Dependency "@(BuildDependencies_Meteor);@(BuildDependencies_FastCGI);@(BuildDependencies_Websocket);@(BuildDependencies_Npm);@(BuildDependencies_Custom)"
+	%Dependency "@(BuildDependencies_Meteor);@(BuildDependencies_FastCGI);@(BuildDependencies_Websocket);@(BuildDependencies_Npm);@(BuildDependencies_Static);@(BuildDependencies_Custom)"
 	{
 		Dependency.Link false
 	}

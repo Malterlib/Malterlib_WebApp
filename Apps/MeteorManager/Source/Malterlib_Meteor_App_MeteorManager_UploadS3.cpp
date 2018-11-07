@@ -12,7 +12,7 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	namespace
 	{
-		constexpr uint32 gc_UpdateVersion = 20;
+		constexpr uint32 gc_UpdateVersion = 22;
 	}
 
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials)
@@ -161,7 +161,96 @@ exports.handler = (event, context, callback) => {
 		return Continuation;
 	}
 
+	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3FileChangeNotifications()
+	{
+		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+
+		TCActorResultVector<void> Results;
+
+		for (auto &Package : mp_Options.m_Packages)
+		{
+			if (!Package.m_bUploadS3)
+				continue;
+
+			CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
+			bool bIsMainServer = ServerName == mp_Domain;
+
+			CStr StaticPath;
+			if (!bIsMainServer)
+				StaticPath = Package.m_StaticPath;
+			else if (!bIsMainServer && Package.m_StaticPath.f_IsEmpty())
+				continue;
+
+			if (Package.m_ExternalRoot.f_IsEmpty())
+				continue;
+
+			CStr Root = CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot);
+
+			TCContinuation<void> RegisterContinuation;
+			mp_FileChangeNotificationActor
+				(
+				 	&CFileChangeNotificationActor::f_RegisterForChanges
+				 	, Root
+				 	, EFileChange_All
+					, g_ActorFunctor > [=](TCVector<CFileChangeNotification::CNotification> const &_Changes) -> TCContinuation<void>
+				 	{
+						if (!mp_bInitialS3UploadDone)
+							return fg_Explicit();
+						TCContinuation<void> Continuation;
+						mp_S3UploadSequencer > [=]() -> TCContinuation<void>
+							{
+								DMibLogWithCategory(MeteorManager, Info, "Updating S3 upload due to file changes");
+								return fp_SetupPrerequisites_UploadS3Perform();
+							}
+							> [=](TCAsyncResult<void> &&_Result)
+							{
+								if (!_Result)
+									DMibLogWithCategory(MeteorManager, Error, "Failed to update S3 upload due to file changes: {}", _Result.f_GetExceptionStr());
+								else
+									DMibLogWithCategory(MeteorManager, Info, "S3 upload due to file changes finished");
+
+								Continuation.f_SetResult();
+							}
+						;
+
+						return Continuation;
+					}
+				 	, CFileChangeNotificationActor::CCoalesceSettings{}
+				)
+				> RegisterContinuation / [=](NConcurrency::CActorSubscription &&_Subscription)
+				{
+					mp_S3FileChangeNotificationSubscriptions.f_Insert(fg_Move(_Subscription));
+					RegisterContinuation.f_SetResult();
+				}
+			;
+
+			RegisterContinuation > Results.f_AddResult();
+		}
+
+		TCContinuation<void> Continuation;
+		Results.f_GetResults() > Continuation / [=](TCVector<TCAsyncResult<void>> &&_Results)
+			{
+				if (!fg_CombineResults(Continuation, fg_Move(_Results)))
+					return;
+
+				Continuation.f_SetResult();
+			}
+		;
+
+		return Continuation;
+	}
+
 	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3()
+	{
+		return mp_S3UploadSequencer > [=]() -> TCContinuation<void>
+			{
+				mp_bInitialS3UploadDone = true;
+				return fp_SetupPrerequisites_UploadS3Perform();
+			}
+		;
+	}
+
+	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3Perform()
 	{
 		TCContinuation<void> Continuation;
 
@@ -169,9 +258,44 @@ exports.handler = (event, context, callback) => {
 
 		TCSet<CStr> ChecksumFiles;
 
+		TCSet<CStr> Roots;
+
+		bool bRawTarGz = false;
+
+		for (auto &Package : mp_Options.m_Packages)
+		{
+			if (!Package.m_bUploadS3)
+				continue;
+
+			CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
+			bool bIsMainServer = ServerName == mp_Domain;
+
+			CStr StaticPath;
+			if (!bIsMainServer)
+				StaticPath = Package.m_StaticPath;
+			else if (!bIsMainServer && Package.m_StaticPath.f_IsEmpty())
+				continue;
+
+			if (Package.m_ExcludeGzipPatterns.f_Contains("*.tar.gz") >= 0)
+				bRawTarGz = true;
+
+			CStr Root;
+			if (Package.m_ExternalRoot.f_IsEmpty())
+				Root = ProgramDirectory / Package.f_GetName();
+			else
+				Root = CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot);
+
+			Roots[Root];
+		}
+
+		CStr RootPath = ProgramDirectory;
+
+		for (auto &Root : Roots)
+			RootPath = CFile::fs_GetCommonPath(RootPath, Root);
+
 		CDirectoryManifestConfig ManifestConfig;
 		ManifestConfig.m_IncludeWildcards.f_Clear();
-		ManifestConfig.m_Root = ProgramDirectory;
+		ManifestConfig.m_Root = RootPath;
 		bool bAllowRobots = false;
 
 		for (auto &Package : mp_Options.m_Packages)
@@ -188,7 +312,15 @@ exports.handler = (event, context, callback) => {
 			else if (!bIsMainServer && Package.m_StaticPath.f_IsEmpty())
 				continue;
 
-			ManifestConfig.m_IncludeWildcards[Package.f_GetName() / "^*"_f] = StaticPath;
+			CStr Root;
+			if (Package.m_ExternalRoot.f_IsEmpty())
+				Root = ProgramDirectory / Package.f_GetName();
+			else
+				Root = CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot);
+
+			CStr RelativePath = CFile::fs_MakePathRelative(Root, RootPath);
+
+			ManifestConfig.m_IncludeWildcards[RelativePath / "^*"_f] = StaticPath;
 
 			CStr ChecksumFile = ProgramDirectory / ("{}.tar.gz"_f << Package.f_GetName());
 			ChecksumFiles[ChecksumFile];
@@ -253,6 +385,9 @@ exports.handler = (event, context, callback) => {
 					}
 				;
 
+				CDirectoryManifest DirectoryManifest = CDirectoryManifest::fs_GetManifest(ManifestConfig, nullptr);
+				DirectoryManifest.m_Files["robots.txt"];
+
 				CBinaryStreamMemory<> Stream;
 				Stream << gc_UpdateVersion; // Version
 				Stream << bAllowRobots;
@@ -266,6 +401,8 @@ exports.handler = (event, context, callback) => {
 				Stream << Options.m_ContentSecurity_FrameSrc;
 				Stream << Options.m_ContentSecurity_ConnectSrc;
 				Stream << Options.m_ContentSecurity_ObjectSrc;
+				Stream << bRawTarGz;
+				Stream << DirectoryManifest;
 
 				fAddChecksum(CHash_MD5::fs_DigestFromData(Stream.f_GetVector()));
 
@@ -281,9 +418,7 @@ exports.handler = (event, context, callback) => {
 				CSourceCheckResults Results;
 				Results.m_ChecksumStr = ChecksumStr;
 				Results.m_ChecksumFile = ChecksumFile;
-				Results.m_DirectoryManifest = CDirectoryManifest::fs_GetManifest(ManifestConfig, nullptr);
-
-				Results.m_DirectoryManifest.m_Files["robots.txt"];
+				Results.m_DirectoryManifest = fg_Move(DirectoryManifest);
 
 				return Results;
 			}
@@ -322,15 +457,17 @@ exports.handler = (event, context, callback) => {
 							PutInfo.m_CacheControl = "no-cache"; // Rely on ETag for updated content
 
 							auto Extension = CFile::fs_GetExtension(FileName);
-							if (Extension == "gz")
+							if (!bRawTarGz)
 							{
-								FileName = CFile::fs_GetPath(FileName) / CFile::fs_GetFileNoExt(FileName);
-								PutInfo.m_ContentEncoding = "gzip";
+								if (Extension == "gz")
+								{
+									FileName = CFile::fs_GetPath(FileName) / CFile::fs_GetFileNoExt(FileName);
+									PutInfo.m_ContentEncoding = "gzip";
+								}
+								else if (_SourceCheckResults.m_DirectoryManifest.m_Files.f_FindEqual(FileName + ".gz"))
+									continue;
+								Extension = CFile::fs_GetExtension(FileName);
 							}
-							else if (_SourceCheckResults.m_DirectoryManifest.m_Files.f_FindEqual(FileName + ".gz"))
-								continue;
-
-							Extension = CFile::fs_GetExtension(FileName);
 
 							CStr ContentType = fsp_GetContentTypeForExtension(Extension);
 							if (!ContentType.f_IsEmpty())
@@ -339,7 +476,7 @@ exports.handler = (event, context, callback) => {
 							FilesToDelete.f_Remove(FileName);
 
 							TCContinuation<void> UploadContinuation;
-							g_Dispatch(*mp_FileActors) > [=, FullFileName = ProgramDirectory / NewFile.m_OriginalPath]() -> CByteVector
+							g_Dispatch(*mp_FileActors) > [=, FullFileName = RootPath / NewFile.m_OriginalPath]() -> CByteVector
 								{
 									if (FileName == "robots.txt")
 									{

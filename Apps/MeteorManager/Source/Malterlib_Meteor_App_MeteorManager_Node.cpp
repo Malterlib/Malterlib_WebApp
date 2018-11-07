@@ -84,7 +84,7 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		for (auto &Package : mp_Options.m_Packages)
 		{
-			if ((Package.m_Type == CMeteorManagerOptions::EPackageType_Custom && Package.m_CustomExecutable.f_IsEmpty()) || Package.f_IsNpmStatic())
+			if ((Package.m_Type == CMeteorManagerOptions::EPackageType_Custom && Package.m_CustomExecutable.f_IsEmpty()) || Package.f_IsStatic())
 				continue;
 
 			if (Package.m_Type == CMeteorManagerOptions::EPackageType_Websocket)
@@ -221,6 +221,7 @@ namespace NMib::NMeteor::NMeteorManager
 		case CMeteorManagerOptions::EPackageType_Websocket: AvailableTags["Websocket"]; break;
 		case CMeteorManagerOptions::EPackageType_Npm: AvailableTags["Npm"]; break;
 		case CMeteorManagerOptions::EPackageType_Custom: AvailableTags["Custom"]; break;
+		case CMeteorManagerOptions::EPackageType_Static: AvailableTags["Static"]; break;
 		}
 		
 		for (auto &EnvVar : mp_Options.m_Environment)

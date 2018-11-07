@@ -132,7 +132,7 @@ namespace NMib::NMeteor::NMeteorManager
 				(
 				 	Package.m_Type != CMeteorManagerOptions::EPackageType_FastCGI
 				 	&& Package.m_Type != CMeteorManagerOptions::EPackageType_Websocket
-				 	&& !Package.f_IsNpmStatic()
+				 	&& !Package.f_IsStatic()
 				)
 			{
 				bNeedNode = true;
@@ -335,7 +335,7 @@ namespace NMib::NMeteor::NMeteorManager
 				, MongoSSLDirectory = fp_GetMongoSSLDirectory()
 				, bSeparateUser
 				, bOwnPackageDirectory = PackageOptions.m_bOwnPackageDirectory
-			 	, bIsStatic = PackageOptions.f_IsNpmStatic()
+			 	, bIsStatic = PackageOptions.f_IsStatic()
 				, ExcludeGzipPatterns = PackageOptions.m_ExcludeGzipPatterns
 				, bForceAppsReinstall = mp_bForceAppsReinstall
 			]
@@ -647,7 +647,11 @@ namespace NMib::NMeteor::NMeteorManager
 			{
 				fp_SetupPrerequisites_Packages() > Continuation / [Continuation, this]
 					{
-						fp_SetupPrerequisites_UploadS3() > Continuation;
+						fp_SetupPrerequisites_UploadS3FileChangeNotifications() > Continuation / [Continuation, this]
+							{
+								fp_SetupPrerequisites_UploadS3() > Continuation;
+							}
+						;
 					}
 				;
 			}

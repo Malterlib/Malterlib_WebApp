@@ -8,8 +8,10 @@
 #include <Mib/Core/Core>
 #include <Mib/Concurrency/ConcurrencyManager>
 #include <Mib/Concurrency/DistributedApp>
+#include <Mib/Concurrency/ActorSequencer>
 #include <Mib/Daemon/Daemon>
 #include <Mib/Process/ProcessLaunch>
+#include <Mib/File/ChangeNotificationActor>
 #include <Mib/Mongo/Client>
 #include <Mib/Storage/Optional>
 #include <Mib/Security/UniqueUserGroup>
@@ -31,6 +33,7 @@ namespace NMib::NMeteor::NMeteorManager
 			, EPackageType_Custom
 			, EPackageType_FastCGI
 			, EPackageType_Websocket
+			, EPackageType_Static
 		};
 		
 		struct CEnvironmentVariable
@@ -53,14 +56,17 @@ namespace NMib::NMeteor::NMeteorManager
 				return TCMap<CStr, CPackage>::fs_GetKey(*this);
 			}
 
-			bool f_IsNpmStatic() const
+			bool f_IsStatic() const
 			{
-				return
-					m_Type == EPackageType_Npm
-					&&
+				return m_Type == EPackageType_Static
+					||
 					(
-						m_NpmBuildType == "Compile"
-						|| m_NpmBuildType == "Build"
+						m_Type == EPackageType_Npm
+						&&
+						(
+							m_NpmBuildType == "Compile"
+							|| m_NpmBuildType == "Build"
+						)
 					)
 				;
 			}
@@ -72,7 +78,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 			bool f_IsServer() const
 			{
-				return f_IsDynamicServer() || f_IsNpmStatic();
+				return f_IsDynamicServer() || f_IsStatic();
 			}
 			
 			TCVector<CStr> m_StartupDependencies;
@@ -86,6 +92,7 @@ namespace NMib::NMeteor::NMeteorManager
 			CStr m_StickyCookie;
 			CStr m_StickyHeader;
 			CStr m_StaticPath;
+			CStr m_ExternalRoot;
 			TCVector<CStr> m_ExcludeGzipPatterns;
 			fp64 m_MemoryPerNode = 1.5;
 			mint m_Concurrency = 1;
@@ -298,6 +305,8 @@ namespace NMib::NMeteor::NMeteorManager
 		TCContinuation<void> fp_SetupPrerequisites_Mongo();
 		TCContinuation<void> fp_SetupPrerequisites_Packages();
 		TCContinuation<void> fp_SetupPrerequisites_UploadS3();
+		TCContinuation<void> fp_SetupPrerequisites_UploadS3Perform();
+		TCContinuation<void> fp_SetupPrerequisites_UploadS3FileChangeNotifications();
 		TCContinuation<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials);
 		TCContinuation<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type);
 		TCContinuation<void> fp_SetupPrerequisites_OSSetup();
@@ -347,6 +356,11 @@ namespace NMib::NMeteor::NMeteorManager
 		TCSharedPointer<CCanDestroyTracker> mp_pCanDestroyTracker;
 		CDistributedAppState &mp_AppState;
 
+		TCActor<CFileChangeNotificationActor> mp_FileChangeNotificationActor = fg_Construct();
+		TCVector<CActorSubscription> mp_S3FileChangeNotificationSubscriptions;
+
+		TCActorSequencer<void> mp_S3UploadSequencer;
+
 		CUser mp_NodeUser;
 		CUser mp_FastCGIUser;
 		CUser mp_WebsocketUser;
@@ -360,6 +374,7 @@ namespace NMib::NMeteor::NMeteorManager
 		bool mp_bNeedNode = false;
 		bool mp_bNeedFCGI = false;
 		bool mp_bNeedWebsocket = false;
+		bool mp_bInitialS3UploadDone = false;
 
 		TCLinkedList<CToolLaunch> mp_ToolLaunches;
 		

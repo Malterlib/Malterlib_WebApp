@@ -638,7 +638,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				{
 					for (auto &Package : mp_Options.m_Packages)
 					{
-						if (!Package.f_IsServer() || Package.f_IsNpmStatic())
+						if (!Package.f_IsServer() || Package.f_IsStatic())
 							continue;
 
 						bool bIsFastCGI = Package.m_Type == CMeteorManagerOptions::EPackageType_FastCGI;
@@ -754,7 +754,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 							bool bIsFastCGI = Package.m_Type == CMeteorManagerOptions::EPackageType_FastCGI;
 							bool bIsWebsocket = Package.m_Type == CMeteorManagerOptions::EPackageType_Websocket;
-							bool bIsStatic = Package.f_IsNpmStatic();
+							bool bIsStatic = Package.f_IsStatic();
 
 							auto &UpstreamName = Upstreams[Package.f_GetName()];
 
@@ -821,7 +821,12 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
 							Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
 							if (bIsStatic)
-								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()));
+							{
+								if (Package.m_ExternalRoot.f_IsEmpty())
+									Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()));
+								else
+									Server = Server.f_Replace("{StaticRoot}", CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot));
+							}
 							else if (bIsFastCGI)
 								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()));
 							else if (!bIsWebsocket)
@@ -847,7 +852,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 									StaticPackages += "		location {}\n"_f << Package.m_StaticPath;
 									StaticPackages += "		{\n";
 									StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
-									if (Package.f_IsNpmStatic())
+									if (Package.f_IsStatic())
 										StaticPackages += "			gzip_static always;\n";
 									StaticPackages += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload;\" always;\n";
 									StaticPackages += "			add_header Cache-Control no-cache;\n";
