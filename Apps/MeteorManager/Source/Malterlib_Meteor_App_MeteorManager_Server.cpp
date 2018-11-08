@@ -461,6 +461,18 @@ namespace NMib::NMeteor::NMeteorManager
 				m_ContentSecurity_ObjectSrc = pValue->f_String();
 		}
 
+		if (auto *pContentSecurity = Settings.f_GetMember("AccessControl"))
+		{
+			if (auto *pValue = pContentSecurity->f_GetMember("AllowMethods"))
+				m_AccessControl_AllowMethods = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("AllowHeaders"))
+				m_AccessControl_AllowHeaders = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("AllowOrigin"))
+				m_AccessControl_AllowOrigin = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("MaxAge"))
+				m_AccessControl_MaxAge = pValue->f_String();
+		}
+
 		TCMap<CStr, CStr> Hostnames;
 		for (auto &Package : m_Packages)
 		{

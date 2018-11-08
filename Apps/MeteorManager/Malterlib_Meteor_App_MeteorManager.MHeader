@@ -776,6 +776,33 @@ Property
 				Contents	"@(Contents)"\
 							"	},\n"
 
+				Contents	"@(Contents)"\
+							"	\"AccessControl\": {\n"
+
+				Contents	"@(Contents)"\
+							"		\"AllowMethods\": \"@(AccessControl_AllowMethods)\",\n"
+				{
+					!AccessControl_AllowMethods ""
+				}
+				Contents	"@(Contents)"\
+							"		\"AllowMethods\": \"@(AccessControl_AllowHeaders)\",\n"
+				{
+					!AccessControl_AllowHeaders ""
+				}
+				Contents	"@(Contents)"\
+							"		\"AllowOrigin\": \"@(AccessControl_AllowOrigin)\",\n"
+				{
+					!AccessControl_AllowOrigin ""
+				}
+				Contents	"@(Contents)"\
+							"		\"MaxAge\": \"@(AccessControl_MaxAge)\",\n"
+				{
+					!AccessControl_MaxAge ""
+				}
+
+				Contents	"@(Contents)"\
+							"	},\n"
+
 				EnvironmentDefaultTags_Template	"\"@(Explodee)\", "
 				{
 					!Explodee ""

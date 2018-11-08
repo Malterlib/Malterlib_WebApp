@@ -107,6 +107,16 @@ exports.handler = (event, context, callback) => {
 			ContentSecurityPolicy += " connect-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ConnectSrc;
 			ContentSecurityPolicy += " object-src 'none' {} ;"_f << mp_Options.m_ContentSecurity_ObjectSrc;
 
+			CStr AccessControl;
+			if (!mp_Options.m_AccessControl_AllowMethods.f_IsEmpty())
+				AccessControl += "	headers['access-control-allow-methods'] = [{{key: 'Access-Control-Allow-Methods', value: '{}'}];\n"_f << mp_Options.m_AccessControl_AllowMethods;
+			if (!mp_Options.m_AccessControl_AllowHeaders.f_IsEmpty())
+				AccessControl += "	headers['access-control-allow-headers'] = [{{key: 'Access-Control-Allow-Headers', value: '{}'}];\n"_f << mp_Options.m_AccessControl_AllowHeaders;
+			if (!mp_Options.m_AccessControl_AllowOrigin.f_IsEmpty())
+				AccessControl += "	headers['access-control-allow-origin'] = [{{key: 'Access-Control-Allow-Origin', value: '{}'}];\n"_f << mp_Options.m_AccessControl_AllowOrigin;
+			if (!mp_Options.m_AccessControl_MaxAge.f_IsEmpty())
+				AccessControl += "	headers['access-control-max-age'] = [{{key: 'Access-Control-Max-Age', value: '{}'}];\n"_f << mp_Options.m_AccessControl_MaxAge;
+
 			OriginResponseFiles["index.js"] = CStr(R"----(
 'use strict';
 exports.handler = (event, context, callback) => {
@@ -123,10 +133,12 @@ exports.handler = (event, context, callback) => {
 	headers['x-xss-protection'] = [{key: 'X-XSS-Protection', value: '1; mode=block'}];
 	headers['referrer-policy'] = [{key: 'Referrer-Policy', value: 'same-origin'}];
 
+{AccessControl}
+
 	//Return modified response
 	callback(null, response);
 };
-)----").f_Replace("{ContentSecurityPolicy}", ContentSecurityPolicy);
+)----").f_Replace("{ContentSecurityPolicy}", ContentSecurityPolicy).f_Replace("{AccessControl}", AccessControl);
 		}
 
 		mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, OriginRequestFunctionName, OriginRequestFiles, OriginRequestConfig)

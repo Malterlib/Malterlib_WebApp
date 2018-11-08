@@ -138,6 +138,11 @@ namespace NMib::NMeteor::NMeteorManager
 		CStr m_ContentSecurity_ConnectSrc;
 		CStr m_ContentSecurity_ObjectSrc;
 
+		CStr m_AccessControl_AllowMethods;
+		CStr m_AccessControl_AllowHeaders;
+		CStr m_AccessControl_AllowOrigin;
+		CStr m_AccessControl_MaxAge;
+
 		uint16 m_DefaultWebPort = 3000;
 		uint16 m_DefaultWebSSLPort = 3443;
 		uint8 m_LoopbackPrefix = 0;
