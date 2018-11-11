@@ -35,7 +35,7 @@ namespace NMib::NMeteor::NMeteorManager
 		auto AWSCredentials = _AWSCredentials;
 		AWSCredentials.m_Region = "us-east-1";
 
-		mp_LambdaActor = fg_Construct(mp_CurlActor, AWSCredentials);
+		mp_LambdaActor = fg_Construct(mp_CurlActors[0], AWSCredentials);
 
 		TCContinuation<void> Continuation;
 
@@ -206,11 +206,13 @@ exports.handler = (event, context, callback) => {
 				 	, EFileChange_All
 					, g_ActorFunctor > [=](TCVector<CFileChangeNotification::CNotification> const &_Changes) -> TCContinuation<void>
 				 	{
-						if (!mp_bInitialS3UploadDone)
+						if (!mp_bInitialS3UploadDone || mp_bPendingS3Upload)
 							return fg_Explicit();
 						TCContinuation<void> Continuation;
+						mp_bPendingS3Upload = true;
 						mp_S3UploadSequencer > [=]() -> TCContinuation<void>
 							{
+								mp_bPendingS3Upload = false;
 								DMibLogWithCategory(MeteorManager, Info, "Updating S3 upload due to file changes");
 								return fp_SetupPrerequisites_UploadS3Perform();
 							}
@@ -446,13 +448,23 @@ exports.handler = (event, context, callback) => {
 					return;
 				}
 
-				mp_CurlActor = fg_Construct(fg_Construct(), "S3 curl actor");
-				mp_S3Actor = fg_Construct(mp_CurlActor, AWSCredentials);
-				mp_CloudFrontActor = fg_Construct(mp_CurlActor, AWSCredentials);
+				static constexpr mint c_nActors = 16;
+
+				mp_CurlActors.f_SetLen(c_nActors);
+				mp_S3Actors.f_SetLen(c_nActors);
+				for (mint i = 0; i < c_nActors; ++i)
+				{
+					mp_CurlActors[i] = fg_Construct(fg_Construct(), "S3 curl actor");
+					mp_S3Actors[i] = fg_Construct(mp_CurlActors[i], AWSCredentials);
+				}
+
+				TCSharedPointer<uint32> pCurrentActor = fg_Construct(0);
+
+				mp_CloudFrontActor = fg_Construct(mp_CurlActors[0], AWSCredentials);
 
 				CStr BucketName = mp_Options.m_S3BucketPrefix + mp_Domain;
 
-				mp_S3Actor(&CAwsS3Actor::f_ListBucket, BucketName) > Continuation / [=](CAwsS3Actor::CListBucket &&_Bucket)
+				mp_S3Actors[0](&CAwsS3Actor::f_ListBucket, BucketName) > Continuation / [=](CAwsS3Actor::CListBucket &&_Bucket)
 					{
 						TCSet<CStr> FilesToDelete;
 						for (auto &Object : _Bucket.m_Objects)
@@ -500,7 +512,13 @@ exports.handler = (event, context, callback) => {
 								> UploadContinuation / [=](CByteVector &&_Data)
 								{
 									auto Extension = CFile::fs_GetExtension(FileName);
-									mp_S3Actor(&CAwsS3Actor::f_PutObject, BucketName, FileName, PutInfo, fg_Move(_Data)) > UploadContinuation;
+									auto &iActor = *pCurrentActor;
+
+									mp_S3Actors[iActor](&CAwsS3Actor::f_PutObject, BucketName, FileName, PutInfo, fg_Move(_Data)) > UploadContinuation % ("Failed to upload '{}'"_f << FileName);
+
+									++iActor;
+									if (iActor == c_nActors)
+										iActor = 0;
 								}
 							;
 							UploadContinuation > UploadResults.f_AddResult();
@@ -513,7 +531,15 @@ exports.handler = (event, context, callback) => {
 
 								TCActorResultVector<void> DeleteFilesResults;
 								for (auto &File : FilesToDelete)
-									mp_S3Actor(&CAwsS3Actor::f_DeleteObject, BucketName, File) > DeleteFilesResults.f_AddResult();
+								{
+									auto &iActor = *pCurrentActor;
+
+									mp_S3Actors[iActor](&CAwsS3Actor::f_DeleteObject, BucketName, File) > DeleteFilesResults.f_AddResult();
+
+									++iActor;
+									if (iActor == c_nActors)
+										iActor = 0;
+								}
 
 								DeleteFilesResults.f_GetResults()
 									+ fp_SetupPrerequisites_UpdateAWSLambda(AWSCredentials)

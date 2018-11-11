@@ -152,14 +152,14 @@ namespace NMib::NMeteor::NMeteorManager
 		for (auto &ToolLaunch : mp_ToolLaunches)
 			ToolLaunch.m_ProcessLaunch->f_Destroy() > Destroys.f_AddResult();
 
-		if (mp_S3Actor)
-			mp_S3Actor->f_Destroy() > Destroys.f_AddResult();
+		for (auto &Actor : mp_S3Actors)
+			Actor->f_Destroy() > Destroys.f_AddResult();
 		if (mp_CloudFrontActor)
 			mp_CloudFrontActor->f_Destroy() > Destroys.f_AddResult();
 		if (mp_LambdaActor)
 			mp_LambdaActor->f_Destroy() > Destroys.f_AddResult();
-		if (mp_CurlActor)
-			mp_CurlActor->f_Destroy() > Destroys.f_AddResult();
+		for (auto &Actor : mp_CurlActors)
+			Actor->f_Destroy() > Destroys.f_AddResult();
 
 		Destroys.f_GetResults()
 			> [this, pCanDestroy](auto &&_Results)

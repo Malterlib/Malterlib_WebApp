@@ -381,6 +381,7 @@ namespace NMib::NMeteor::NMeteorManager
 		bool mp_bNeedFCGI = false;
 		bool mp_bNeedWebsocket = false;
 		bool mp_bInitialS3UploadDone = false;
+		bool mp_bPendingS3Upload = false;
 
 		TCLinkedList<CToolLaunch> mp_ToolLaunches;
 		
@@ -396,8 +397,8 @@ namespace NMib::NMeteor::NMeteorManager
 		TCActor<CProcessLaunchActor> mp_NginxLaunch;
 		CActorSubscription mp_NginxLaunchSubscription;
 
-		TCActor<CCurlActor> mp_CurlActor;
-		TCActor<CAwsS3Actor> mp_S3Actor;
+		TCVector<TCActor<CCurlActor>> mp_CurlActors;
+		TCVector<TCActor<CAwsS3Actor>> mp_S3Actors;
 		TCActor<CAwsCloudFrontActor> mp_CloudFrontActor;
 		TCActor<CAwsLambdaActor> mp_LambdaActor;
 
