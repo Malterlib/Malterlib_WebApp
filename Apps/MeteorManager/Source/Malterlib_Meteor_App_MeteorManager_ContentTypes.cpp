@@ -19,6 +19,7 @@ namespace NMib::NMeteor::NMeteorManager
 			, {"text/vnd.sun.j2me.app-descriptor", TCVector<CStr>{"jad"}}
 			, {"text/vnd.wap.wml", TCVector<CStr>{"wml"}}
 			, {"text/x-component", TCVector<CStr>{"htc"}}
+			, {"text/vnd.yaml", TCVector<CStr>{"yml"}}
 
 			, {"image/png", TCVector<CStr>{"png"}}
 			, {"image/tiff", TCVector<CStr>{"tif", "tiff"}}
@@ -67,7 +68,7 @@ namespace NMib::NMeteor::NMeteorManager
 			, {"application/xspf+xml", TCVector<CStr>{"xspf"}}
 			, {"application/zip", TCVector<CStr>{"zip"}}
 
-			, {"application/octet-stream", TCVector<CStr>{"bin", "exe", "dll", "deb", "dmg", "iso", "img", "msi", "msp", "msm", "gz", "tar"}}
+			, {"application/octet-stream", TCVector<CStr>{"bin", "exe", "dll", "deb", "dmg", "iso", "img", "msi", "msp", "msm", "gz", "tar", "AppImage"}}
 
 			, {"application/vnd.openxmlformats-officedocument.wordprocessingml.document", TCVector<CStr>{"docx"}}
 			, {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", TCVector<CStr>{"xlsx"}}
