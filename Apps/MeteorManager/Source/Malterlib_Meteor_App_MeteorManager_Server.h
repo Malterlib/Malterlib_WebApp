@@ -149,6 +149,7 @@ namespace NMib::NMeteor::NMeteorManager
 		bool m_bUseInternalNode = false;
 		bool m_bRedirectWWW = false;
 		bool m_bServeAllSubdomains = false;
+		bool m_bStartNginx = true;
 	};
 	
 	struct ICMeteorManagerCustomization
@@ -419,6 +420,7 @@ namespace NMib::NMeteor::NMeteorManager
 		uint64 mp_WebSSLPort = 3443;
 		bool mp_bIsStaging = false;
 		bool mp_bAllowRobots = true;
+		bool mp_bStartNgnix = true;
 	};
 }
 

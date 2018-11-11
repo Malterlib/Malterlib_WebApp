@@ -680,6 +680,11 @@ Property
 					!MeteorManagerDefaultDomain ""
 				}
 				Contents	"@(Contents)"\
+							"	\"StartNginx\": @(MeteorManagerStartNginx),\n"
+				{
+					!MeteorManagerStartNginx ""
+				}
+				Contents	"@(Contents)"\
 							"	\"FullManagerName\": \"@(MalterlibCloudVersionInfo_Executable)\",\n"
 
 				Contents	"@(Error('You need to specify MeteorManagerDefaultDomain'))"

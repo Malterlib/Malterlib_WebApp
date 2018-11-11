@@ -1019,7 +1019,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 	TCContinuation<void> CMeteorManagerActor::fp_StartNginx()
 	{
-		if (mp_NginxLaunch || mp_bStopped || mp_bDestroyed)
+		if (mp_NginxLaunch || mp_bStopped || mp_bDestroyed || !mp_bStartNgnix)
 			return fg_Explicit(); // Launch already in progress
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();

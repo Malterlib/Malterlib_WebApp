@@ -423,6 +423,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		m_FullManagerName = Settings["FullManagerName"].f_String();
 		m_DefaultDomain = Settings["DefaultDomain"].f_String();
+		m_bStartNginx = Settings["StartNginx"].f_Boolean();
 
 		if (auto *pValue = Settings.f_GetMember("DefaultWebPort"))
 			m_DefaultWebPort = pValue->f_Integer();

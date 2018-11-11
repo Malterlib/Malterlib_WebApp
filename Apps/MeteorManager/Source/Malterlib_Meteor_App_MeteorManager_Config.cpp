@@ -33,7 +33,8 @@ namespace NMib::NMeteor::NMeteorManager
 			mp_bIsStaging = true;
 
 		mp_bAllowRobots = fp_GetConfigValue("AllowRobots", true).f_Boolean();
-		
+		mp_bStartNgnix = fp_GetConfigValue("StartNgnix", mp_Options.m_bStartNginx).f_Boolean();
+
 		mp_Domain = fp_GetConfigValue("Domain", mp_Options.m_DefaultDomain).f_String();
 		if (mp_bIsStaging)
 		{
