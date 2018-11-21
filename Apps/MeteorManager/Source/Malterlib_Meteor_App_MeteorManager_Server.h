@@ -94,6 +94,7 @@ namespace NMib::NMeteor::NMeteorManager
 			CStr m_StaticPath;
 			CStr m_ExternalRoot;
 			TCVector<CStr> m_ExcludeGzipPatterns;
+			TCMap<CStr, int64> m_UploadS3Priority;
 			fp64 m_MemoryPerNode = 1.5;
 			mint m_Concurrency = 1;
 			EPackageType m_Type = EPackageType_Meteor;
@@ -355,7 +356,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCSharedPointer<CUniqueUserGroup> mp_pUniqueUserGroup;
 
 		CMeteorManagerOptions mp_Options;
-		TCRoundRobinActors<CSeparateThreadActor> mp_FileActors;
+		TCRoundRobinActors<CSeparateThreadActor> mp_FileActors{4};
 		
 		TCSharedPointer<ICMeteorManagerCustomization> mp_pCustomization;
 		
@@ -366,6 +367,8 @@ namespace NMib::NMeteor::NMeteorManager
 		TCVector<CActorSubscription> mp_S3FileChangeNotificationSubscriptions;
 
 		TCActorSequencer<void> mp_S3UploadSequencer;
+		TCActorSequencer<void> mp_S3FileReadSequencer{8};
+		TCActorSequencer<void> mp_S3PrioritySequencer;
 
 		CUser mp_NodeUser;
 		CUser mp_FastCGIUser;
@@ -397,8 +400,9 @@ namespace NMib::NMeteor::NMeteorManager
 		TCActor<CProcessLaunchActor> mp_NginxLaunch;
 		CActorSubscription mp_NginxLaunchSubscription;
 
-		TCVector<TCActor<CCurlActor>> mp_CurlActors;
-		TCVector<TCActor<CAwsS3Actor>> mp_S3Actors;
+		TCRoundRobinActors<CCurlActor> mp_CurlActors{2 + 32};
+		TCRoundRobinActors<CAwsS3Actor> mp_S3Actors{32};
+
 		TCActor<CAwsCloudFrontActor> mp_CloudFrontActor;
 		TCActor<CAwsLambdaActor> mp_LambdaActor;
 

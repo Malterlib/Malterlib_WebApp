@@ -20,7 +20,6 @@ namespace NMib::NMeteor::NMeteorManager
 		, mp_pCanDestroyTracker(fg_Construct())
 		, mp_Options(_Options)
 		, mp_pCustomization(fg_CreateMeteorManagerCustomization())
-		, mp_FileActors(4)
 		, mp_InstanceId(fg_RandomID())
 	{
 	}
@@ -152,14 +151,14 @@ namespace NMib::NMeteor::NMeteorManager
 		for (auto &ToolLaunch : mp_ToolLaunches)
 			ToolLaunch.m_ProcessLaunch->f_Destroy() > Destroys.f_AddResult();
 
-		for (auto &Actor : mp_S3Actors)
-			Actor->f_Destroy() > Destroys.f_AddResult();
+		mp_S3Actors.f_Destroy() > Destroys.f_AddResult();
+
 		if (mp_CloudFrontActor)
 			mp_CloudFrontActor->f_Destroy() > Destroys.f_AddResult();
 		if (mp_LambdaActor)
 			mp_LambdaActor->f_Destroy() > Destroys.f_AddResult();
-		for (auto &Actor : mp_CurlActors)
-			Actor->f_Destroy() > Destroys.f_AddResult();
+
+		mp_CurlActors.f_Destroy()  > Destroys.f_AddResult();
 
 		Destroys.f_GetResults()
 			> [this, pCanDestroy](auto &&_Results)
@@ -416,6 +415,12 @@ namespace NMib::NMeteor::NMeteorManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("UploadS3"))
 				Package.m_bUploadS3 = pValue->f_Boolean();
+
+			if (auto *pValue = PackageSettings.f_GetMember("UploadS3Priority"))
+			{
+				for (auto &PriorityEntry : pValue->f_Object())
+					Package.m_UploadS3Priority[PriorityEntry.f_Name()] = PriorityEntry.f_Value().f_Integer();
+			}
 
 			if (auto *pValue = PackageSettings.f_GetMember("ExternalRoot"))
 				Package.m_ExternalRoot = pValue->f_String();

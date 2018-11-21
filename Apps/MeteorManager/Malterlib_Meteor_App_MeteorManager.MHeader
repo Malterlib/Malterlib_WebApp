@@ -508,6 +508,19 @@ Property
 					!Empty "@(UploadS3_@(Explodee))"
 				}
 
+				UploadS3Priority_Template_Expand "				\"@(Expand0)\": @(Expand1),\n"
+				UploadS3Priority_Template	"@(Builtin.Function->ExpandList('@(Explodee)', '>', 'UploadS3Priority_Template_Expand'))"
+				{
+					!Explodee ""
+				}
+				PackageSettings	"@(PackageSettings)"\
+								"			\"UploadS3Priority\": {\n"\
+								"@(Builtin.Function->ExplodeList('@(UploadS3Priority_@(Explodee))', ';', 'UploadS3Priority_Template'))"\
+								"			},\n"
+				{
+					!Empty "@(UploadS3Priority_@(Explodee))"
+				}
+
 				PackageSettings	"@(PackageSettings)"\
 								"			\"ExternalRoot\": \"@(ExternalRoot_@(Explodee))\",\n"
 				{
@@ -1011,7 +1024,7 @@ Property
 
 	Property
 	{
-		CloudUploadSources_Template "@(Builtin.Function->GetProperty('Property', 'MalterlibBuildServerPutSources', 'Group:@(Explodee).Target:Tool_Malterlib_BuildMeteor.Target:Tool_Malterlib_BuildMeteor'));"
+		Cloudkources_Template "@(Builtin.Function->GetProperty('Property', 'MalterlibBuildServerPutSources', 'Group:@(Explodee).Target:Tool_Malterlib_BuildMeteor.Target:Tool_Malterlib_BuildMeteor'));"
 		{
 			!Explodee ""
 		}
