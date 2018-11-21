@@ -1024,7 +1024,7 @@ Property
 
 	Property
 	{
-		Cloudkources_Template "@(Builtin.Function->GetProperty('Property', 'MalterlibBuildServerPutSources', 'Group:@(Explodee).Target:Tool_Malterlib_BuildMeteor.Target:Tool_Malterlib_BuildMeteor'));"
+		CloudUploadSources_Template "@(Builtin.Function->GetProperty('Property', 'MalterlibBuildServerPutSources', 'Group:@(Explodee).Target:Tool_Malterlib_BuildMeteor.Target:Tool_Malterlib_BuildMeteor'));"
 		{
 			!Explodee ""
 		}
