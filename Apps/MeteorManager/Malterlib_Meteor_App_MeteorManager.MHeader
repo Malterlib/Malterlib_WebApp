@@ -141,6 +141,7 @@
 		ExportScriptEnvironment "MalterlibMeteorCheckedOutPath;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "MalterlibMeteorDebugBundle;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "MalterlibMeteorNodePackagePath;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment "MalterlibMeteorHostNodePackagePath;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "MalterlibMeteorToolDependencies;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "MalterlibMeteorToolDependenciesFiles;@(Target.ExportScriptEnvironment)"
 		ExportScriptEnvironment "NpmBuildType;@(Target.ExportScriptEnvironment)"
@@ -237,11 +238,11 @@
 
 Property
 {
-	MeteorManagerEnvironmment "ROOT_URL(Meteor|FastCGI|Websocket)=RootURL;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "STATIC_ROOT_URL(Meteor|FastCGI|Websocket)=StaticRootURL;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "PORT(Meteor|FastCGI|Websocket)=LocalPort|8080;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "BIND_IP(Meteor|FastCGI|Websocket)=LocalIP;@(MeteorManagerEnvironmment)"
-	MeteorManagerEnvironmment "HTTP_FORWARDED_COUNT(Meteor|FastCGI|Websocket)=HttpForwardedCount|1;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "ROOT_URL(Meteor|FastCGI|Websocket|Npm)=RootURL;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "STATIC_ROOT_URL(Meteor|FastCGI|Websocket|Npm)=StaticRootURL;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "PORT(Meteor|FastCGI|Websocket|Npm)=LocalPort|8080;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "BIND_IP(Meteor|FastCGI|Websocket|Npm)=LocalIP;@(MeteorManagerEnvironmment)"
+	MeteorManagerEnvironmment "HTTP_FORWARDED_COUNT(Meteor|FastCGI|Websocket|Npm)=HttpForwardedCount|1;@(MeteorManagerEnvironmment)"
 	MeteorManagerEnvironmment "MAIL_URL(!Staging)=SMTP;@(MeteorManagerEnvironmment)"
 	
 	MeteorManagerEnvironmment "BUNDLE_PATH=PackageDirectory;@(MeteorManagerEnvironmment)"

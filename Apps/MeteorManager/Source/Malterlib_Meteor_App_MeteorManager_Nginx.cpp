@@ -32,8 +32,8 @@ R"---(
 			access_log logs/static_access_{PackageName}.log;
 		}
 
-		# pass all requests to Meteor
-		location /{SubPath}/
+		# pass all other requests to upstream
+		location /{SubPath}
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -90,7 +90,7 @@ R"---(
 {StaticPackages}
 {SubPackages}
 
-		# pass all requests to Meteor
+		# pass all other requests to upstream
 		location /
 		{
 {PathRedirect}
@@ -124,7 +124,7 @@ R"---(
 ch8 const *g_pStaticServerTemplate[2] =
 	{
 R"---(
-		location /{SubPath}/
+		location /{SubPath}
 		{
 			gzip_static always;
 			add_header Strict-Transport-Security "max-age=31536000;" always;
@@ -188,7 +188,7 @@ R"---(
 		}
 
 		# pass all requests to FastCGI
-		location /{SubPath}/
+		location /{SubPath}
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -754,6 +754,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 							bool bIsFastCGI = Package.m_Type == CMeteorManagerOptions::EPackageType_FastCGI;
 							bool bIsWebsocket = Package.m_Type == CMeteorManagerOptions::EPackageType_Websocket;
+							bool bIsMeteor = Package.m_Type == CMeteorManagerOptions::EPackageType_Meteor;
 							bool bIsStatic = Package.f_IsStatic();
 
 							auto &UpstreamName = Upstreams[Package.f_GetName()];
@@ -820,6 +821,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							Server = Server.f_Replace("{PackageName}", Package.f_GetName());
 							Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
 							Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
+
 							if (bIsStatic)
 							{
 								if (Package.m_ExternalRoot.f_IsEmpty())
@@ -827,10 +829,10 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 								else
 									Server = Server.f_Replace("{StaticRoot}", CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot));
 							}
-							else if (bIsFastCGI)
-								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()));
-							else if (!bIsWebsocket)
+							else if (bIsMeteor)
 								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()));
+							else
+								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()));
 
 							VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
 							VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");

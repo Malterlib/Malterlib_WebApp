@@ -306,6 +306,7 @@ namespace NMib::NMeteor::NMeteorManager
 			CStrSecure m_UserPassword;
 			bool m_bPasswordChanged = false;
 #endif
+			CStr m_MainFile;
 		};
 		
 		auto &PackageOptions = fg_Const(mp_Options.m_Packages)[_PackageName];
@@ -377,12 +378,28 @@ namespace NMib::NMeteor::NMeteorManager
 						User = PackageInfo.m_User;
 						UserHomePath = PackageHomeDirectory;
 					}
-					
+
 					CStr PackageDirectory = ProgramDirectory + "/" + _PackageName;
 					CStr MeteorPackageFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz";
 					CStr NewChecksum = fsp_GetFileChecksum(MeteorPackageFileName).f_GetString();
 					CStr MeteorPackageChecksumFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz.installed.md5";
 					bool bDoInstall = false;
+
+					CStr PackageFile = PackageDirectory / "package.json";
+					if (CFile::fs_FileExists(PackageFile))
+					{
+						try
+						{
+							auto PackageJSON = CJSON::fs_FromString(CFile::fs_ReadStringFromFile(PackageFile, true), PackageFile);
+							if (auto pValue = PackageJSON.f_GetMember("main", EJSONType_String))
+								PackageInfo.m_MainFile = pValue->f_String();
+						}
+						catch (NException::CException const &_Exception)
+						{
+							DMibLogCategoryStr(_PackageName);
+							DLog(Error, "Failed to parse package.json: {}", _Exception);
+						}
+					}
 
 					if (bForceAppsReinstall)
 						bDoInstall = true;
@@ -421,99 +438,96 @@ namespace NMib::NMeteor::NMeteorManager
 								TCActorResultVector<CStr> Results;
 								try
 								{
-									if (_Type == CMeteorManagerOptions::EPackageType_Meteor || _Type == CMeteorManagerOptions::EPackageType_FastCGI || bIsStatic)
+									CStr StaticRoot;
+									if (bIsStatic)
+										StaticRoot = PackageDirectory;
+									else if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
+										StaticRoot = PackageDirectory + "/programs/web.browser";
+									else
+										StaticRoot = PackageDirectory + "/static";
+
+									TCVector<CStr> Files;
+									if (bIsStatic)
 									{
-										CStr StaticRoot;
-										if (bIsStatic)
-											StaticRoot = PackageDirectory;
-										else if (_Type == CMeteorManagerOptions::EPackageType_FastCGI)
-											StaticRoot = PackageDirectory + "/static";
-										else
-											StaticRoot = PackageDirectory + "/programs/web.browser";
-
-										TCVector<CStr> Files;
-										if (bIsStatic)
+										for (auto &File : CFile::fs_FindFiles(StaticRoot + "/*", EFileAttrib_File, true))
 										{
-											for (auto &File : CFile::fs_FindFiles(StaticRoot + "/*", EFileAttrib_File, true))
+											CStr RelativePath = CFile::fs_MakePathRelative(File, StaticRoot);
+											bool bExcluded = false;
+											for (auto &Pattern : ExcludeGzipPatterns)
 											{
-												CStr RelativePath = CFile::fs_MakePathRelative(File, StaticRoot);
-												bool bExcluded = false;
-												for (auto &Pattern : ExcludeGzipPatterns)
+												if (NStr::fg_StrMatchWildcard(RelativePath.f_GetStr(), Pattern.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
 												{
-													if (NStr::fg_StrMatchWildcard(RelativePath.f_GetStr(), Pattern.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
-													{
-														bExcluded = true;
-														break;
-													}
+													bExcluded = true;
+													break;
 												}
-												if (bExcluded)
-													continue;
-												Files.f_Insert(File);
 											}
+											if (bExcluded)
+												continue;
+											Files.f_Insert(File);
 										}
-										else if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
-										{
-											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.css", EFileAttrib_File));
-											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.js", EFileAttrib_File));
-										}
-										else
-										{
-											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.css", EFileAttrib_File, true));
-											Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.js", EFileAttrib_File, true));
-										}
+									}
+									else if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
+									{
+										Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.css", EFileAttrib_File));
+										Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.js", EFileAttrib_File));
+									}
+									else
+									{
+										Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.css", EFileAttrib_File, true));
+										Files.f_Insert(CFile::fs_FindFiles(StaticRoot + "/*.js", EFileAttrib_File, true));
+									}
 
-										for (auto &File : Files)
+									for (auto &File : Files)
+									{
+										ThisActor
+											(
+												&CMeteorManagerActor::f_LaunchTool
+#ifdef DPlatformFamily_Windows
+												, CFile::fs_GetProgramDirectory() / "bin/gzip"
+#else
+												, "gzip"
+#endif
+												, PackageDirectory
+												, fg_CreateVector<CStr>("-k", "-9", File)
+												, CStr{"GZipStatic"}
+												, ELogVerbosity_Errors
+												, fg_Default()
+												, true
+												, fg_Default()
+												, fg_Default()
+												, fg_Default()
+#ifdef DPlatformFamily_Windows
+												, fg_Default()
+#endif
+											)
+											> Results.f_AddResult()
+										;
+									}
+
+									if (!CFile::fs_FileExists(PackageDirectory + "/.installed"))
+									{
+										if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
 										{
+											CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, User.m_UserName, User.m_GroupName);
 											ThisActor
 												(
 													&CMeteorManagerActor::f_LaunchTool
-#ifdef DPlatformFamily_Windows
-													, CFile::fs_GetProgramDirectory() / "bin/gzip"
-#else
-													, "gzip"
-#endif
-													, PackageDirectory
-													, fg_CreateVector<CStr>("-k", "-9", File)
+													, ProgramDirectory + "/node_dist/bin/npm"
+													, PackageDirectory + "/programs/server"
+													, fg_CreateVector<CStr>("install", "--silent")
 													, CStr{"GZipStatic"}
 													, ELogVerbosity_Errors
 													, fg_Default()
 													, true
-													, fg_Default()
-													, fg_Default()
-													, fg_Default()
+													, UserHomePath
+													, User.m_UserName
+													, User.m_GroupName
 #ifdef DPlatformFamily_Windows
-													, fg_Default()
+													, PackageInfo.m_UserPassword
 #endif
 												)
 												> Results.f_AddResult()
 											;
-										}
-										
-										if (!CFile::fs_FileExists(PackageDirectory + "/.installed"))
-										{
-											if (_Type == CMeteorManagerOptions::EPackageType_Meteor)
-											{
-												CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, User.m_UserName, User.m_GroupName);
-												ThisActor
-													(
-														&CMeteorManagerActor::f_LaunchTool
-														, ProgramDirectory + "/node_dist/bin/npm"
-														, PackageDirectory + "/programs/server"
-														, fg_CreateVector<CStr>("install", "--silent")
-														, CStr{"GZipStatic"}
-														, ELogVerbosity_Errors
-														, fg_Default()
-														, true
-														, UserHomePath
-														, User.m_UserName
-														, User.m_GroupName
-#ifdef DPlatformFamily_Windows
-														, PackageInfo.m_UserPassword
-#endif
-													)
-													> Results.f_AddResult()
-												;
-											}
 										}
 									}
 								}
@@ -593,6 +607,8 @@ namespace NMib::NMeteor::NMeteorManager
 			{
 				auto &Package = mp_Options.m_Packages[_PackageName];
 				Package.m_User = _PackageInfo.m_User;
+				Package.m_MainFile = _PackageInfo.m_MainFile;
+				
 #ifdef DPlatformFamily_Windows
 				if (_PackageInfo.m_bPasswordChanged && !_PackageInfo.m_UserPassword.f_IsEmpty())
 				{

@@ -306,7 +306,7 @@ namespace NMib::NMeteor::NMeteorManager
 #endif
 			fp_SetupNodeArguments(Arguments, _AppLaunch, PackageOptions);
 			
-			Arguments.f_Insert(fg_Format("{}/{}/bin/main.js", ProgramDirectory, LaunchKey.m_PackageName));
+			Arguments.f_Insert(ProgramDirectory / LaunchKey.m_PackageName / PackageOptions.m_MainFile);
 		}
 		else if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Custom)
 		{
@@ -512,7 +512,7 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 			for (auto &Package : mp_Options.m_Packages)
 			{
-				if (!Package.f_IsServer())
+				if (!Package.f_IsDynamicServer())
 					continue;
 				CStr Hostname = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 				CStr HostnameStatic = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static);

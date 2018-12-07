@@ -71,9 +71,20 @@ namespace NMib::NMeteor::NMeteorManager
 				;
 			}
 
+			bool f_IsNpmDynamic() const
+			{
+				return
+					m_Type == EPackageType_Npm
+					&&
+					(
+						m_NpmBuildType == "Start"
+					)
+				;
+			}
+
 			bool f_IsDynamicServer() const
 			{
-				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket;
+				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket || f_IsNpmDynamic();
 			}
 
 			bool f_IsServer() const
@@ -92,6 +103,7 @@ namespace NMib::NMeteor::NMeteorManager
 			CStr m_StickyCookie;
 			CStr m_StickyHeader;
 			CStr m_StaticPath;
+			CStr m_MainFile;
 			CStr m_ExternalRoot;
 			TCVector<CStr> m_ExcludeGzipPatterns;
 			TCMap<CStr, int64> m_UploadS3Priority;
