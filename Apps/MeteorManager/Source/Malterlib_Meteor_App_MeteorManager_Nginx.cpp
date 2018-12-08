@@ -487,11 +487,11 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					RelativeDistinguishedNames["O"] = CertificateOrganization;
 					RelativeDistinguishedNames["OU"] = CertificateOrganizationalUnit;
 
-					TCVector<uint8> CertData;
-					TCVector<uint8> CertRequestData;
-					TCVector<uint8, CAllocator_HeapSecure> KeyData;
-					TCVector<uint8> CaCertData;
-					TCVector<uint8, CAllocator_HeapSecure> CaKeyData;
+					CByteVector CertData;
+					CByteVector CertRequestData;
+					CSecureByteVector KeyData;
+					CByteVector CaCertData;
+					CSecureByteVector CaKeyData;
 
 					TCVector<CStr> Subjects = fg_CreateVector<CStr>(Domain, "*." + Domain);
 

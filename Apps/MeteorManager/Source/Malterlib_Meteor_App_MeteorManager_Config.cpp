@@ -8,7 +8,7 @@ namespace NMib::NMeteor::NMeteorManager
 	void CMeteorManagerActor::fp_ParseConfig_DDPSelf()
 	{
 		CStr HostName = NProcess::NPlatform::fg_Process_GetHostName();
-		CStr HostNameHash = NDataProcessing::CHash_SHA1::fs_DigestFromData(HostName.f_GetStr(), HostName.f_GetLen()).f_GetString().f_Extract(0, 8);
+		CStr HostNameHash = NCryptography::CHash_SHA1::fs_DigestFromData(HostName.f_GetStr(), HostName.f_GetLen()).f_GetString().f_Extract(0, 8);
 
 		mp_DDPSelf = "host-" + HostNameHash + "." + mp_Domain;
 

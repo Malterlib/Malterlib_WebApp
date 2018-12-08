@@ -35,7 +35,7 @@ class CMeteorManagerApp : public CApplication
 		
 		NConcurrency::CDistributedDaemon Daemon
 			{
-				DMibMeteor_ManagerServiceName
+				DMibMeteor_ManagerDaemonName
 				, DMibMeteor_ManagerDescription
 				, "Manages web applications"
 				, [Options]

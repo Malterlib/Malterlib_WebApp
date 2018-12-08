@@ -1,9 +1,6 @@
 
 #include <Mib/Core/Core>
 
-namespace NMib
+namespace NMib::NMeteor
 {
-	namespace NMeteor
-	{
-	}
 }

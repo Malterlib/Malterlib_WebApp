@@ -288,17 +288,22 @@ Property
 			!!MalterlibMeteorManagerPrefix "Empty"
 		}
 
-		MalterlibMeteorManagerServiceName "MalterlibMeteorManager_@(MalterlibMeteorManagerName)"
+		MalterlibMeteorManagerDaemonName "@(Error('Use MalterlibMeteorManagerDaemonName instead'))"
+		{
+			!MalterlibMeteorManagerServiceName ""
+		}
+
+		MalterlibMeteorManagerDaemonName "MalterlibMeteorManager_@(MalterlibMeteorManagerName)"
 		{
 			&
 			{
-				MalterlibMeteorManagerServiceName ""
+				MalterlibMeteorManagerDaemonName ""
 				MalterlibMeteorManagerPrefix "MeteorManager_"
 			}
 		}
-		MalterlibMeteorManagerServiceName "@(MalterlibMeteorManagerPrefix)@(MalterlibMeteorManagerName)"
+		MalterlibMeteorManagerDaemonName "@(MalterlibMeteorManagerPrefix)@(MalterlibMeteorManagerName)"
 		{
-			!!MalterlibMeteorManagerServiceName ""
+			!!MalterlibMeteorManagerDaemonName ""
 		}
 
 		MalterlibMeteorManagerDescription "Malterlib Web App Manager (@(MalterlibMeteorManagerName))"
@@ -369,7 +374,7 @@ Property
 		PreprocessorDefines "DMibMeteor_ManagerName=\"@(MalterlibMeteorManagerName)\";@(Compile.PreprocessorDefines)"
 		PreprocessorDefines "DMibMeteor_ManagerDescription=\"@(MalterlibMeteorManagerDescription)\";@(Compile.PreprocessorDefines)"
 		PreprocessorDefines "DMibMeteor_SettingsPath=\"@(MalterlibMeteorSettingsPath)\";@(Compile.PreprocessorDefines)"
-		PreprocessorDefines "DMibMeteor_ManagerServiceName=\"@(MalterlibMeteorManagerServiceName)\";@(Compile.PreprocessorDefines)"
+		PreprocessorDefines "DMibMeteor_ManagerDaemonName=\"@(MalterlibMeteorManagerDaemonName)\";@(Compile.PreprocessorDefines)"
 		PreprocessorDefines "DMibMeteor_UseInternalNode;@(Compile.PreprocessorDefines)"
 		{
 			!NodeBinariesPath ""
