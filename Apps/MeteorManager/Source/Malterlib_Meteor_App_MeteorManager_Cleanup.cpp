@@ -33,9 +33,9 @@ namespace NMib::NMeteor::NMeteorManager
 		}
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_CleanupOldProcesses()
+	TCFuture<void> CMeteorManagerActor::fp_CleanupOldProcesses()
 	{
-		return g_Dispatch(*mp_FileActors) > []
+		return g_Dispatch(*mp_FileActors) / []
 			{
 				fg_CleanupOldProcesses();
 			}

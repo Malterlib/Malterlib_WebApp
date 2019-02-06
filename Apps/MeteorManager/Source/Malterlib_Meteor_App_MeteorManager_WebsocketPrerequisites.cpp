@@ -5,7 +5,7 @@
 
 namespace NMib::NMeteor::NMeteorManager
 {
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Websocket()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Websocket()
 	{
 		if (!mp_bNeedWebsocket)
 			return fg_Explicit();
@@ -21,14 +21,14 @@ namespace NMib::NMeteor::NMeteorManager
 #endif
 		};
 	
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		g_Dispatch(*mp_FileActors)
 			> [ProgramDirectory, WebsocketDirectory, ThisActor = fg_ThisActor(this), WebsocketUser = mp_WebsocketUser, MongoSSLDirectory = fp_GetMongoSSLDirectory()]
-			() mutable -> TCContinuation<CInfo>
+			() mutable -> TCFuture<CInfo>
 			{
 				DLog(Info, "Setting up fast cgi user");
 				
-				TCContinuation<CInfo> Continuation;
+				TCPromise<CInfo> Promise;
 				CInfo Info;
 				Info.m_User = WebsocketUser;
 				
@@ -39,30 +39,30 @@ namespace NMib::NMeteor::NMeteorManager
 #else
 					fsp_SetupPrerequisites_ServerUser(Info.m_User, WebsocketDirectory, MongoSSLDirectory);
 #endif
-					Continuation.f_SetResult(Info);
-					return Continuation;
+					Promise.f_SetResult(Info);
+					return Promise.f_MoveFuture();
 				}
 				catch (NException::CException const &)
 				{
-					Continuation.f_SetCurrentException();
-					return Continuation;
+					Promise.f_SetCurrentException();
+					return Promise.f_MoveFuture();
 				}
 			}
-			> Continuation / [this, Continuation](CInfo const &_NodeInfo)
+			> Promise / [this, Promise](CInfo const &_NodeInfo)
 			{
 				mp_WebsocketUser = _NodeInfo.m_User;
 #ifdef DPlatformFamily_Windows
 				if (!_NodeInfo.m_UserPassword.f_IsEmpty())
 				{
 					mp_AppState.m_StateDatabase.m_Data["Users"][_NodeInfo.m_User.m_UserName]["Password"] = _NodeInfo.m_UserPassword;
-					mp_AppState.f_SaveStateDatabase() > Continuation;
+					mp_AppState.f_SaveStateDatabase() > Promise;
 					return;
 				}
 #endif
-				Continuation.f_SetResult();
+				Promise.f_SetResult();
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 }

@@ -54,14 +54,14 @@ namespace NMib::NMeteor::NMeteorManager
 		o_RegisterInfo.m_Resources_Processes = nMaxPids; 
 	}
 	
-	TCContinuation<void> CMeteorManagerDaemonActor::fp_StartApp(NEncoding::CEJSON const &_Params)
+	TCFuture<void> CMeteorManagerDaemonActor::fp_StartApp(NEncoding::CEJSON const &_Params)
 	{
 		mp_pManager = fg_ConstructActor<CMeteorManagerActor>(fg_Construct(self), mp_State, mp_Options);
 		
 		return mp_pManager(&CMeteorManagerActor::f_Startup);
 	}
 	
-	TCContinuation<void> CMeteorManagerDaemonActor::fp_StopApp()
+	TCFuture<void> CMeteorManagerDaemonActor::fp_StopApp()
 	{	
 		TCSharedPointer<CCanDestroyTracker> pCanDestroy = fg_Construct();
 		
@@ -78,25 +78,25 @@ namespace NMib::NMeteor::NMeteorManager
 			mp_pManager = nullptr;
 		}
 		
-		return pCanDestroy->m_Continuation;
+		return pCanDestroy->f_Future();
 	}
 	
-	TCContinuation<void> CMeteorManagerDaemonActor::fp_PreStop()
+	TCFuture<void> CMeteorManagerDaemonActor::fp_PreStop()
 	{
 		if (!mp_pManager)
 			return fg_Explicit();
 
 		DMibLogWithCategory(Daemon, Info, "Running pre-stop");
 		
-		TCContinuation<void> Continuation;
-		mp_pManager(&CMeteorManagerActor::f_PreStop) > [Continuation](TCAsyncResult<void> &&_Result)
+		TCPromise<void> Promise;
+		mp_pManager(&CMeteorManagerActor::f_PreStop) > [Promise](TCAsyncResult<void> &&_Result)
 			{
 				if (!_Result)
 					DMibLogWithCategory(Daemon, Error, "Failed to pre-stop down server: {}", _Result.f_GetExceptionStr());
-				Continuation.f_SetResult();
+				Promise.f_SetResult();
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 }

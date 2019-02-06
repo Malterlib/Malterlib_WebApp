@@ -28,7 +28,7 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 	}
 
-	TCContinuation<void> CMeteorManagerActor::f_Startup()
+	TCFuture<void> CMeteorManagerActor::f_Startup()
 	{
 		DMibLogWithCategory
 			(
@@ -58,41 +58,41 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		fp_CreateAppLaunches();
 		
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 
 		DLog(Info, "Cleaning up old processes");
-		fp_CleanupOldProcesses() > Continuation % "Failed to clean up old processes" / [this, Continuation]
+		fp_CleanupOldProcesses() > Promise % "Failed to clean up old processes" / [this, Promise]
 		{
 			DLog(Info, "Done cleaning up, extracting ExeFS");
-			fp_ExtractExeFS() > Continuation % "Failed to extract ExeFS" / [this, Continuation]
+			fp_ExtractExeFS() > Promise % "Failed to extract ExeFS" / [this, Promise]
 			{
 				DLog(Info, "Done extracting ExeFS, setting up node prerequisites and updating version history");
-				fp_SetupPrerequisites_Servers() + fp_UpdateVersionHistory() > Continuation / [this, Continuation]
+				fp_SetupPrerequisites_Servers() + fp_UpdateVersionHistory() > Promise / [this, Promise]
 				{
 					DLog(Info, "Done setting up node prerequisites and updating version history, setting up customization prerequisites");
-					fp_SetupPrerequisites_Customization() > Continuation / [this, Continuation]
+					fp_SetupPrerequisites_Customization() > Promise / [this, Promise]
 					{
 						DLog(Info, "Done setting up customization prerequisites, setting up nginx prerequisites");
-						fp_SetupPrerequisites_Nginx() > Continuation / [this, Continuation]
+						fp_SetupPrerequisites_Nginx() > Promise / [this, Promise]
 						{
 							DLog(Info, "Done setting up nginx prerequisites, checking node version");
 
-							TCContinuation<void> NodeVersionCheckContinuation;
+							TCPromise<void> NodeVersionCheckPromise;
 							if (mp_bNeedNode)
-								NodeVersionCheckContinuation = fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node);
+								NodeVersionCheckPromise = fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node);
 							else
-								NodeVersionCheckContinuation.f_SetResult();
+								NodeVersionCheckPromise.f_SetResult();
 
-							NodeVersionCheckContinuation > Continuation / [this, Continuation]
+							NodeVersionCheckPromise > Promise / [this, Promise]
 							{
 								DLog(Info, "Done checking node version, setting up mongo");
-								fp_SetupMongo() > Continuation / [this, Continuation]
+								fp_SetupMongo() > Promise / [this, Promise]
 								{
 									DLog(Info, "Done setting up mongo, starting apps");
-									fp_StartApps() > Continuation / [this, Continuation]
+									fp_StartApps() > Promise / [this, Promise]
 									{
 										DLog(Info, "Done stating apps, starting nginx");
-										fp_StartNginx() > Continuation;
+										fp_StartNginx() > Promise;
 									};
 								};
 							};
@@ -102,10 +102,10 @@ namespace NMib::NMeteor::NMeteorManager
 			};
 		};
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 	
-	TCContinuation<void> CMeteorManagerActor::f_PreStop()
+	TCFuture<void> CMeteorManagerActor::f_PreStop()
 	{
 		DLog(Debug, "Pre-stop server");
 		mp_bStopped = true;
@@ -114,23 +114,23 @@ namespace NMib::NMeteor::NMeteorManager
 		for (auto &ToolLaunch : mp_ToolLaunches)
 			ToolLaunch.m_ProcessLaunch->f_Destroy() > Destroys.f_AddResult();
 		
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		
 		Destroys.f_GetResults()
-			> [this, Continuation](auto &&)
+			> [this, Promise](auto &&)
 			{
-				fp_DestroyApps() > [this, Continuation](auto &&)
+				fp_DestroyApps() > [this, Promise](auto &&)
 					{
 						if (!mp_NginxLaunch)
 						{
 							DLog(Debug, "Pre-stop server done");
-							Continuation.f_SetResult();
+							Promise.f_SetResult();
 							return;
 						}
-						mp_NginxLaunch->f_Destroy() > [Continuation](auto &&)
+						mp_NginxLaunch->f_Destroy() > [Promise](auto &&)
 							{
 								DLog(Debug, "Pre-stop server done");
-								Continuation.f_SetResult();
+								Promise.f_SetResult();
 								return;
 							}
 						;
@@ -139,10 +139,10 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 		;
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_Destroy()
+	TCFuture<void> CMeteorManagerActor::fp_Destroy()
 	{
 		DLog(Debug, "Destroy server");
 		auto pCanDestroy = fg_Move(mp_pCanDestroyTracker);
@@ -188,7 +188,7 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 		;
 		
-		return pCanDestroy->m_Continuation;
+		return pCanDestroy->f_Future();
 	}
 	
 #ifdef DPlatformFamily_Windows
@@ -240,9 +240,9 @@ namespace NMib::NMeteor::NMeteorManager
 		}
 	}
 	
-	TCContinuation<void> CMeteorManagerActor::fp_ExtractExeFS() const
+	TCFuture<void> CMeteorManagerActor::fp_ExtractExeFS() const
 	{
-		return g_Dispatch(*mp_FileActors) > []
+		return g_Dispatch(*mp_FileActors) / []
 			{
 				CExeFS ExeFS;
 				if (!fg_OpenExeFS(ExeFS))
@@ -275,14 +275,14 @@ namespace NMib::NMeteor::NMeteorManager
 		;
 	}
 	
-	TCContinuation<void> CMeteorManagerActor::fp_CheckVersion(CStr const &_Tool, CStr const &_Argument, CStr const &_ParseString, CVersion const &_NeededVersion)
+	TCFuture<void> CMeteorManagerActor::fp_CheckVersion(CStr const &_Tool, CStr const &_Argument, CStr const &_ParseString, CVersion const &_NeededVersion)
 	{
-		TCContinuation<void> Continuation;
-		fp_RunToolForVersionCheck(_Tool, fg_CreateVector<CStr>(_Argument)) > Continuation % "Failed to check version" / [=](CStr &&_Data)
+		TCPromise<void> Promise;
+		fp_RunToolForVersionCheck(_Tool, fg_CreateVector<CStr>(_Argument)) > Promise % "Failed to check version" / [=](CStr &&_Data)
 			{
 				if (_Data.f_IsEmpty())
 				{
-					Continuation.f_SetException(DErrorInstance(fg_Format("Failed get version with: {} {}", _Tool, _Argument)));
+					Promise.f_SetException(DErrorInstance(fg_Format("Failed get version with: {} {}", _Tool, _Argument)));
 					return;
 				}
 				
@@ -292,20 +292,20 @@ namespace NMib::NMeteor::NMeteorManager
 				
 				if (nParsed != 3)
 				{
-					Continuation.f_SetException(DErrorInstance(fg_Format("Failed to extract {} version from: {}", _Tool, _Data)));
+					Promise.f_SetException(DErrorInstance(fg_Format("Failed to extract {} version from: {}", _Tool, _Data)));
 					return;
 				}
 				
 				if (Version < _NeededVersion)
 				{
-					Continuation.f_SetException(DErrorInstance(fg_Format("{} version {} is less than the required version of {}", _Tool, Version, _NeededVersion)));
+					Promise.f_SetException(DErrorInstance(fg_Format("{} version {} is less than the required version of {}", _Tool, Version, _NeededVersion)));
 					return;
 				}
 				DLog(Info, "{} version {} found", _Tool, Version);
-				Continuation.f_SetResult();
+				Promise.f_SetResult();
 			}
 		;
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
 	CStr CMeteorManagerActor::fp_GetDataPath(CStr const &_Path) const

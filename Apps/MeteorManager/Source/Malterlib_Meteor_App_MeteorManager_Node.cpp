@@ -113,13 +113,13 @@ namespace NMib::NMeteor::NMeteorManager
 		}
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_StartApps()
+	TCFuture<void> CMeteorManagerActor::fp_StartApps()
 	{
 		fp_UpdateAppLaunch(nullptr);
-		return mp_AppLaunchesContinuation;
+		return mp_AppLaunchesPromise;
 	}
 	
-	TCContinuation<void> CMeteorManagerActor::fp_DestroyApps()
+	TCFuture<void> CMeteorManagerActor::fp_DestroyApps()
 	{
 		TCActorResultVector<void> Destroys;
 		
@@ -130,17 +130,17 @@ namespace NMib::NMeteor::NMeteorManager
 			Launch.m_Launch->f_Destroy() > Destroys.f_AddResult();
 		}
 	
-		TCContinuation<void> Continuation;
-		Destroys.f_GetResults() > Continuation.f_ReceiveAny();
-		return Continuation;
+		TCPromise<void> Promise;
+		Destroys.f_GetResults() > Promise.f_ReceiveAny();
+		return Promise.f_MoveFuture();
 	}
 	
 	void CMeteorManagerActor::fp_UpdateAppLaunch(CExceptionPointer const &_pException)
 	{
 		if (_pException)
 		{
-			if (!mp_AppLaunchesContinuation.f_IsSet())
-				mp_AppLaunchesContinuation.f_SetException(_pException);
+			if (!mp_AppLaunchesPromise.f_IsSet())
+				mp_AppLaunchesPromise.f_SetException(_pException);
 			return;
 		}
 		
@@ -154,9 +154,9 @@ namespace NMib::NMeteor::NMeteorManager
 				auto *pOutstanding = mp_OutstandingLaunches.f_FindEqual(Dependency);
 				if (!pOutstanding)
 				{
-					if (!mp_AppLaunchesContinuation.f_IsSet())
+					if (!mp_AppLaunchesPromise.f_IsSet())
 					{
-						mp_AppLaunchesContinuation.f_SetException
+						mp_AppLaunchesPromise.f_SetException
 							(
 								DErrorInstance(fg_Format("No such package '{}' when trying to wait for dependencies for '{}'", Dependency, LaunchKey.m_PackageName))
 							)
@@ -188,8 +188,8 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 		}
 
-		if (bAllDone && !mp_AppLaunchesContinuation.f_IsSet())
-			mp_AppLaunchesContinuation.f_SetResult();
+		if (bAllDone && !mp_AppLaunchesPromise.f_IsSet())
+			mp_AppLaunchesPromise.f_SetResult();
 	}
 	
 	void CMeteorManagerActor::fp_SetupNodeArguments(TCVector<CStr> &o_Arguments, CAppLaunch const &_AppLaunch, CMeteorManagerOptions::CPackage const &_PackageOptions)
@@ -276,7 +276,7 @@ namespace NMib::NMeteor::NMeteorManager
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		
 		TCVector<CStr> Arguments;
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		
 		auto *pAppLaunch = &_AppLaunch;
 		auto &LaunchKey = _AppLaunch.f_GetKey();
@@ -353,7 +353,7 @@ namespace NMib::NMeteor::NMeteorManager
 				LaunchExecutable
 				, Arguments
 				, PackageDirectory
-				, [this, Continuation, pAppLaunch, _bInitialLaunch](CProcessLaunchStateChangeVariant const &_Change, fp64 _TimeSinceStart)
+				, [this, Promise, pAppLaunch, _bInitialLaunch](CProcessLaunchStateChangeVariant const &_Change, fp64 _TimeSinceStart)
 				{
 					auto &AppLaunch = *pAppLaunch;
 					

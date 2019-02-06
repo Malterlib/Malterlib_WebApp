@@ -15,7 +15,7 @@ namespace NMib::NMeteor::NMeteorManager
 		uint32 gc_UpdateVersion = 23;
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials)
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials)
 	{
 		CStr CloudFrontDistribution = fp_GetConfigValue("AWSCloudFrontDistribution", "").f_String();
 		CStr AWSLambdaRole = fp_GetConfigValue("AWSLambdaRole", "").f_String();
@@ -37,7 +37,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		mp_LambdaActor = fg_Construct(*mp_CurlActors, AWSCredentials);
 
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 
 		CStr OriginRequestFunctionName = CStr("originrequest.{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain).f_ReplaceChar('.', '_');
 		TCMap<CStr, CStr> OriginRequestFiles;
@@ -143,9 +143,9 @@ exports.handler = (event, context, callback) => {
 
 		mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, OriginRequestFunctionName, OriginRequestFiles, OriginRequestConfig)
 			+ mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, OriginResponseFunctionName, OriginResponseFiles, OriginResponseConfig)
-			> Continuation % "Update AWS Lambda functions" / [=](CAwsLambdaActor::CFunctionInfo &&_OriginRequestInfo, CAwsLambdaActor::CFunctionInfo &&_OriginResponseInfo)
+			> Promise % "Update AWS Lambda functions" / [=](CAwsLambdaActor::CFunctionInfo &&_OriginRequestInfo, CAwsLambdaActor::CFunctionInfo &&_OriginResponseInfo)
 			{
-				if (fp_CheckDestroyed(Continuation))
+				if (fp_CheckDestroyed(Promise))
 					return;
 
 				if
@@ -156,7 +156,7 @@ exports.handler = (event, context, callback) => {
 					 	|| _OriginResponseInfo.m_Version == "$LATEST"
 					)
 				{
-					Continuation.f_SetResult();
+					Promise.f_SetResult();
 					return;
 				}
 
@@ -165,18 +165,18 @@ exports.handler = (event, context, callback) => {
 				FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginResponse] = _OriginResponseInfo.m_Arn;
 
 				mp_CloudFrontActor(&CAwsCloudFrontActor::f_UpdateDistributionLambdaFunctions, CloudFrontDistribution, FunctionAssociations)
-					> Continuation % "Associate AWS Lambda function with CloudFront distribution" / [=]
+					> Promise % "Associate AWS Lambda function with CloudFront distribution" / [=]
 					{
-						Continuation.f_SetResult();
+						Promise.f_SetResult();
 					}
 				;
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3FileChangeNotifications()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3FileChangeNotifications()
 	{
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
@@ -201,19 +201,19 @@ exports.handler = (event, context, callback) => {
 
 			CStr Root = CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot);
 
-			TCContinuation<void> RegisterContinuation;
+			TCPromise<void> RegisterPromise;
 			mp_FileChangeNotificationActor
 				(
 				 	&CFileChangeNotificationActor::f_RegisterForChanges
 				 	, Root
 				 	, EFileChange_All
-					, g_ActorFunctor > [=](TCVector<CFileChangeNotification::CNotification> const &_Changes) -> TCContinuation<void>
+					, g_ActorFunctor / [=](TCVector<CFileChangeNotification::CNotification> const &_Changes) -> TCFuture<void>
 				 	{
 						if (!mp_bInitialS3UploadDone || mp_bPendingS3Upload)
 							return fg_Explicit();
-						TCContinuation<void> Continuation;
+						TCPromise<void> Promise;
 						mp_bPendingS3Upload = true;
-						mp_S3UploadSequencer > [=]() -> TCContinuation<void>
+						mp_S3UploadSequencer / [=]() -> TCFuture<void>
 							{
 								mp_bPendingS3Upload = false;
 								DMibLogWithCategory(MeteorManager, Info, "Updating S3 upload due to file changes");
@@ -226,40 +226,40 @@ exports.handler = (event, context, callback) => {
 								else
 									DMibLogWithCategory(MeteorManager, Info, "S3 upload due to file changes finished");
 
-								Continuation.f_SetResult();
+								Promise.f_SetResult();
 							}
 						;
 
-						return Continuation;
+						return Promise.f_MoveFuture();
 					}
 				 	, CFileChangeNotificationActor::CCoalesceSettings{}
 				)
-				> RegisterContinuation / [=](NConcurrency::CActorSubscription &&_Subscription)
+				> RegisterPromise / [=](NConcurrency::CActorSubscription &&_Subscription)
 				{
 					mp_S3FileChangeNotificationSubscriptions.f_Insert(fg_Move(_Subscription));
-					RegisterContinuation.f_SetResult();
+					RegisterPromise.f_SetResult();
 				}
 			;
 
-			RegisterContinuation > Results.f_AddResult();
+			RegisterPromise > Results.f_AddResult();
 		}
 
-		TCContinuation<void> Continuation;
-		Results.f_GetResults() > Continuation / [=](TCVector<TCAsyncResult<void>> &&_Results)
+		TCPromise<void> Promise;
+		Results.f_GetResults() > Promise / [=](TCVector<TCAsyncResult<void>> &&_Results)
 			{
-				if (!fg_CombineResults(Continuation, fg_Move(_Results)))
+				if (!fg_CombineResults(Promise, fg_Move(_Results)))
 					return;
 
-				Continuation.f_SetResult();
+				Promise.f_SetResult();
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3()
 	{
-		return mp_S3UploadSequencer > [=]() -> TCContinuation<void>
+		return mp_S3UploadSequencer / [=]() -> TCFuture<void>
 			{
 				mp_bInitialS3UploadDone = true;
 				return fp_SetupPrerequisites_UploadS3Perform();
@@ -292,9 +292,9 @@ exports.handler = (event, context, callback) => {
 		};
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3Perform()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3Perform()
 	{
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
@@ -378,7 +378,7 @@ exports.handler = (event, context, callback) => {
 
 		if (ManifestConfig.m_IncludeWildcards.f_IsEmpty())
 		{
-			Continuation.f_SetResult();
+			Promise.f_SetResult();
 			return fg_Explicit();
 		}
 
@@ -413,7 +413,7 @@ exports.handler = (event, context, callback) => {
 		DMibLogWithCategory(S3Upload, Info, "Getting source checksums");
 		NTime::CClock Clock{true};
 
-		g_Dispatch(*mp_FileActors) > [=, Options = mp_Options, Domain = mp_Domain]() mutable -> CSourceCheckResults
+		g_Dispatch(*mp_FileActors) / [=, Options = mp_Options, Domain = mp_Domain]() mutable -> CSourceCheckResults
 			{
 				CHash_MD5 Checksum;
 
@@ -522,9 +522,9 @@ exports.handler = (event, context, callback) => {
 
 				return Results;
 			}
-			> Continuation / [=](CSourceCheckResults const &_SourceCheckResults) mutable
+			> Promise / [=](CSourceCheckResults const &_SourceCheckResults) mutable
 			{
-				if (fp_CheckDestroyed(Continuation))
+				if (fp_CheckDestroyed(Promise))
 					return;
 
 				DMibLogWithCategory(S3Upload, Info, "Getting source checksums {fe2} s", Clock.f_GetTime());
@@ -533,7 +533,7 @@ exports.handler = (event, context, callback) => {
 				if (_SourceCheckResults.m_bUpToDate)
 				{
 					DMibLogWithCategory(S3Upload, Info, "S3 files were already up to date");
-					Continuation.f_SetResult();
+					Promise.f_SetResult();
 					return;
 				}
 
@@ -557,9 +557,9 @@ exports.handler = (event, context, callback) => {
 				CStr BucketName = mp_Options.m_S3BucketPrefix + mp_Domain;
 
 				DMibLogWithCategory(S3Upload, Info, "Listing bucket");
-				(*mp_S3Actors)(&CAwsS3Actor::f_ListBucket, BucketName) > Continuation / [=](CAwsS3Actor::CListBucket &&_Bucket) mutable
+				(*mp_S3Actors)(&CAwsS3Actor::f_ListBucket, BucketName) > Promise / [=](CAwsS3Actor::CListBucket &&_Bucket) mutable
 					{
-						if (fp_CheckDestroyed(Continuation))
+						if (fp_CheckDestroyed(Promise))
 							return;
 
 						DMibLogWithCategory(S3Upload, Info, "Listing bucket {fe2} s", Clock.f_GetTime());
@@ -605,10 +605,10 @@ exports.handler = (event, context, callback) => {
 							DMibLogWithCategory(S3Upload, Info, "Querying object meta data for {} objects", nMetaDataQueries);
 
 						MetaDataResults.f_GetResults()
-							> Continuation % "Failed to get file meta data"
+							> Promise % "Failed to get file meta data"
 							/ [=](TCMap<CStr, TCAsyncResult<CAwsS3Actor::CObjectInfoMetaData>> &&_MetaData) mutable
 							{
-								if (fp_CheckDestroyed(Continuation))
+								if (fp_CheckDestroyed(Promise))
 									return;
 								if (nMetaDataQueries)
 									DMibLogWithCategory(S3Upload, Info, "Querying object meta data for {} objects {fe2} s", nMetaDataQueries, Clock.f_GetTime());
@@ -618,7 +618,7 @@ exports.handler = (event, context, callback) => {
 								for (auto &Object : _Bucket.m_Objects)
 									FilesToDelete[Object.m_Key];
 
-								TCMap<int64, TCVector<TCFunctionMutable<TCContinuation<void> ()>>> ToUpload;
+								TCMap<int64, TCVector<TCFunctionMutable<TCFuture<void> ()>>> ToUpload;
 
 								for (auto &NewFile : _SourceCheckResults.m_DirectoryManifest.m_Files)
 								{
@@ -684,21 +684,21 @@ exports.handler = (event, context, callback) => {
 									// Limit the number of files held in memory to limit memory usage
 									ToUpload[Priority].f_Insert
 										(
-											[=, ExpectedChecksum = NewFile.m_Digest]() -> TCContinuation<void>
+											[=, ExpectedChecksum = NewFile.m_Digest]() -> TCFuture<void>
 											{
-												TCContinuation<void> UploadContinuation;
-												if (fp_CheckDestroyed(UploadContinuation))
-													return UploadContinuation;
+												TCPromise<void> UploadPromise;
+												if (fp_CheckDestroyed(UploadPromise))
+													return UploadPromise.f_MoveFuture();
 
 												DMibLogWithCategory(S3Upload, Info, "Uploading file with priority {}: '{}'", Priority, FileName);
 
-												TCContinuation<CByteVector> ReadContinuation;
+												TCPromise<CByteVector> ReadPromise;
 
 												if (FileName == "robots.txt" && !NewFile.m_SymlinkData.f_IsEmpty())
-													ReadContinuation.f_SetResult(CByteVector((uint8 *)NewFile.m_SymlinkData.f_GetStr(), NewFile.m_SymlinkData.f_GetLen()));
+													ReadPromise.f_SetResult(CByteVector((uint8 *)NewFile.m_SymlinkData.f_GetStr(), NewFile.m_SymlinkData.f_GetLen()));
 												else
 												{
-													g_Dispatch(*mp_FileActors) > [=, FullFileName = RootPath / NewFile.m_OriginalPath]() -> CByteVector
+													g_Dispatch(*mp_FileActors) / [=, FullFileName = RootPath / NewFile.m_OriginalPath]() -> CByteVector
 														{
 															auto FileData = CFile::fs_ReadFile(FullFileName);
 
@@ -707,21 +707,21 @@ exports.handler = (event, context, callback) => {
 
 															return FileData;
 														}
-														> ReadContinuation
+														> ReadPromise
 													;
 												}
 
-												ReadContinuation > UploadContinuation % ("Failed to read '{}'"_f << FileName) / [=](CByteVector &&_Data)
+												ReadPromise > UploadPromise % ("Failed to read '{}'"_f << FileName) / [=](CByteVector &&_Data)
 													{
-														if (fp_CheckDestroyed(UploadContinuation))
+														if (fp_CheckDestroyed(UploadPromise))
 															return;
 
 														(*mp_S3Actors)(&CAwsS3Actor::f_PutObject, BucketName, FileName, PutInfo, fg_Move(_Data))
-															> UploadContinuation % ("Failed to upload '{}'"_f << FileName)
+															> UploadPromise % ("Failed to upload '{}'"_f << FileName)
 														;
 													}
 												;
-												return UploadContinuation;
+												return UploadPromise.f_MoveFuture();
 											}
 										)
 									;
@@ -731,7 +731,7 @@ exports.handler = (event, context, callback) => {
 
 								for (auto &PriorityUploadList : ToUpload)
 								{
-									mp_S3PrioritySequencer > [=]() mutable -> TCContinuation<void>
+									mp_S3PrioritySequencer / [=]() mutable -> TCFuture<void>
 										{
 											if (auto pDestroyed = fp_CheckDestroyed())
 												return pDestroyed;
@@ -739,17 +739,17 @@ exports.handler = (event, context, callback) => {
 											TCActorResultVector<void> UploadResults;
 
 											for (auto &fUpload : PriorityUploadList)
-												mp_S3FileReadSequencer > fg_Move(fUpload) > UploadResults.f_AddResult();
+												mp_S3FileReadSequencer / fg_Move(fUpload) > UploadResults.f_AddResult();
 
-											TCContinuation<void> Continuation;
-											UploadResults.f_GetResults() > Continuation / [=](TCVector<TCAsyncResult<void>> &&_Results)
+											TCPromise<void> Promise;
+											UploadResults.f_GetResults() > Promise / [=](TCVector<TCAsyncResult<void>> &&_Results)
 												{
-													if (!fg_CombineResults(Continuation, fg_Move(_Results)))
+													if (!fg_CombineResults(Promise, fg_Move(_Results)))
 														return;
-													Continuation.f_SetResult();
+													Promise.f_SetResult();
 												}
 											;
-											return Continuation;
+											return Promise.f_MoveFuture();
 										}
 										> UploadResults.f_AddResult()
 									;
@@ -759,16 +759,16 @@ exports.handler = (event, context, callback) => {
 								if (bUploadFiles)
 									DMibLogWithCategory(S3Upload, Info, "Reading files and uploading");
 
-								UploadResults.f_GetResults() > Continuation / [=](TCVector<TCAsyncResult<void>> &&_UploadResults) mutable
+								UploadResults.f_GetResults() > Promise / [=](TCVector<TCAsyncResult<void>> &&_UploadResults) mutable
 									{
-										if (fp_CheckDestroyed(Continuation))
+										if (fp_CheckDestroyed(Promise))
 											return;
 
 										if (bUploadFiles)
 											DMibLogWithCategory(S3Upload, Info, "Reading files and uploading {fe2} s", Clock.f_GetTime());
 										Clock.f_Start();
 
-										if (!fg_CombineResults(Continuation, fg_Move(_UploadResults)))
+										if (!fg_CombineResults(Promise, fg_Move(_UploadResults)))
 											return;
 
 										TCActorResultVector<void> DeleteFilesResults;
@@ -783,9 +783,9 @@ exports.handler = (event, context, callback) => {
 
 										DeleteFilesResults.f_GetResults()
 											+ fp_SetupPrerequisites_UpdateAWSLambda(AWSCredentials)
-											> Continuation / [=](TCVector<TCAsyncResult<void>> &&_Results, CVoidTag) mutable
+											> Promise / [=](TCVector<TCAsyncResult<void>> &&_Results, CVoidTag) mutable
 											{
-												if (fp_CheckDestroyed(Continuation))
+												if (fp_CheckDestroyed(Promise))
 													return;
 
 												if (bDeleteFiles)
@@ -794,10 +794,10 @@ exports.handler = (event, context, callback) => {
 													DMibLogWithCategory(S3Upload, Info, "Updating Lambda@Edge {fe2} s", Clock.f_GetTime());
 												Clock.f_Start();
 
-												if (!fg_CombineResults(Continuation, fg_Move(_Results)))
+												if (!fg_CombineResults(Promise, fg_Move(_Results)))
 													return;
 
-												TCContinuation<void> CloudFrontInvalidateResult;
+												TCPromise<void> CloudFrontInvalidateResult;
 												if (CloudFrontDistribution.f_IsEmpty())
 													CloudFrontInvalidateResult.f_SetResult();
 												else
@@ -808,16 +808,16 @@ exports.handler = (event, context, callback) => {
 													;
 												}
 
-												CloudFrontInvalidateResult > Continuation / [=]
+												CloudFrontInvalidateResult > Promise / [=]
 													{
-														if (fp_CheckDestroyed(Continuation))
+														if (fp_CheckDestroyed(Promise))
 															return;
-														g_Dispatch(*mp_FileActors) > [=]()
+														g_Dispatch(*mp_FileActors) / [=]()
 															{
 																CFile::fs_WriteStringToFile(_SourceCheckResults.m_ChecksumFile, _SourceCheckResults.m_ChecksumStr, false);
 																DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3 took {fe2} s in total", GlobalClock.f_GetTime());
 															}
-															> Continuation
+															> Promise
 														;
 													}
 												;
@@ -832,6 +832,6 @@ exports.handler = (event, context, callback) => {
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 }

@@ -396,9 +396,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 	}
 )---";
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Nginx()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Nginx()
 	{
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 
 		struct CResults
 		{
@@ -607,22 +607,22 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 				return Results;
 			}
-			> Continuation / [=](CResults &&_Results)
+			> Promise / [=](CResults &&_Results)
 			{
 				CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
 				mp_NginxUser = _Results.m_User;
-				TCContinuation<void> SavePasswordContinuation;
+				TCPromise<void> SavePasswordPromise;
 #ifdef DPlatformFamily_Windows
 				if (!_Results.m_UserPassword.f_IsEmpty())
 				{
 					mp_AppState.m_StateDatabase.m_Data["Users"][mp_NginxUser.m_UserName]["Password"] = _Results.m_UserPassword;
-					mp_AppState.f_SaveStateDatabase() > Continuation;
+					mp_AppState.f_SaveStateDatabase() > Promise;
 					return;
 				}
 				else
 #endif
-					SavePasswordContinuation.f_SetResult();
+					SavePasswordPromise.f_SetResult();
 
 				CStr ConfigContents = _Results.m_ConfigContents;
 
@@ -999,27 +999,25 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					ConfigContents = ConfigContents.f_Replace("{ContentTypes}", ContentTypesContents);
 				}
 
-
-
-				(g_Dispatch(*mp_FileActors) > [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_UserName, GroupName = mp_NginxUser.m_GroupName, NginxDirectory]()
+				(g_Dispatch(*mp_FileActors) / [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_UserName, GroupName = mp_NginxUser.m_GroupName, NginxDirectory]()
 					{
 						CFile::fs_WriteStringToFile(ConfigFile, ConfigContents, false);
 
 						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, GroupName);
 						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", GroupName);
 					})
-					+ SavePasswordContinuation
-					> Continuation / [Continuation]()
+					+ SavePasswordPromise
+					> Promise / [Promise]()
 					{
-						Continuation.f_SetResult();
+						Promise.f_SetResult();
 					}
 				;
 			}
 		;
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_StartNginx()
+	TCFuture<void> CMeteorManagerActor::fp_StartNginx()
 	{
 		if (mp_NginxLaunch || mp_bStopped || mp_bDestroyed || !mp_bStartNgnix)
 			return fg_Explicit(); // Launch already in progress
@@ -1032,14 +1030,14 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		Arguments.f_Insert("-c");
 		Arguments.f_Insert(NginxConfig);
 
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 
 		CProcessLaunchActor::CLaunch Launch = CProcessLaunchParams::fs_LaunchExecutable
 			(
 				ProgramDirectory + "/bin/nginx"
 				, Arguments
 				, NginxDirectory
-				, [this, Continuation](CProcessLaunchStateChangeVariant const &_Change, fp64 _TimeSinceStart)
+				, [this, Promise](CProcessLaunchStateChangeVariant const &_Change, fp64 _TimeSinceStart)
 				{
 					switch (_Change.f_GetTypeID())
 					{
@@ -1049,10 +1047,10 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							{
 								if (mp_NginxLaunch)
 									mp_NginxLaunch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
-								Continuation.f_SetException(DMibErrorInstance("Application is being destroyed"));
+								Promise.f_SetException(DMibErrorInstance("Application is being destroyed"));
 							}
 							else
-								Continuation.f_SetResult();
+								Promise.f_SetResult();
 						}
 						break;
 					case EProcessLaunchState_Exited:
@@ -1073,7 +1071,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						break;
 					case EProcessLaunchState_LaunchFailed:
 						{
-							Continuation.f_SetException(DMibErrorInstance(fg_Format("nginx launch failed: {}", _Change.f_Get<EProcessLaunchState_LaunchFailed>())));
+							Promise.f_SetException(DMibErrorInstance(fg_Format("nginx launch failed: {}", _Change.f_Get<EProcessLaunchState_LaunchFailed>())));
 							mp_NginxLaunch.f_Clear();
 							mp_NginxLaunchSubscription.f_Clear();
 						}
@@ -1116,11 +1114,11 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		mp_NginxLaunch = fg_ConstructActor<CProcessLaunchActor>();
 
-		mp_NginxLaunch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this)) > [this, Continuation](TCAsyncResult<CActorSubscription> &&_Subscription)
+		mp_NginxLaunch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this)) > [this, Promise](TCAsyncResult<CActorSubscription> &&_Subscription)
 			{
 				if (!_Subscription)
 				{
-					Continuation.f_SetException(fg_Move(_Subscription));
+					Promise.f_SetException(fg_Move(_Subscription));
 					mp_NginxLaunch.f_Clear();
 					return;
 				}
@@ -1128,6 +1126,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 }

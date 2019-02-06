@@ -36,7 +36,7 @@ namespace NMib::NMeteor::NMeteorManager
 		return DMibNewLine + Ret;
 	}
 
-	TCContinuation<CStr> CMeteorManagerActor::f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir)
+	TCFuture<CStr> CMeteorManagerActor::f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir)
 	{
 		return f_LaunchTool
 			(
@@ -56,7 +56,7 @@ namespace NMib::NMeteor::NMeteorManager
 		;
 	}
 
-	TCContinuation<CStr> CMeteorManagerActor::f_LaunchTool
+	TCFuture<CStr> CMeteorManagerActor::f_LaunchTool
 		(
 			CStr const &_Executable
 			, CStr const &_WorkingDir
@@ -136,9 +136,9 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 		;
 		
-		TCContinuation<CStr> Continuation;
+		TCPromise<CStr> Promise;
 		pToolLaunch->m_ProcessLaunch(&CProcessLaunchActor::f_LaunchSimple, fg_Move(Launch))
-			> Continuation / [pCleanup, Continuation, _bSeparateStdErr, _LogCategory](CProcessLaunchActor::CSimpleLaunchResult &&_Result)
+			> Promise / [pCleanup, Promise, _bSeparateStdErr, _LogCategory](CProcessLaunchActor::CSimpleLaunchResult &&_Result)
 			{
 				if (_Result.m_ExitCode != 0)
 				{
@@ -147,17 +147,17 @@ namespace NMib::NMeteor::NMeteorManager
 						ErrorOut = _Result.f_GetCombinedOut().f_TrimRight();
 					else
 						ErrorOut = _Result.f_GetStdOut().f_TrimRight();
-					Continuation.f_SetException(DErrorInstance(fg_Format("Tool '{}' exited with: {}\n{}", _LogCategory, _Result.m_ExitCode, ErrorOut)));
+					Promise.f_SetException(DErrorInstance(fg_Format("Tool '{}' exited with: {}\n{}", _LogCategory, _Result.m_ExitCode, ErrorOut)));
 					return;
 				}
-				Continuation.f_SetResult(_Result.f_GetStdOut());
+				Promise.f_SetResult(_Result.f_GetStdOut());
 			}
 		;
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
-	TCContinuation<CStr> CMeteorManagerActor::fp_RunToolForVersionCheck(CStr const &_Tool, TCVector<CStr> const &_Arguments)
+	TCFuture<CStr> CMeteorManagerActor::fp_RunToolForVersionCheck(CStr const &_Tool, TCVector<CStr> const &_Arguments)
 	{
 		return f_LaunchTool(_Tool, CFile::fs_GetProgramDirectory(), _Arguments, "VersionCheck", ELogVerbosity_None);
 	}

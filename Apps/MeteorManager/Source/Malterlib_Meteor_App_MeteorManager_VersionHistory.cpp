@@ -25,11 +25,11 @@ namespace NMib::NMeteor::NMeteorManager
 		;
 	}
 	
-	TCContinuation<void> CMeteorManagerActor::fp_UpdateVersionHistory()
+	TCFuture<void> CMeteorManagerActor::fp_UpdateVersionHistory()
 	{
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		
-		g_Dispatch(*mp_FileActors) > [VersionHistoryFileName = fp_GetDataPath("VersionHistory.txt")]
+		g_Dispatch(*mp_FileActors) / [VersionHistoryFileName = fp_GetDataPath("VersionHistory.txt")]
 			{
 				CStr VersionString = fsp_GetVersionString();
 
@@ -99,12 +99,12 @@ namespace NMib::NMeteor::NMeteorManager
 				
 				return VersionHistory;
 			}
-			> Continuation / [this, Continuation](TCVector<CStr> &&_VersionHistory)
+			> Promise / [this, Promise](TCVector<CStr> &&_VersionHistory)
 			{
 				mp_VersionHistory = fg_Move(_VersionHistory);
-				Continuation.f_SetResult();
+				Promise.f_SetResult();
 			}
 		;
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 }

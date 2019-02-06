@@ -19,9 +19,9 @@ namespace NMib::NMeteor::NMeteorManager
 		~CMeteorManagerDaemonActor();
 		
 	private:
-		TCContinuation<void> fp_StartApp(NEncoding::CEJSON const &_Params) override;
-		TCContinuation<void> fp_StopApp() override;
-		TCContinuation<void> fp_PreStop() override;
+		TCFuture<void> fp_StartApp(NEncoding::CEJSON const &_Params) override;
+		TCFuture<void> fp_StopApp() override;
+		TCFuture<void> fp_PreStop() override;
 		void fp_PopulateAppInterfaceRegisterInfo(CDistributedAppInterfaceServer::CRegisterInfo &o_RegisterInfo, NEncoding::CEJSON const &_Params) override;
 		
 		void fp_BuildCommandLine(CDistributedAppCommandLineSpecification &o_CommandLine) override; 

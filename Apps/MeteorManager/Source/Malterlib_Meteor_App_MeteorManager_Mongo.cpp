@@ -15,7 +15,7 @@ namespace NMib::NMeteor::NMeteorManager
 		return _ExecutableName;
 	}
 	
-	TCContinuation<void> CMeteorManagerActor::fp_SetupMongo()
+	TCFuture<void> CMeteorManagerActor::fp_SetupMongo()
 	{
 		if (mp_Options.m_Mongo.m_DatabaseSetupScript.f_IsEmpty())
 			return fg_Explicit();
@@ -29,16 +29,16 @@ namespace NMib::NMeteor::NMeteorManager
 		;
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Mongo()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Mongo()
 	{
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 
 		struct CSetupResult
 		{
 			CStr m_MongoAdminUserName;
 		};
 
-		g_Dispatch(*mp_FileActors) > [=, MongoSSLDirectory = fp_GetMongoSSLDirectory()]() -> CSetupResult
+		g_Dispatch(*mp_FileActors) / [=, MongoSSLDirectory = fp_GetMongoSSLDirectory()]() -> CSetupResult
 			{
 				CSetupResult SetupResult;
 
@@ -69,14 +69,14 @@ namespace NMib::NMeteor::NMeteorManager
 
 				return SetupResult;
 			}
-			> Continuation / [=](CSetupResult &&_SetupResult)
+			> Promise / [=](CSetupResult &&_SetupResult)
 			{
 				mp_MongoAdminUserName = _SetupResult.m_MongoAdminUserName;
-				Continuation.f_SetResult();
+				Promise.f_SetResult();
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 	
 	CStr CMeteorManagerActor::fp_GetMongoSSLDirectory() const
@@ -89,7 +89,7 @@ namespace NMib::NMeteor::NMeteorManager
 		return MongoSSLDirectory;
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout)
+	TCFuture<void> CMeteorManagerActor::fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout)
 	{
 		CStr ScriptName = CFile::fs_GetFile(_Script);
 
@@ -159,9 +159,9 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		CStr MongoExecutable = fp_GetMongoExecutable("mongo");
 		
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		
-		TCSharedPointer<TCFunctionMutable<void (TCContinuation<void> const &_Continuation)>> pDoLaunch = fg_Construct();
+		TCSharedPointer<TCFunctionMutable<void (TCPromise<void> const &_Promise)>> pDoLaunch = fg_Construct();
 		
 		*pDoLaunch =
 			[
@@ -173,9 +173,9 @@ namespace NMib::NMeteor::NMeteorManager
 				, _Timeout
 				, pDoLaunch
 			]
-			(TCContinuation<void> const &_Continuation) mutable
+			(TCPromise<void> const &_Promise) mutable
 			{
-				if (_Continuation.f_IsSet())
+				if (_Promise.f_IsSet())
 				{
 					pDoLaunch.f_Clear();
 					return;
@@ -190,34 +190,34 @@ namespace NMib::NMeteor::NMeteorManager
 						, {}
 						, true
 					)
-					> [ScriptName, _Continuation, Clock, _Timeout, pDoLaunch](TCAsyncResult<CStr> const &_StdOut)
+					> [ScriptName, _Promise, Clock, _Timeout, pDoLaunch](TCAsyncResult<CStr> const &_StdOut)
 					{
 						if (!_StdOut)
 						{
 							if (_StdOut.f_GetExceptionStr().f_Find("exception: connect failed") >= 0 && _Timeout != 0.0f && Clock.f_GetTime() < _Timeout)
 							{
-								fg_Timeout(0.1) > _Continuation / [pDoLaunch, _Continuation]
+								fg_Timeout(0.1) > _Promise / [pDoLaunch, _Promise]
 									{
-										(*pDoLaunch)(_Continuation);
+										(*pDoLaunch)(_Promise);
 									}
 								;
 								return;
 							}
-							_Continuation.f_SetException(_StdOut);
-							(*pDoLaunch)(_Continuation);
+							_Promise.f_SetException(_StdOut);
+							(*pDoLaunch)(_Promise);
 							return;
 						}
 						auto StdOut = (*_StdOut).f_Trim();
 						DLog(Info, "{}:{}{}", ScriptName, StdOut.f_IsEmpty() ? "" : "\n", StdOut);
-						_Continuation.f_SetResult();
-						(*pDoLaunch)(_Continuation);
+						_Promise.f_SetResult();
+						(*pDoLaunch)(_Promise);
 					}
 				;
 			}
 		;
 		
-		(*pDoLaunch)(Continuation);
+		(*pDoLaunch)(Promise);
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 }

@@ -18,7 +18,7 @@ namespace NMib::NMeteor::NMeteorManager
 		return nNodes;
 	}
 	
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_OSSetup()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_OSSetup()
 	{
 #ifdef DPlatformFamily_Windows
 		return fg_Explicit();
@@ -31,9 +31,9 @@ namespace NMib::NMeteor::NMeteorManager
 		Environment["PlatformFamily"] = DMibStringize(DPlatformFamily);
 		Environment["LoopbackPrefix"] = fg_Format("{}", mp_Options.m_LoopbackPrefix);
 
-		TCContinuation<void> Continuation;
-		f_LaunchTool(CProcessLaunch::fs_GetBashPath(), ProgramDirectory, {SetupOSFile}, "OSSetup", ELogVerbosity_Errors, Environment) > Continuation.f_ReceiveAny();
-		return Continuation;
+		TCPromise<void> Promise;
+		f_LaunchTool(CProcessLaunch::fs_GetBashPath(), ProgramDirectory, {SetupOSFile}, "OSSetup", ELogVerbosity_Errors, Environment) > Promise.f_ReceiveAny();
+		return Promise.f_MoveFuture();
 #endif
 	}
 	
@@ -107,7 +107,7 @@ namespace NMib::NMeteor::NMeteorManager
 		CFile::fs_SetOwnerAndGroupRecursive(_Directory, _User.m_UserName, _User.m_GroupName);
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_NodeExtract()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_NodeExtract()
 	{
 		if (!mp_bNeedNode)
 			return fg_Explicit();
@@ -139,14 +139,14 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 		}
 
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		g_Dispatch(*mp_FileActors)
 			> [ProgramDirectory, NodeDirectory, ThisActor = fg_ThisActor(this), NodeUser = mp_NodeUser, MongoSSLDirectory = fp_GetMongoSSLDirectory(), bNeedNode]
-			() mutable -> TCContinuation<CNodeInfo>
+			() mutable -> TCFuture<CNodeInfo>
 			{
 				DLog(Info, "Extracting node distribution");
 				
-				TCContinuation<CNodeInfo> Continuation;
+				TCPromise<CNodeInfo> Promise;
 				
 				CStr DistFile;
 
@@ -210,19 +210,19 @@ namespace NMib::NMeteor::NMeteorManager
 						if (bNeedNode)
 							DLog(Error, "No node distribution found");
 						
-						Continuation.f_SetResult(NodeInfo);
-						return Continuation;
+						Promise.f_SetResult(NodeInfo);
+						return Promise.f_MoveFuture();
 					}
 				}
 				catch (NException::CException const &)
 				{
-					Continuation.f_SetCurrentException();
-					return Continuation;
+					Promise.f_SetCurrentException();
+					return Promise.f_MoveFuture();
 				}
 				
 				if (bDoInstall)
 				{
-					ThisActor(&CMeteorManagerActor::f_ExtractTar, DistFile, ProgramDirectory) > Continuation / [=]
+					ThisActor(&CMeteorManagerActor::f_ExtractTar, DistFile, ProgramDirectory) > Promise / [=]
 						{
 							try
 							{
@@ -239,23 +239,23 @@ namespace NMib::NMeteor::NMeteorManager
 							}
 							catch (NException::CException const &)
 							{
-								Continuation.f_SetCurrentException();
+								Promise.f_SetCurrentException();
 								return;
 							}
 							
-							Continuation.f_SetResult(NodeInfo);
+							Promise.f_SetResult(NodeInfo);
 						}
 					;
 				}
 				else
 				{
-					Continuation.f_SetResult(NodeInfo);
-					return Continuation;
+					Promise.f_SetResult(NodeInfo);
+					return Promise.f_MoveFuture();
 				}
 				
-				return Continuation;
+				return Promise.f_MoveFuture();
 			}
-			> Continuation / [this, Continuation](CNodeInfo const &_NodeInfo)
+			> Promise / [this, Promise](CNodeInfo const &_NodeInfo)
 			{
 				mp_NodeUser = _NodeInfo.m_User;
 				mp_bForceAppsReinstall = _NodeInfo.m_bForceAppReinstall;
@@ -263,41 +263,41 @@ namespace NMib::NMeteor::NMeteorManager
 				if (!_NodeInfo.m_UserPassword.f_IsEmpty())
 				{
 					mp_AppState.m_StateDatabase.m_Data["Users"][_NodeInfo.m_User.m_UserName]["Password"] = _NodeInfo.m_UserPassword;
-					mp_AppState.f_SaveStateDatabase() > Continuation;
+					mp_AppState.f_SaveStateDatabase() > Promise;
 					return;
 				}
 #endif
-				Continuation.f_SetResult();
+				Promise.f_SetResult();
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Packages()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Packages()
 	{
 		TCActorResultVector<void> Results;
 		
 		for (auto &Package : mp_Options.m_Packages)
 			fp_SetupPrerequisites_Package(Package.f_GetName(), Package.m_Type) > Results.f_AddResult();
 	
-		TCContinuation<void> Continuation;
-		Results.f_GetResults() > Continuation / [Continuation](TCVector<TCAsyncResult<void>> &&_Results)
+		TCPromise<void> Promise;
+		Results.f_GetResults() > Promise / [Promise](TCVector<TCAsyncResult<void>> &&_Results)
 			{
-				if (!fg_CombineResults(Continuation, fg_Move(_Results)))
+				if (!fg_CombineResults(Promise, fg_Move(_Results)))
 					return;
-				Continuation.f_SetResult();
+				Promise.f_SetResult();
 			}
 		;
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type)
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type)
 	{
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 
 		struct CPackageInfo
 		{
@@ -340,9 +340,9 @@ namespace NMib::NMeteor::NMeteorManager
 				, ExcludeGzipPatterns = PackageOptions.m_ExcludeGzipPatterns
 				, bForceAppsReinstall = mp_bForceAppsReinstall
 			]
-			() mutable -> TCContinuation<CPackageInfo>
+			() mutable -> TCFuture<CPackageInfo>
 			{
-				TCContinuation<CPackageInfo> Continuation;
+				TCPromise<CPackageInfo> Promise;
 				
 				try
 				{
@@ -424,7 +424,7 @@ namespace NMib::NMeteor::NMeteorManager
 						bDoInstall = true;
 					}
 					
-					TCContinuation<void> InstallContinuation;
+					TCPromise<void> InstallPromise;
 
 					if (bDoInstall)
 					{
@@ -433,7 +433,7 @@ namespace NMib::NMeteor::NMeteorManager
 						if (!bOwnPackageDirectory && CFile::fs_FileExists(PackageDirectory))
 							CFile::fs_DeleteDirectoryRecursive(PackageDirectory, true);
 
-						ThisActor(&CMeteorManagerActor::f_ExtractTar, MeteorPackageFileName, ProgramDirectory) > InstallContinuation / [=]
+						ThisActor(&CMeteorManagerActor::f_ExtractTar, MeteorPackageFileName, ProgramDirectory) > InstallPromise / [=]
 							{
 								TCActorResultVector<CStr> Results;
 								try
@@ -533,13 +533,13 @@ namespace NMib::NMeteor::NMeteorManager
 								}
 								catch (NException::CException const &)
 								{
-									InstallContinuation.f_SetCurrentException();
+									InstallPromise.f_SetCurrentException();
 									return;
 								}
 
 								Results.f_GetResults() > [=](TCAsyncResult<TCVector<TCAsyncResult<CStr>>> &&_Results)
 									{
-										if (!fg_CombineResults(InstallContinuation, fg_Move(_Results)))
+										if (!fg_CombineResults(InstallPromise, fg_Move(_Results)))
 											return;
 
 										// Make package directory read only for node process
@@ -572,11 +572,11 @@ namespace NMib::NMeteor::NMeteorManager
 
 											CFile::fs_WriteStringToFile(MeteorPackageChecksumFileName, NewChecksum, false);
 
-											InstallContinuation.f_SetResult();
+											InstallPromise.f_SetResult();
 										}
 										catch (NException::CException const &)
 										{
-											InstallContinuation.f_SetCurrentException();
+											InstallPromise.f_SetCurrentException();
 											return;
 										}
 									}
@@ -585,25 +585,25 @@ namespace NMib::NMeteor::NMeteorManager
 						;
 					}
 					else
-						InstallContinuation.f_SetResult();
+						InstallPromise.f_SetResult();
 					
-					InstallContinuation > Continuation / [_PackageName, Continuation, PackageInfo]
+					InstallPromise > Promise / [_PackageName, Promise, PackageInfo]
 						{
 							DMibLogCategoryStr(_PackageName);
 							DLog(Info, "Setting up package was successful");
-							Continuation.f_SetResult(PackageInfo);
+							Promise.f_SetResult(PackageInfo);
 						}
 					;
 				}
 				catch (NException::CException const &)
 				{
-					Continuation.f_SetCurrentException();
-					return Continuation;
+					Promise.f_SetCurrentException();
+					return Promise.f_MoveFuture();
 				}
 				
-				return Continuation;
+				return Promise.f_MoveFuture();
 			}
-			> Continuation / [this, Continuation, _PackageName](CPackageInfo const &_PackageInfo)
+			> Promise / [this, Promise, _PackageName](CPackageInfo const &_PackageInfo)
 			{
 				auto &Package = mp_Options.m_Packages[_PackageName];
 				Package.m_User = _PackageInfo.m_User;
@@ -613,19 +613,19 @@ namespace NMib::NMeteor::NMeteorManager
 				if (_PackageInfo.m_bPasswordChanged && !_PackageInfo.m_UserPassword.f_IsEmpty())
 				{
 					mp_AppState.m_StateDatabase.m_Data["Users"][_PackageInfo.m_User.m_UserName]["Password"] = _PackageInfo.m_UserPassword;
-					mp_AppState.f_SaveStateDatabase() > Continuation;
+					mp_AppState.f_SaveStateDatabase() > Promise;
 					return;
 				}
 #endif
 				
-				Continuation.f_SetResult();
+				Promise.f_SetResult();
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Customization()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Customization()
 	{
 		if (!mp_pCustomization)
 			return fg_Explicit();
@@ -644,34 +644,34 @@ namespace NMib::NMeteor::NMeteorManager
 			Users(("package_{}"_f << mp_Options.m_Packages.fs_GetKey(Package)).f_GetStr(), Package.m_User);
 		}
 
-		return g_Dispatch(*mp_FileActors) > [pCustomization = mp_pCustomization, Tags = mp_Tags, Users]
+		return g_Dispatch(*mp_FileActors) / [pCustomization = mp_pCustomization, Tags = mp_Tags, Users]
 			{
 				pCustomization->f_SetupPrerequisites(Tags, Users);
 			}
 		;
 	}
 	
-	TCContinuation<void> CMeteorManagerActor::fp_SetupPrerequisites_Servers()
+	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Servers()
 	{
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		fp_SetupPrerequisites_OSSetup()
 			+ fp_SetupPrerequisites_Mongo()
 			+ fp_SetupPrerequisites_NodeExtract()
 			+ fp_SetupPrerequisites_FastCGI()
 			+ fp_SetupPrerequisites_Websocket()
-			> Continuation / [Continuation, this]
+			> Promise / [Promise, this]
 			{
-				fp_SetupPrerequisites_Packages() > Continuation / [Continuation, this]
+				fp_SetupPrerequisites_Packages() > Promise / [Promise, this]
 					{
-						fp_SetupPrerequisites_UploadS3FileChangeNotifications() > Continuation / [Continuation, this]
+						fp_SetupPrerequisites_UploadS3FileChangeNotifications() > Promise / [Promise, this]
 							{
-								fp_SetupPrerequisites_UploadS3() > Continuation;
+								fp_SetupPrerequisites_UploadS3() > Promise;
 							}
 						;
 					}
 				;
 			}
 		;
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 }

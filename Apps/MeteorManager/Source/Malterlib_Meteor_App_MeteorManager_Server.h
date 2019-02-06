@@ -209,8 +209,8 @@ namespace NMib::NMeteor::NMeteorManager
 
 		CMeteorManagerActor(CDistributedAppState &_AppState, CMeteorManagerOptions const &_Options);
 		~CMeteorManagerActor();
-		TCContinuation<void> f_Startup();
-		TCContinuation<void> f_PreStop();
+		TCFuture<void> f_Startup();
+		TCFuture<void> f_PreStop();
 		
 		static void fs_SetupEnvironment(CProcessLaunchParams &_Params);
 		
@@ -218,7 +218,7 @@ namespace NMib::NMeteor::NMeteorManager
 		static mint fs_GetNginxWorkerFileLimits();
 		static mint fs_GetNginxFileLimits(mint _nNodes);
 
-		TCContinuation<CStr> f_LaunchTool
+		TCFuture<CStr> f_LaunchTool
 			(
 				CStr const &_Executable
 				, CStr const &_WorkingDir
@@ -235,7 +235,7 @@ namespace NMib::NMeteor::NMeteorManager
 #endif
 			)
 		;
-		TCContinuation<CStr> f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir);
+		TCFuture<CStr> f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir);
 		
 	private:
 		enum EHostnamePrefix
@@ -270,14 +270,14 @@ namespace NMib::NMeteor::NMeteorManager
 			bool m_bInitialLaunched = false;
 		};
 		
-		TCContinuation<void> fp_Destroy() override;
+		TCFuture<void> fp_Destroy() override;
 		
 		void fp_ParseConfig_DDPSelf();
 		void fp_ParseConfig();
 		
 		CStr fp_GetDataPath(CStr const &_Path) const;
 		CStr fp_ConcatOutput(CStr const &_StdOut, CStr const &_StdErr) const;
-		TCContinuation<CStr> fp_RunToolForVersionCheck
+		TCFuture<CStr> fp_RunToolForVersionCheck
 			(
 				CStr const &_Tool
 				, TCVector<CStr> const &_Arguments
@@ -294,9 +294,9 @@ namespace NMib::NMeteor::NMeteorManager
 #endif
 			)
 		;
-		TCContinuation<void> fp_ExtractExeFS() const;
-		TCContinuation<void> fp_CheckVersion(CStr const &_Tool, CStr const &_Argument, CStr const &_ParseString, CVersion const &_NeededVersion);
-		TCContinuation<void> fp_CleanupOldProcesses();
+		TCFuture<void> fp_ExtractExeFS() const;
+		TCFuture<void> fp_CheckVersion(CStr const &_Tool, CStr const &_Argument, CStr const &_ParseString, CVersion const &_NeededVersion);
+		TCFuture<void> fp_CleanupOldProcesses();
 		CStr fp_GetNodeExecutable(CStr const &_Executable);
 		
 		CEJSON fp_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const;
@@ -315,29 +315,29 @@ namespace NMib::NMeteor::NMeteorManager
 			)
 		;
 		
-		TCContinuation<void> fp_SetupPrerequisites_Servers();
-		TCContinuation<void> fp_SetupPrerequisites_FastCGI();
-		TCContinuation<void> fp_SetupPrerequisites_Websocket();
-		TCContinuation<void> fp_SetupPrerequisites_Nginx();
-		TCContinuation<void> fp_SetupPrerequisites_Customization();
-		TCContinuation<void> fp_SetupPrerequisites_NodeExtract();
-		TCContinuation<void> fp_SetupPrerequisites_Mongo();
-		TCContinuation<void> fp_SetupPrerequisites_Packages();
-		TCContinuation<void> fp_SetupPrerequisites_UploadS3();
-		TCContinuation<void> fp_SetupPrerequisites_UploadS3Perform();
-		TCContinuation<void> fp_SetupPrerequisites_UploadS3FileChangeNotifications();
-		TCContinuation<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials);
-		TCContinuation<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type);
-		TCContinuation<void> fp_SetupPrerequisites_OSSetup();
+		TCFuture<void> fp_SetupPrerequisites_Servers();
+		TCFuture<void> fp_SetupPrerequisites_FastCGI();
+		TCFuture<void> fp_SetupPrerequisites_Websocket();
+		TCFuture<void> fp_SetupPrerequisites_Nginx();
+		TCFuture<void> fp_SetupPrerequisites_Customization();
+		TCFuture<void> fp_SetupPrerequisites_NodeExtract();
+		TCFuture<void> fp_SetupPrerequisites_Mongo();
+		TCFuture<void> fp_SetupPrerequisites_Packages();
+		TCFuture<void> fp_SetupPrerequisites_UploadS3();
+		TCFuture<void> fp_SetupPrerequisites_UploadS3Perform();
+		TCFuture<void> fp_SetupPrerequisites_UploadS3FileChangeNotifications();
+		TCFuture<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials);
+		TCFuture<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type);
+		TCFuture<void> fp_SetupPrerequisites_OSSetup();
 		
 		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
 		CStr fp_GetMongoSSLDirectory() const;
-		TCContinuation<void> fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout);
+		TCFuture<void> fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout);
 		
-		TCContinuation<void> fp_SetupMongo();
+		TCFuture<void> fp_SetupMongo();
 		
 		static CStr fsp_GetVersionString();
-		TCContinuation<void> fp_UpdateVersionHistory();
+		TCFuture<void> fp_UpdateVersionHistory();
 
 		CStr fp_GetPackageHostname(CStr const &_PackageName, EHostnamePrefix _Prefix) const;
 		CStr fp_GetPackageLocalURL(CStr const &_PackageName) const;
@@ -358,9 +358,9 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		void fp_CreateAppLaunches();
 		
-		TCContinuation<void> fp_StartNginx();
-		TCContinuation<void> fp_StartApps();
-		TCContinuation<void> fp_DestroyApps();
+		TCFuture<void> fp_StartNginx();
+		TCFuture<void> fp_StartApps();
+		TCFuture<void> fp_DestroyApps();
 
 		static TCMap<CStr, TCVector<CStr>> fsp_GetContentTypes();
 		static CStr fsp_GetContentTypeForExtension(CStr const &_Extension);
@@ -405,7 +405,7 @@ namespace NMib::NMeteor::NMeteorManager
 		mutable TCMap<CStr, zmint> mp_CurrentPackageLocalURL;
 		TCMap<CStr, TCVector<CStr>> mp_PackageLocalURLs;
 		mint mp_AppSequence = 0;
-		TCContinuation<void> mp_AppLaunchesContinuation;
+		TCPromise<void> mp_AppLaunchesPromise;
 		
 		CStr mp_InstanceId;
 
