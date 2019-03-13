@@ -617,8 +617,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				if (!_Results.m_UserPassword.f_IsEmpty())
 				{
 					mp_AppState.m_StateDatabase.m_Data["Users"][mp_NginxUser.m_UserName]["Password"] = _Results.m_UserPassword;
-					mp_AppState.f_SaveStateDatabase() > Promise;
-					return;
+					mp_AppState.f_SaveStateDatabase() > SavePasswordPromise;
 				}
 				else
 #endif
@@ -825,14 +824,14 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							if (bIsStatic)
 							{
 								if (Package.m_ExternalRoot.f_IsEmpty())
-									Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()));
+									Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()).f_EscapeStr());
 								else
-									Server = Server.f_Replace("{StaticRoot}", CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot));
+									Server = Server.f_Replace("{StaticRoot}", CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot).f_EscapeStr());
 							}
 							else if (bIsMeteor)
-								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()));
+								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()).f_EscapeStr());
 							else
-								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()));
+								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()).f_EscapeStr());
 
 							VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
 							VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");
@@ -943,16 +942,16 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				ConfigContents = ConfigContents.f_Replace("{DomainName}", mp_Domain);
 				ConfigContents = ConfigContents.f_Replace("{DomainNameEscaped}", mp_Domain.f_Replace(".", "\\."));
 
-				ConfigContents = ConfigContents.f_Replace("{Root}", NginxDirectory + "/root");
+				ConfigContents = ConfigContents.f_Replace("{Root}", (NginxDirectory + "/root").f_EscapeStr());
 				ConfigContents = ConfigContents.f_Replace("{Port}", CStr::fs_ToStr(mp_WebPort));
 				ConfigContents = ConfigContents.f_Replace("{SSLPort}", CStr::fs_ToStr(mp_WebSSLPort));
 				if (mp_WebSSLPort == 443)
 					ConfigContents = ConfigContents.f_Replace("{SSLPortRewrite}", "");
 				else
 					ConfigContents = ConfigContents.f_Replace("{SSLPortRewrite}", ":" + CStr::fs_ToStr(mp_WebSSLPort));
-				ConfigContents = ConfigContents.f_Replace("{Certificate}", _Results.m_CertificateFile);
-				ConfigContents = ConfigContents.f_Replace("{CertificateKey}", _Results.m_CertificateKeyFile);
-				ConfigContents = ConfigContents.f_Replace("{PidFile}", PidFile);
+				ConfigContents = ConfigContents.f_Replace("{Certificate}", _Results.m_CertificateFile.f_EscapeStr());
+				ConfigContents = ConfigContents.f_Replace("{CertificateKey}", _Results.m_CertificateKeyFile.f_EscapeStr());
+				ConfigContents = ConfigContents.f_Replace("{PidFile}", PidFile.f_EscapeStr());
 				ConfigContents = ConfigContents.f_Replace("{WorkerMaxOpenedFiles}", CStr::fs_ToStr(fs_GetNginxWorkerFileLimits()));
 				
 #ifdef DPlatformFamily_Windows
@@ -1100,6 +1099,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		Params.m_Environment["HOME"] = NginxDirectory;
 		Params.m_Environment["TMPDIR"] = NginxDirectory + "/.tmp";
+#ifdef DPlatformFamily_OSX
+		Params.m_Environment["MalterlibOverrideHome"] = "true";
+#endif
 #ifdef DPlatformFamily_Windows
 		Params.m_Environment["TMP"] = NginxDirectory + "/.tmp";
 		Params.m_Environment["TEMP"] = NginxDirectory + "/.tmp";

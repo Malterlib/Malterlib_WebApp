@@ -313,8 +313,8 @@ namespace NMib::NMeteor::NMeteorManager
 
 		auto PackageUser = CUser
 			{
-				mp_pUniqueUserGroup->f_GetUser("mib_pkg_{}_{}"_f << mp_Options.m_ManagerName << _PackageName)
-				, mp_pUniqueUserGroup->f_GetGroup("mib_pkg_{}_{}"_f << mp_Options.m_ManagerName << _PackageName)
+				mp_pUniqueUserGroup->f_GetUser("{}pkg_{}_{}"_f << mp_Options.m_UserNamePrefix << mp_Options.m_ManagerName << _PackageName)
+				, mp_pUniqueUserGroup->f_GetGroup("{}pkg_{}_{}"_f << mp_Options.m_UserNamePrefix << mp_Options.m_ManagerName << _PackageName)
 			}
 		;
 		auto DefaultUser = (_Type == CMeteorManagerOptions::EPackageType_FastCGI) ? mp_FastCGIUser : (_Type == CMeteorManagerOptions::EPackageType_Websocket) ? mp_WebsocketUser : mp_NodeUser;

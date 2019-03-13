@@ -461,6 +461,9 @@ namespace NMib::NMeteor::NMeteorManager
 		Params.m_bMergeEnvironment = true;
 		Params.m_Environment["HOME"] = LaunchHomePath;
 		Params.m_Environment["TMPDIR"] = LaunchHomePath + "/.tmp";
+#ifdef DPlatformFamily_OSX
+		Params.m_Environment["MalterlibOverrideHome"] = "true";
+#endif
 #ifdef DPlatformFamily_Windows
 		Params.m_Environment["TMP"] = LaunchHomePath + "/.tmp";
 		Params.m_Environment["TEMP"] = LaunchHomePath + "/.tmp";

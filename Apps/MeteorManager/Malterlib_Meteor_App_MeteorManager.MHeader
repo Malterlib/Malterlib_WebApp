@@ -275,6 +275,11 @@ Property
 		MalterlibConcurrency_DistributedActors true
 		MalterlibTargetNameType "Normal"
 
+		MalterlibMeteorManagerUserNamePrefix "mib_"
+		{
+			!!MalterlibMeteorManagerUserNamePrefix ""
+		}
+
 		MalterlibMeteorManagerPrefix MeteorManager_
 		{
 			&
@@ -706,6 +711,9 @@ Property
 				Contents	"@(Contents)"\
 							"	\"FullManagerName\": \"@(MalterlibCloudVersionInfo_Executable)\",\n"
 
+				Contents	"@(Contents)"\
+							"	\"UserNamePrefix\": \"@(MalterlibMeteorManagerUserNamePrefix)\",\n"
+
 				Contents	"@(Error('You need to specify MeteorManagerDefaultDomain'))"
 				{
 					!!MeteorManagerDefaultDomain ""
@@ -1013,7 +1021,7 @@ Property
 	{
 		Dependency.Link false
 	}
-	%Dependency "Exe_nginx=Com_nginx_@(MalterlibMeteorManagerName)*NgnixTargetBaseName=nginx_@(MalterlibMeteorManagerName)*NgnixTargetGroup=Meteor/@(MalterlibMeteorManagerName)*HTTP_SSL=true*HTTP_V2=true*NGX_USER=mib_nginx_@(MalterlibMeteorManagerName)*NGX_GROUP=mib_nginx_@(MalterlibMeteorManagerName)*HTTP_GZIP_STATIC=true*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=bin/"
+	%Dependency "Exe_nginx=Com_nginx_@(MalterlibMeteorManagerName)*NgnixTargetBaseName=nginx_@(MalterlibMeteorManagerName)*NgnixTargetGroup=Meteor/@(MalterlibMeteorManagerName)*HTTP_SSL=true*HTTP_V2=true*NGX_USER=@(MalterlibMeteorManagerUserNamePrefix)nginx_@(MalterlibMeteorManagerName)*NGX_GROUP=@(MalterlibMeteorManagerUserNamePrefix)nginx_@(MalterlibMeteorManagerName)*HTTP_GZIP_STATIC=true*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=bin/"
 	{
 		Dependency.Link false
 	}

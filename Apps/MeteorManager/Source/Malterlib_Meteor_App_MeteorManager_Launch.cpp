@@ -122,6 +122,9 @@ namespace NMib::NMeteor::NMeteorManager
 		{
 			LaunchParams.m_Environment["HOME"] = _Home;
 			LaunchParams.m_Environment["TMPDIR"] = _Home + "/.tmp";
+#ifdef DPlatformFamily_OSX
+			LaunchParams.m_Environment["MalterlibOverrideHome"] = "true";
+#endif
 #ifdef DPlatformFamily_Windows
 			LaunchParams.m_Environment["TMP"] = _Home + "/.tmp";
 			LaunchParams.m_Environment["TEMP"] = _Home + "/.tmp";

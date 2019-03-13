@@ -26,7 +26,7 @@ namespace NMib::NMeteor::NMeteorManager
 			> [ProgramDirectory, WebsocketDirectory, ThisActor = fg_ThisActor(this), WebsocketUser = mp_WebsocketUser, MongoSSLDirectory = fp_GetMongoSSLDirectory()]
 			() mutable -> TCFuture<CInfo>
 			{
-				DLog(Info, "Setting up fast cgi user");
+				DLog(Info, "Setting up websocket user");
 				
 				TCPromise<CInfo> Promise;
 				CInfo Info;

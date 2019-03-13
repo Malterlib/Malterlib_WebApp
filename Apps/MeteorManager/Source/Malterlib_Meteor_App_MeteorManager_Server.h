@@ -118,11 +118,13 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		struct CMongo
 		{
+			void f_SetDefaults(CMeteorManagerOptions const &_Options);
+
 			CStr m_Directory = "../MongoManager/mongo/bin";
 			CStr m_Host = NProcess::NPlatform::fg_Process_GetHostName();
 			int16 m_Port = 25017;
-			CStr m_ToolsUser = "mib_mongo";
-			CStr m_ToolsGroup = "mib_mongo";
+			CStr m_ToolsUser;
+			CStr m_ToolsGroup;
 			CStr m_SSLDirectory;
 			CStr m_DatabaseSetupScript;
 			CStr m_DefaultDatabase;
@@ -131,10 +133,11 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		CMeteorManagerOptions(CStr const &_ManagerName, CStr const &_ManagerDescription);
 		void f_ParseSettings(CStr const &_Settings, CStr const &_FileName);
-		
+
 		CStr m_ManagerName;
 		CStr m_FullManagerName;
 		CStr m_ManagerDescription;
+		CStr m_UserNamePrefix;
 		TCMap<CStr, CPackage> m_Packages;
 		TCMap<CStr, CEnvironmentVariable> m_Environment;
 		CMongo m_Mongo;

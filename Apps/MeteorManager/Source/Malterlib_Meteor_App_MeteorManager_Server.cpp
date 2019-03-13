@@ -13,17 +13,33 @@ namespace NMib::NMeteor::NMeteorManager
 	CMeteorManagerActor::CMeteorManagerActor(CDistributedAppState &_AppState, CMeteorManagerOptions const &_Options)
 		: mp_AppState(_AppState)
 		, mp_pUniqueUserGroup{fg_Construct("/M/App/{}"_f << _Options.m_FullManagerName.f_Replace("_", "-"))}
-		, mp_NodeUser{mp_pUniqueUserGroup->f_GetUser("mib_node_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_node_{}"_f << _Options.m_ManagerName)}
-		, mp_FastCGIUser{mp_pUniqueUserGroup->f_GetUser("mib_fcgi_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_fcgi_{}"_f << _Options.m_ManagerName)}
-		, mp_WebsocketUser{mp_pUniqueUserGroup->f_GetUser("mib_ws_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_ws_{}"_f << _Options.m_ManagerName)}
-		, mp_NginxUser{mp_pUniqueUserGroup->f_GetUser("mib_nginx_{}"_f << _Options.m_ManagerName), mp_pUniqueUserGroup->f_GetGroup("mib_nginx_{}"_f << _Options.m_ManagerName)}
+		, mp_NodeUser
+		{
+			mp_pUniqueUserGroup->f_GetUser("{}node_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
+			, mp_pUniqueUserGroup->f_GetGroup("{}node_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
+		}
+		, mp_FastCGIUser
+		{
+			mp_pUniqueUserGroup->f_GetUser("{}fcgi_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
+			, mp_pUniqueUserGroup->f_GetGroup("{}fcgi_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
+		}
+		, mp_WebsocketUser
+		{
+			mp_pUniqueUserGroup->f_GetUser("{}ws_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
+			, mp_pUniqueUserGroup->f_GetGroup("{}ws_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
+		}
+		, mp_NginxUser
+		{
+			mp_pUniqueUserGroup->f_GetUser("{}nginx_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
+			, mp_pUniqueUserGroup->f_GetGroup("{}nginx_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
+		}
 		, mp_pCanDestroyTracker(fg_Construct())
 		, mp_Options(_Options)
 		, mp_pCustomization(fg_CreateMeteorManagerCustomization())
 		, mp_InstanceId(fg_RandomID())
 	{
 	}
-	
+
 	CMeteorManagerActor::~CMeteorManagerActor()
 	{
 	}
@@ -44,7 +60,7 @@ namespace NMib::NMeteor::NMeteorManager
 				, DMibStringize(DConfig)
 			)
 		;
-		
+
 		mp_FileActors.f_Construct(fg_Construct(fg_Construct<CSeparateThreadActor>(), "File actor"));
 
 		try
@@ -55,9 +71,9 @@ namespace NMib::NMeteor::NMeteorManager
 		{
 			return DMibErrorInstance(fg_Format("Failed to parse config: ", _Exception));
 		}
-		
+
 		fp_CreateAppLaunches();
-		
+
 		TCPromise<void> Promise;
 
 		DLog(Info, "Cleaning up old processes");
@@ -101,21 +117,21 @@ namespace NMib::NMeteor::NMeteorManager
 				};
 			};
 		};
-		
+
 		return Promise.f_MoveFuture();
 	}
-	
+
 	TCFuture<void> CMeteorManagerActor::f_PreStop()
 	{
 		DLog(Debug, "Pre-stop server");
 		mp_bStopped = true;
-		
+
 		TCActorResultVector<void> Destroys;
 		for (auto &ToolLaunch : mp_ToolLaunches)
 			ToolLaunch.m_ProcessLaunch->f_Destroy() > Destroys.f_AddResult();
-		
+
 		TCPromise<void> Promise;
-		
+
 		Destroys.f_GetResults()
 			> [this, Promise](auto &&)
 			{
@@ -138,7 +154,7 @@ namespace NMib::NMeteor::NMeteorManager
 				;
 			}
 		;
-		
+
 		return Promise.f_MoveFuture();
 	}
 
@@ -146,7 +162,7 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		DLog(Debug, "Destroy server");
 		auto pCanDestroy = fg_Move(mp_pCanDestroyTracker);
-		
+
 		TCActorResultVector<void> Destroys;
 		for (auto &ToolLaunch : mp_ToolLaunches)
 			ToolLaunch.m_ProcessLaunch->f_Destroy() > Destroys.f_AddResult();
@@ -164,7 +180,7 @@ namespace NMib::NMeteor::NMeteorManager
 			> [this, pCanDestroy](auto &&_Results)
 			{
 				TCActorResultVector<void> Destroys;
-				
+
 				Destroys.f_GetResults() > [this, pCanDestroy](auto &&_Results)
 					{
 						fp_DestroyApps() > [this, pCanDestroy](auto &&)
@@ -187,10 +203,10 @@ namespace NMib::NMeteor::NMeteorManager
 				;
 			}
 		;
-		
+
 		return pCanDestroy->f_Future();
 	}
-	
+
 #ifdef DPlatformFamily_Windows
 	CStrSecure CMeteorManagerActor::fp_GetUserPassword(CStr const &_User)
 	{
@@ -239,7 +255,7 @@ namespace NMib::NMeteor::NMeteorManager
 			;
 		}
 	}
-	
+
 	TCFuture<void> CMeteorManagerActor::fp_ExtractExeFS() const
 	{
 		return g_Dispatch(*mp_FileActors) / []
@@ -247,16 +263,16 @@ namespace NMib::NMeteor::NMeteorManager
 				CExeFS ExeFS;
 				if (!fg_OpenExeFS(ExeFS))
 					DError("Failed to open ExeFS");
-				
+
 				CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
-				
+
 				CFileSystemInterface_VirtualFS MalterlibFS(ExeFS.m_FileSystem);
 				CFileSystemInterface_Disk DiskFS;
 				CTime SourceFileTime = MalterlibFS.f_GetWriteTime("");
-				
+
 				CTime DestinationFileTime;
 				CStr ExeFSFileTimeFile = ProgramDirectory + "/ExeFS.time";
-				
+
 				if (CFile::fs_FileExists(ExeFSFileTimeFile))
 				{
 					TCBinaryStreamFile<> Stream;
@@ -265,7 +281,7 @@ namespace NMib::NMeteor::NMeteorManager
 				}
 				if (SourceFileTime == DestinationFileTime)
 					return;
-				
+
 				MalterlibFS.f_CopyFilesWithAttribs("*", DiskFS, ProgramDirectory);
 
 				TCBinaryStreamFile<> Stream;
@@ -274,7 +290,7 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 		;
 	}
-	
+
 	TCFuture<void> CMeteorManagerActor::fp_CheckVersion(CStr const &_Tool, CStr const &_Argument, CStr const &_ParseString, CVersion const &_NeededVersion)
 	{
 		TCPromise<void> Promise;
@@ -285,17 +301,17 @@ namespace NMib::NMeteor::NMeteorManager
 					Promise.f_SetException(DErrorInstance(fg_Format("Failed get version with: {} {}", _Tool, _Argument)));
 					return;
 				}
-				
+
 				CVersion Version;
 				aint nParsed = 0;
 				(CStr::CParse(_ParseString) >> Version.m_Major >> Version.m_Minor >> Version.m_Revision).f_Parse(_Data, nParsed);
-				
+
 				if (nParsed != 3)
 				{
 					Promise.f_SetException(DErrorInstance(fg_Format("Failed to extract {} version from: {}", _Tool, _Data)));
 					return;
 				}
-				
+
 				if (Version < _NeededVersion)
 				{
 					Promise.f_SetException(DErrorInstance(fg_Format("{} version {} is less than the required version of {}", _Tool, Version, _NeededVersion)));
@@ -312,22 +328,28 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		return CFile::fs_AppendPath(CFile::fs_GetProgramDirectory(), _Path);
 	}
-	
+
 	CMeteorManagerOptions::CMeteorManagerOptions(CStr const &_ManagerName, CStr const &_ManagerDescription)
 		: m_ManagerName(_ManagerName)
 		, m_ManagerDescription(_ManagerDescription)
 	{
 	}
 
+	void CMeteorManagerOptions::CMongo::f_SetDefaults(CMeteorManagerOptions const &_Options)
+	{
+		m_ToolsUser = _Options.m_UserNamePrefix + "mongo";
+		m_ToolsGroup = _Options.m_UserNamePrefix + "mongo";
+	}
+
 	void CMeteorManagerOptions::f_ParseSettings(CStr const &_Settings, CStr const &_FileName)
 	{
 		CEJSON const Settings = CEJSON::fs_FromString(_Settings, _FileName);
-		
+
 		for (auto &PackageJSON : Settings["Packages"].f_Object())
 		{
 			auto &Package = m_Packages[PackageJSON.f_Name()];
 			auto &PackageSettings = PackageJSON.f_Value().f_Object();
-			
+
 			auto &PackageType = PackageJSON.f_Value()["Type"].f_String();
 			if (PackageType == "Meteor")
 				Package.m_Type = EPackageType_Meteor;
@@ -343,7 +365,7 @@ namespace NMib::NMeteor::NMeteorManager
 				Package.m_Type = EPackageType_Static;
 			else
 				DMibError(fg_Format("Unknown package type: {}", PackageType));
-			
+
 			if (auto *pValue = PackageSettings.f_GetMember("MemoryPerNode"))
 				Package.m_MemoryPerNode = pValue->f_AsFloat(1.5);
 
@@ -356,9 +378,9 @@ namespace NMib::NMeteor::NMeteorManager
 				Expression = Expression.f_Replace("{MemoryPerNode}", fg_Format("{}", Package.m_MemoryPerNode));
 
 				Expression = fg_Format("{{xpr({})}", Expression);
-				
+
 				CStr EvaluatedExpression = fg_Format(Expression.f_GetStr(), 0.0);
-				
+
 				Package.m_Concurrency = fg_Min(fg_Max(EvaluatedExpression.f_ToFloat().f_ToInt(), 1), NSys::fg_Thread_GetVirtualCores());
 			}
 
@@ -373,10 +395,10 @@ namespace NMib::NMeteor::NMeteorManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("RedirectsFile"))
 				Package.m_RedirectsFile = pValue->f_String();
-			
+
 			if (auto *pValue = PackageSettings.f_GetMember("StickyCookie"))
 				Package.m_StickyCookie = pValue->f_String();
-			
+
 			if (auto *pValue = PackageSettings.f_GetMember("StickyHeader"))
 				Package.m_StickyHeader = pValue->f_String();
 
@@ -385,7 +407,7 @@ namespace NMib::NMeteor::NMeteorManager
 				for (auto &Dependency : pValue->f_Array())
 					Package.m_StartupDependencies.f_Insert(Dependency.f_String());
 			}
-			
+
 			if (auto *pValue = PackageSettings.f_GetMember("CustomExecutable"))
 				Package.m_CustomExecutable = pValue->f_String();
 
@@ -394,7 +416,7 @@ namespace NMib::NMeteor::NMeteorManager
 				for (auto &Dependency : pValue->f_Array())
 					Package.m_CustomParams.f_Insert(Dependency.f_String());
 			}
-			
+
 			if (auto *pValue = PackageSettings.f_GetMember("SeparateUser"))
 				Package.m_bSeparateUser = pValue->f_Boolean();
 
@@ -428,6 +450,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		m_FullManagerName = Settings["FullManagerName"].f_String();
 		m_DefaultDomain = Settings["DefaultDomain"].f_String();
+		m_UserNamePrefix = Settings["UserNamePrefix"].f_String();
 
 		if (auto *pValue = Settings.f_GetMember("StartNginx"))
 			m_bStartNginx = pValue->f_Boolean();
@@ -436,7 +459,7 @@ namespace NMib::NMeteor::NMeteorManager
 			m_DefaultWebPort = pValue->f_Integer();
 		if (auto *pValue = Settings.f_GetMember("DefaultWebSSLPort"))
 			m_DefaultWebSSLPort = pValue->f_Integer();
-		
+
 		if (auto *pValue = Settings.f_GetMember("HTTPRedirectReferrerCookie"))
 			m_HTTPRedirectReferrerCookie = pValue->f_String();
 
@@ -508,9 +531,11 @@ namespace NMib::NMeteor::NMeteorManager
 				;
 			}
 		}
-		
+
 		if (auto *pValue = Settings.f_GetMember("LoopbackPrefix"))
 			m_LoopbackPrefix = pValue->f_Integer();
+
+		m_Mongo.f_SetDefaults(*this);
 
 		auto &MongoJSON = Settings["Mongo"].f_Object();
 		if (auto *pValue = MongoJSON.f_GetMember("Directory"))
@@ -531,7 +556,7 @@ namespace NMib::NMeteor::NMeteorManager
 			m_Mongo.m_DefaultDatabase = pValue->f_String();
 		if (auto *pValue = MongoJSON.f_GetMember("DefaultReplicaName"))
 			m_Mongo.m_DefaultReplicaName = pValue->f_String();
-		
+
 		TCSet<TCSet<CStr>> DefaultReqiredTags;
 		TCSet<CStr> DefaultForbiddenTags;
 
@@ -559,7 +584,7 @@ namespace NMib::NMeteor::NMeteorManager
 				EnvVar.m_Setting = EnvVarJSON.f_Value()["Setting"].f_String();
 				if (auto *pValue = EnvVarJSON.f_Value().f_GetMember("Default"))
 					EnvVar.m_Default = pValue->f_String();
-				
+
 				EnvVar.m_RequiredTags = DefaultReqiredTags;
 				EnvVar.m_ForbiddenTags = DefaultForbiddenTags;
 
@@ -568,28 +593,28 @@ namespace NMib::NMeteor::NMeteorManager
 					for (auto &TagJSON : pValue->f_Array())
 					{
 						CStr Tag = TagJSON.f_String();
-						
+
 						bool bAdd = true;
 						if (Tag.f_StartsWith("-"))
 						{
 							bAdd = false;
 							Tag = Tag.f_Extract(1);
 						}
-						
+
 						bool bReqired = true;
 						if (Tag.f_StartsWith("!"))
 						{
 							bReqired = false;
 							Tag = Tag.f_Extract(1);
 						}
-						
+
 						TCSet<CStr> TagSet;
 						if (bReqired)
 						{
 							while (!Tag.f_IsEmpty())
 								TagSet[fg_GetStrSep(Tag, "|")];
 						}
-						
+
 						if (bAdd)
 						{
 							if (bReqired)
@@ -609,7 +634,7 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 		}
 	}
-	
+
 	ICMeteorManagerCustomization::ICMeteorManagerCustomization() = default;
 	ICMeteorManagerCustomization::~ICMeteorManagerCustomization() = default;
 
@@ -625,7 +650,7 @@ namespace NMib::NMeteor::NMeteorManager
 		)
 	{
 	}
-	
+
 	void ICMeteorManagerCustomization::f_ManipulateNginxConfig
 		(
 			CStr &o_Config
@@ -636,7 +661,7 @@ namespace NMib::NMeteor::NMeteorManager
 		)
 	{
 	}
-	
+
 	void ICMeteorManagerCustomization::f_SetupPrerequisites(TCSet<CStr> const &_Tags, TCMap<CStr, CUser> const &_Users)
 	{
 	}
