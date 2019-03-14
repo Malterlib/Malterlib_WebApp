@@ -23,7 +23,7 @@ namespace NMib::NMeteor::NMeteorManager
 	
 		TCPromise<void> Promise;
 		g_Dispatch(*mp_FileActors)
-			> [ProgramDirectory, WebsocketDirectory, ThisActor = fg_ThisActor(this), WebsocketUser = mp_WebsocketUser, MongoSSLDirectory = fp_GetMongoSSLDirectory()]
+			/ [ProgramDirectory, WebsocketDirectory, ThisActor = fg_ThisActor(this), WebsocketUser = mp_WebsocketUser, MongoSSLDirectory = fp_GetMongoSSLDirectory()]
 			() mutable -> TCFuture<CInfo>
 			{
 				DLog(Info, "Setting up websocket user");

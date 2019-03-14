@@ -141,7 +141,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		TCPromise<void> Promise;
 		g_Dispatch(*mp_FileActors)
-			> [ProgramDirectory, NodeDirectory, ThisActor = fg_ThisActor(this), NodeUser = mp_NodeUser, MongoSSLDirectory = fp_GetMongoSSLDirectory(), bNeedNode]
+			/ [ProgramDirectory, NodeDirectory, ThisActor = fg_ThisActor(this), NodeUser = mp_NodeUser, MongoSSLDirectory = fp_GetMongoSSLDirectory(), bNeedNode]
 			() mutable -> TCFuture<CNodeInfo>
 			{
 				DLog(Info, "Extracting node distribution");
@@ -320,7 +320,7 @@ namespace NMib::NMeteor::NMeteorManager
 		auto DefaultUser = (_Type == CMeteorManagerOptions::EPackageType_FastCGI) ? mp_FastCGIUser : (_Type == CMeteorManagerOptions::EPackageType_Websocket) ? mp_WebsocketUser : mp_NodeUser;
 		bool bSeparateUser = PackageOptions.m_bSeparateUser;
 
-		g_Dispatch(*mp_FileActors) >
+		g_Dispatch(*mp_FileActors) /
 			[
 				_PackageName
 				, _Type

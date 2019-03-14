@@ -93,13 +93,13 @@ namespace NMib::NMeteor::NMeteorManager
 						{
 							DLog(Info, "Done setting up nginx prerequisites, checking node version");
 
-							TCPromise<void> NodeVersionCheckPromise;
+							TCFuture<void> NodeVersionCheckFuture;
 							if (mp_bNeedNode)
-								NodeVersionCheckPromise = fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node);
+								NodeVersionCheckFuture = fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node);
 							else
-								NodeVersionCheckPromise.f_SetResult();
+								NodeVersionCheckFuture = fg_Explicit();
 
-							NodeVersionCheckPromise > Promise / [this, Promise]
+							NodeVersionCheckFuture > Promise / [this, Promise]
 							{
 								DLog(Info, "Done checking node version, setting up mongo");
 								fp_SetupMongo() > Promise / [this, Promise]

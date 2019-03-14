@@ -22,8 +22,7 @@ namespace NMib::NMeteor::NMeteorManager
 		};
 	
 		TCPromise<void> Promise;
-		g_Dispatch(*mp_FileActors)
-			> 
+		g_Dispatch(*mp_FileActors) /
 			[
 				ProgramDirectory
 				, FastCGIDirectory

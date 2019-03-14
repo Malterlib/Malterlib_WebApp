@@ -4,6 +4,7 @@
 #include <Mib/Web/HTTP/URL>
 #include <Mib/Network/SSL>
 #include <Mib/Concurrency/Actor/Timer>
+#include <Mib/Concurrency/LogError>
 
 namespace NMib::NMeteor::NMeteorManager
 {
@@ -424,8 +425,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		CStr CertificateLocality = fp_GetConfigValue("CertificateLocality", DProductLocality).f_String();
 		CStr CertificateOrganizationalUnit = fp_GetConfigValue("CertificateOrganizationalUnit", DProductOrganizationalUnit).f_String();
 
-		g_Dispatch(*mp_FileActors)
-			>
+		g_Dispatch(*mp_FileActors) /
 			[
 				ProgramDirectory = CFile::fs_GetProgramDirectory()
 				, NginxDirectory
@@ -1060,7 +1060,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 								fg_Timeout(10.0) > [this]
 									{
 										if (!mp_bStopped && !mp_bDestroyed)
-											fp_StartNginx();
+											fp_StartNginx() > fg_LogError("nginx", "Failed to launch nginx");
 									}
 								;
 							}
