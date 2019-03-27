@@ -501,7 +501,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					if (CFile::fs_FileExists(CaCertificateFile) && CFile::fs_FileExists(CaCertificateKeyFile))
 					{
 						CaCertData = CFile::fs_ReadFile(CaCertificateFile);
-						CaKeyData = CFile::fs_ReadFile(CaCertificateKeyFile);
+						CaKeyData = CFile::fs_ReadFileSecure(CaCertificateKeyFile);
 					}
 					else
 					{
@@ -525,7 +525,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 #ifdef DPlatformFamily_Windows
 						CFile::fs_WriteFile(CaCertData, NginxDirectory + "/certificates/web_ca.crt");
 #endif
-						CFile::fs_WriteFile(CaKeyData, CaCertificateKeyFile);
+						CFile::fs_WriteFileSecure(CaKeyData, CaCertificateKeyFile);
 					}
 
 					CSSLContext::CCertificateOptions Options;
@@ -544,7 +544,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					CSSLContext::fs_SignClientCertificate(CaCertData, CaKeyData, CertRequestData, CertData, SignOptions);
 
 					CFile::fs_WriteFile(CertData, Results.m_CertificateFile);
-					CFile::fs_WriteFile(KeyData, Results.m_CertificateKeyFile);
+					CFile::fs_WriteFileSecure(KeyData, Results.m_CertificateKeyFile);
 					CFile::fs_WriteFile(CertRequestData, CertificateRequestFile);
 				}
 
