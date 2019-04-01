@@ -73,7 +73,7 @@ namespace NMib::NMeteor::NMeteorManager
 #endif
 		)
 	{
-		if (mp_pCanDestroyTracker.f_IsEmpty() || mp_bStopped)
+		if (mp_bDestroyed || mp_bStopped)
 			return fg_Explicit("");
 		
 		auto *pToolLaunch = &mp_ToolLaunches.f_Insert();

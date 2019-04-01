@@ -33,7 +33,6 @@ namespace NMib::NMeteor::NMeteorManager
 			mp_pUniqueUserGroup->f_GetUser("{}nginx_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
 			, mp_pUniqueUserGroup->f_GetGroup("{}nginx_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
 		}
-		, mp_pCanDestroyTracker(fg_Construct())
 		, mp_Options(_Options)
 		, mp_pCustomization(fg_CreateMeteorManagerCustomization())
 		, mp_InstanceId(fg_RandomID())
@@ -69,56 +68,40 @@ namespace NMib::NMeteor::NMeteorManager
 		}
 		catch (NException::CException const &_Exception)
 		{
-			return DMibErrorInstance(fg_Format("Failed to parse config: ", _Exception));
+			co_return DMibErrorInstance(fg_Format("Failed to parse config: ", _Exception));
 		}
 
 		fp_CreateAppLaunches();
 
-		TCPromise<void> Promise;
-
 		DLog(Info, "Cleaning up old processes");
-		fp_CleanupOldProcesses() > Promise % "Failed to clean up old processes" / [this, Promise]
-		{
-			DLog(Info, "Done cleaning up, extracting ExeFS");
-			fp_ExtractExeFS() > Promise % "Failed to extract ExeFS" / [this, Promise]
-			{
-				DLog(Info, "Done extracting ExeFS, setting up node prerequisites and updating version history");
-				fp_SetupPrerequisites_Servers() + fp_UpdateVersionHistory() > Promise / [this, Promise]
-				{
-					DLog(Info, "Done setting up node prerequisites and updating version history, setting up customization prerequisites");
-					fp_SetupPrerequisites_Customization() > Promise / [this, Promise]
-					{
-						DLog(Info, "Done setting up customization prerequisites, setting up nginx prerequisites");
-						fp_SetupPrerequisites_Nginx() > Promise / [this, Promise]
-						{
-							DLog(Info, "Done setting up nginx prerequisites, checking node version");
+		co_await (fp_CleanupOldProcesses() % "Failed to clean up old processes");
 
-							TCFuture<void> NodeVersionCheckFuture;
-							if (mp_bNeedNode)
-								NodeVersionCheckFuture = fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node);
-							else
-								NodeVersionCheckFuture = fg_Explicit();
+		DLog(Info, "Done cleaning up, extracting ExeFS");
+		co_await (fp_ExtractExeFS() % "Failed to extract ExeFS");
 
-							NodeVersionCheckFuture > Promise / [this, Promise]
-							{
-								DLog(Info, "Done checking node version, setting up mongo");
-								fp_SetupMongo() > Promise / [this, Promise]
-								{
-									DLog(Info, "Done setting up mongo, starting apps");
-									fp_StartApps() > Promise / [this, Promise]
-									{
-										DLog(Info, "Done stating apps, starting nginx");
-										fp_StartNginx() > Promise;
-									};
-								};
-							};
-						};
-					};
-				};
-			};
-		};
+		DLog(Info, "Done extracting ExeFS, setting up node prerequisites and updating version history");
+		co_await (fp_SetupPrerequisites_Servers() + fp_UpdateVersionHistory());
 
-		return Promise.f_MoveFuture();
+		DLog(Info, "Done setting up node prerequisites and updating version history, setting up customization prerequisites");
+		co_await fp_SetupPrerequisites_Customization();
+
+		DLog(Info, "Done setting up customization prerequisites, setting up nginx prerequisites");
+		co_await fp_SetupPrerequisites_Nginx();
+
+		DLog(Info, "Done setting up nginx prerequisites, checking node version");
+		if (mp_bNeedNode)
+			co_await fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node);
+
+		DLog(Info, "Done checking node version, setting up mongo");
+		co_await fp_SetupMongo();
+
+		DLog(Info, "Done setting up mongo, starting apps");
+		co_await (fp_StartApps() + fp_SetupNetworkTunnels());
+
+		DLog(Info, "Done stating apps, starting nginx");
+		co_await fp_StartNginx();
+
+		co_return {};
 	}
 
 	TCFuture<void> CMeteorManagerActor::f_PreStop()
@@ -130,38 +113,20 @@ namespace NMib::NMeteor::NMeteorManager
 		for (auto &ToolLaunch : mp_ToolLaunches)
 			ToolLaunch.m_ProcessLaunch->f_Destroy() > Destroys.f_AddResult();
 
-		TCPromise<void> Promise;
+		co_await Destroys.f_GetResults();
+		co_await fp_DestroyApps().f_Wrap();
 
-		Destroys.f_GetResults()
-			> [this, Promise](auto &&)
-			{
-				fp_DestroyApps() > [this, Promise](auto &&)
-					{
-						if (!mp_NginxLaunch)
-						{
-							DLog(Debug, "Pre-stop server done");
-							Promise.f_SetResult();
-							return;
-						}
-						mp_NginxLaunch->f_Destroy() > [Promise](auto &&)
-							{
-								DLog(Debug, "Pre-stop server done");
-								Promise.f_SetResult();
-								return;
-							}
-						;
-					}
-				;
-			}
-		;
+		if (mp_NginxLaunch)
+			co_await mp_NginxLaunch->f_Destroy().f_Wrap();
 
-		return Promise.f_MoveFuture();
+		DLog(Debug, "Pre-stop server done");
+
+		co_return {};
 	}
 
 	TCFuture<void> CMeteorManagerActor::fp_Destroy()
 	{
 		DLog(Debug, "Destroy server");
-		auto pCanDestroy = fg_Move(mp_pCanDestroyTracker);
 
 		TCActorResultVector<void> Destroys;
 		for (auto &ToolLaunch : mp_ToolLaunches)
@@ -176,35 +141,35 @@ namespace NMib::NMeteor::NMeteorManager
 
 		mp_CurlActors.f_Destroy()  > Destroys.f_AddResult();
 
-		Destroys.f_GetResults()
-			> [this, pCanDestroy](auto &&_Results)
+		co_await Destroys.f_GetResults();
+
+		co_await fp_DestroyApps().f_Wrap();
+		DLog(Debug, "Destroy apps done");
+
+		{
+			TCActorResultVector<void> Destroys;
+			for (auto &Launch : mp_AppLaunches)
 			{
-				TCActorResultVector<void> Destroys;
-
-				Destroys.f_GetResults() > [this, pCanDestroy](auto &&_Results)
-					{
-						fp_DestroyApps() > [this, pCanDestroy](auto &&)
-							{
-								if (!mp_NginxLaunch)
-								{
-									DLog(Debug, "Destroy apps done");
-									mp_FileActors.f_Destroy() > pCanDestroy->f_Track();
-									return;
-								}
-								mp_NginxLaunch->f_Destroy() > [this, pCanDestroy](auto &&)
-									{
-										DLog(Debug, "Destroy apps done");
-										mp_FileActors.f_Destroy() > pCanDestroy->f_Track();
-									}
-								;
-							}
-						;
-					}
-				;
+				if (Launch.m_TunnelSubscription)
+				{
+					Launch.m_TunnelSubscription->f_Destroy() > Destroys.f_AddResult();
+					Launch.m_TunnelSubscription.f_Clear();
+				}
 			}
-		;
 
-		return pCanDestroy->f_Future();
+			if (mp_NetworkTunnelServer)
+				mp_NetworkTunnelServer->f_Destroy() > Destroys.f_AddResult();
+			mp_NetworkTunnelServer.f_Clear();
+
+			co_await Destroys.f_GetResults();
+		}
+
+		if (mp_NginxLaunch)
+			co_await mp_NginxLaunch->f_Destroy();
+
+		co_await mp_FileActors.f_Destroy();
+
+		co_return {};
 	}
 
 #ifdef DPlatformFamily_Windows

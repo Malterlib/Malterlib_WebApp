@@ -19,6 +19,7 @@
 #include <Mib/Web/AWS/CloudFront>
 #include <Mib/Web/AWS/Lambda>
 #include <Mib/Web/Curl>
+#include <Mib/Cloud/NetworkTunnelServer>
 
 #include "Malterlib_Meteor_App_MeteorManager_Helpers.h"
 
@@ -268,6 +269,7 @@ namespace NMib::NMeteor::NMeteorManager
 			
 			TCActor<CProcessLaunchActor> m_Launch;
 			CActorSubscription m_LaunchSubscription;
+			CActorSubscription m_TunnelSubscription;
 			CStr m_LogCategory;
 			CStr m_BackendIdentifier;
 			bool m_bInitialLaunched = false;
@@ -364,6 +366,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCFuture<void> fp_StartNginx();
 		TCFuture<void> fp_StartApps();
 		TCFuture<void> fp_DestroyApps();
+		TCFuture<void> fp_SetupNetworkTunnels();
 
 		static TCMap<CStr, TCVector<CStr>> fsp_GetContentTypes();
 		static CStr fsp_GetContentTypeForExtension(CStr const &_Extension);
@@ -375,7 +378,6 @@ namespace NMib::NMeteor::NMeteorManager
 		
 		TCSharedPointer<ICMeteorManagerCustomization> mp_pCustomization;
 		
-		TCSharedPointer<CCanDestroyTracker> mp_pCanDestroyTracker;
 		CDistributedAppState &mp_AppState;
 
 		TCActor<CFileChangeNotificationActor> mp_FileChangeNotificationActor = fg_Construct();
@@ -420,6 +422,8 @@ namespace NMib::NMeteor::NMeteorManager
 
 		TCActor<CAwsCloudFrontActor> mp_CloudFrontActor;
 		TCActor<CAwsLambdaActor> mp_LambdaActor;
+
+		TCActor<CNetworkTunnelServer> mp_NetworkTunnelServer;
 
 		// Precalculated config
 		

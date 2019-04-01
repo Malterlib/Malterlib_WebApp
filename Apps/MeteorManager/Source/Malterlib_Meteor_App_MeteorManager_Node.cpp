@@ -5,6 +5,7 @@
 
 #include <Mib/Concurrency/Actor/Timer>
 #include <Mib/Network/SSL>
+#include <Mib/Concurrency/LogError>
 
 namespace NMib::NMeteor::NMeteorManager
 {
@@ -113,6 +114,17 @@ namespace NMib::NMeteor::NMeteorManager
 		}
 	}
 
+	TCFuture<void> CMeteorManagerActor::fp_SetupNetworkTunnels()
+	{
+		if (!mp_bNeedNode)
+			return fg_Explicit();
+
+		mp_NetworkTunnelServer = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager, mp_AppState.f_AuditorFactory(), "Network Tunnel", "NetworkTunnel");
+		mp_NetworkTunnelServer(&CNetworkTunnelServer::f_Start) > fg_LogError("Tunnel Server", "Start tunnel server");
+
+		return fg_Explicit();
+	}
+
 	TCFuture<void> CMeteorManagerActor::fp_StartApps()
 	{
 		fp_UpdateAppLaunch(nullptr);
@@ -197,7 +209,9 @@ namespace NMib::NMeteor::NMeteorManager
 		o_Arguments.f_Insert(fg_Format("--max_old_space_size={}", (_PackageOptions.m_MemoryPerNode*1024.0).f_ToInt()));
 		
 		if (fp_GetConfigValue("NodeDebug", false).f_Boolean())
-			o_Arguments.f_Insert(fg_Format("--debug={}", 7000 + mp_Options.m_LoopbackPrefix*1000 + _AppLaunch.f_GetKey().m_iAppSequence));
+			o_Arguments.f_Insert("--inspect={}:5599"_f << fp_GetAppIPAddress(_AppLaunch));
+		else
+			o_Arguments.f_Insert("--inspect-port={}:5599"_f << fp_GetAppIPAddress(_AppLaunch));
 
 		o_Arguments.f_Insert(_PackageOptions.m_CustomParams);
 	}
@@ -285,6 +299,8 @@ namespace NMib::NMeteor::NMeteorManager
 		CStr PackageDirectory = fg_Format("{}/{}", ProgramDirectory, _AppLaunch.f_GetKey().m_PackageName);
 
 		auto &PackageOptions = fg_Const(mp_Options.m_Packages)[LaunchKey.m_PackageName];
+
+		bool bIsNode = false;
 		
 		if (PackageOptions.m_Type == CMeteorManagerOptions::EPackageType_Meteor)
 		{
@@ -294,6 +310,7 @@ namespace NMib::NMeteor::NMeteorManager
 			LaunchExecutable = ProgramDirectory + "/node_dist/bin/node";
 #endif
 			fp_SetupNodeArguments(Arguments, _AppLaunch, PackageOptions);
+			bIsNode = true;
 			
 			Arguments.f_Insert(fg_Format("{}/{}/main.js", ProgramDirectory, LaunchKey.m_PackageName));
 		}
@@ -305,6 +322,7 @@ namespace NMib::NMeteor::NMeteorManager
 			LaunchExecutable = ProgramDirectory + "/node_dist/bin/node";
 #endif
 			fp_SetupNodeArguments(Arguments, _AppLaunch, PackageOptions);
+			bIsNode = true;
 			
 			Arguments.f_Insert(ProgramDirectory / LaunchKey.m_PackageName / PackageOptions.m_MainFile);
 		}
@@ -363,7 +381,7 @@ namespace NMib::NMeteor::NMeteorManager
 					{
 					case EProcessLaunchState_Launched:
 						{
-							if (mp_pCanDestroyTracker.f_IsEmpty() || mp_bStopped)
+							if (mp_bDestroyed || mp_bStopped)
 							{
 								if (AppLaunch.m_Launch)
 									AppLaunch.m_Launch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
@@ -382,7 +400,7 @@ namespace NMib::NMeteor::NMeteorManager
 						break;
 					case EProcessLaunchState_Exited:
 						{
-							if (!mp_pCanDestroyTracker.f_IsEmpty() && !mp_bStopped)
+							if (!mp_bDestroyed && !mp_bStopped)
 							{
 								if (_bInitialLaunch)
 									fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Unexpected exit {}", _Change.f_Get<EProcessLaunchState_Exited>()))));
@@ -390,7 +408,7 @@ namespace NMib::NMeteor::NMeteorManager
 								DLog(Info, "Unexpected exit {}, scheduling relaunch in 10 seconds", _Change.f_Get<EProcessLaunchState_Exited>());
 								fg_Timeout(10.0) > [this, pAppLaunch]
 									{
-										if (!mp_pCanDestroyTracker.f_IsEmpty() && !mp_bStopped)
+										if (!mp_bDestroyed && !mp_bStopped)
 											fp_LaunchApp(*pAppLaunch, false);
 									}
 								;
@@ -411,10 +429,64 @@ namespace NMib::NMeteor::NMeteorManager
 				}
 			)
 		;
-		
+
+		if (bIsNode)
+		{
+			Launch.m_Params.m_fOnOutput = [this, pAppLaunch](EProcessLaunchOutputType _OutputType, NMib::NStr::CStr const &_Output)
+				{
+					if (_OutputType != EProcessLaunchOutputType_StdErr)
+						return;
+
+					for (auto &Line : _Output.f_SplitLine())
+					{
+						if (Line.f_StartsWith("Debugger listening on "))
+						{
+							CStr Protocol;
+							CStr Host;
+							CStr GUID;
+							aint nParsed = 0;
+							(CStr::CParse("Debugger listening on {}://{}/{}") >> Protocol >> Host >> GUID).f_Parse(Line, nParsed);
+							if (nParsed == 3)
+							{
+								CEJSON MetaData;
+								MetaData["URLTemplate"] = "{Host}:{Port}";
+
+								TCFuture<void> OldSubscriptionDestroy;
+								if (pAppLaunch->m_TunnelSubscription)
+									OldSubscriptionDestroy = pAppLaunch->m_TunnelSubscription->f_Destroy();
+								else
+									OldSubscriptionDestroy = fg_Explicit();
+
+								OldSubscriptionDestroy > [this, pAppLaunch, MetaData = fg_Move(MetaData)](TCAsyncResult<void> &&) mutable
+									{
+										auto Logger = fg_LogError("Network Tunnel", "Publish network tunnel");
+
+										mp_NetworkTunnelServer
+											(
+											 	&CNetworkTunnelServer::f_PublishNetworkTunnel
+											 	, pAppLaunch->m_LogCategory
+											 	, fp_GetAppIPAddress(*pAppLaunch)
+											 	, 5599
+											 	, fg_Move(MetaData)
+											)
+											> Logger / [pAppLaunch](CActorSubscription &&_Subscription)
+											{
+												pAppLaunch->m_TunnelSubscription = fg_Move(_Subscription);
+											}
+										;
+									}
+								;
+							}
+						}
+					}
+				}
+			;
+		}
+
 		Launch.m_ToLog = CProcessLaunchActor::ELogFlag_All;
 		Launch.m_LogName = _AppLaunch.m_LogCategory;
 		Launch.m_Params.m_bCreateNewProcessGroup = true;
+		Launch.m_bWholeLineOutput = true;
 		
 		auto &Params = Launch.m_Params;
 
