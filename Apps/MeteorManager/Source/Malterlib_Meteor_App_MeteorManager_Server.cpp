@@ -157,9 +157,9 @@ namespace NMib::NMeteor::NMeteorManager
 				}
 			}
 
-			if (mp_NetworkTunnelServer)
-				mp_NetworkTunnelServer->f_Destroy() > Destroys.f_AddResult();
-			mp_NetworkTunnelServer.f_Clear();
+			if (mp_NetworkTunnelsServer)
+				mp_NetworkTunnelsServer->f_Destroy() > Destroys.f_AddResult();
+			mp_NetworkTunnelsServer.f_Clear();
 
 			co_await Destroys.f_GetResults();
 		}

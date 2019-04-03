@@ -19,7 +19,7 @@
 #include <Mib/Web/AWS/CloudFront>
 #include <Mib/Web/AWS/Lambda>
 #include <Mib/Web/Curl>
-#include <Mib/Cloud/NetworkTunnelServer>
+#include <Mib/Cloud/NetworkTunnelsServer>
 
 #include "Malterlib_Meteor_App_MeteorManager_Helpers.h"
 
@@ -352,6 +352,7 @@ namespace NMib::NMeteor::NMeteorManager
 		void fp_UpdateAppLaunch(CExceptionPointer const &_pException);
 		void fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch);
 		void fp_SetupNodeArguments(TCVector<CStr> &o_Arguments, CAppLaunch const &_AppLaunch, CMeteorManagerOptions::CPackage const &_PackageOptions);
+		void fp_HandleNodeDebuggerOutput(CAppLaunch &_AppLaunch, CStr const &_StdErr);
 		void fp_PopulateNodeEnvironment
 			(
 				CSystemEnvironment &o_Environment
@@ -423,7 +424,7 @@ namespace NMib::NMeteor::NMeteorManager
 		TCActor<CAwsCloudFrontActor> mp_CloudFrontActor;
 		TCActor<CAwsLambdaActor> mp_LambdaActor;
 
-		TCActor<CNetworkTunnelServer> mp_NetworkTunnelServer;
+		TCActor<CNetworkTunnelsServer> mp_NetworkTunnelsServer;
 
 		// Precalculated config
 		

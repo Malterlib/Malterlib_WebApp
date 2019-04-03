@@ -119,8 +119,8 @@ namespace NMib::NMeteor::NMeteorManager
 		if (!mp_bNeedNode)
 			return fg_Explicit();
 
-		mp_NetworkTunnelServer = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager, mp_AppState.f_AuditorFactory(), "Network Tunnel", "NetworkTunnel");
-		mp_NetworkTunnelServer(&CNetworkTunnelServer::f_Start) > fg_LogError("Tunnel Server", "Start tunnel server");
+		mp_NetworkTunnelsServer = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager, mp_AppState.f_AuditorFactory(), "Network Tunnel", "NetworkTunnel");
+		mp_NetworkTunnelsServer(&CNetworkTunnelsServer::f_Start) > fg_LogError("Tunnel Server", "Start tunnels server");
 
 		return fg_Explicit();
 	}
@@ -281,7 +281,53 @@ namespace NMib::NMeteor::NMeteorManager
 			o_Environment[EnvVar.f_GetName()] = Value.f_AsString();
 		}
 	}
-	
+
+	void CMeteorManagerActor::fp_HandleNodeDebuggerOutput(CAppLaunch &_AppLaunch, CStr const &_StdErr)
+	{
+		for (auto &Line : _StdErr.f_SplitLine())
+		{
+			if (!Line.f_StartsWith("Debugger listening on "))
+				continue;
+			CStr Protocol;
+			CStr Host;
+			CStr GUID;
+			aint nParsed = 0;
+			(CStr::CParse("Debugger listening on {}://{}/{}") >> Protocol >> Host >> GUID).f_Parse(Line, nParsed);
+
+			if (nParsed != 3)
+				continue;
+
+			CEJSON MetaData;
+			MetaData["URLTemplate"] = "{Host}:{Port}";
+
+			TCFuture<void> OldSubscriptionDestroy;
+			if (_AppLaunch.m_TunnelSubscription)
+				OldSubscriptionDestroy = _AppLaunch.m_TunnelSubscription->f_Destroy();
+			else
+				OldSubscriptionDestroy = fg_Explicit();
+
+			OldSubscriptionDestroy > [this, pAppLaunch = &_AppLaunch, MetaData = fg_Move(MetaData)](TCAsyncResult<void> &&) mutable
+				{
+					auto Logger = fg_LogError("Network Tunnel", "Publish network tunnel");
+
+					mp_NetworkTunnelsServer
+						(
+							&CNetworkTunnelsServer::f_PublishNetworkTunnel
+							, pAppLaunch->m_LogCategory
+							, fp_GetAppIPAddress(*pAppLaunch)
+							, 5599
+							, fg_Move(MetaData)
+						)
+						> Logger / [pAppLaunch](CActorSubscription &&_Subscription)
+						{
+							pAppLaunch->m_TunnelSubscription = fg_Move(_Subscription);
+						}
+					;
+				}
+			;
+		}
+	}
+
 	void CMeteorManagerActor::fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch)
 	{
 		if (_AppLaunch.m_Launch || mp_bStopped || mp_bDestroyed)
@@ -436,49 +482,7 @@ namespace NMib::NMeteor::NMeteorManager
 				{
 					if (_OutputType != EProcessLaunchOutputType_StdErr)
 						return;
-
-					for (auto &Line : _Output.f_SplitLine())
-					{
-						if (Line.f_StartsWith("Debugger listening on "))
-						{
-							CStr Protocol;
-							CStr Host;
-							CStr GUID;
-							aint nParsed = 0;
-							(CStr::CParse("Debugger listening on {}://{}/{}") >> Protocol >> Host >> GUID).f_Parse(Line, nParsed);
-							if (nParsed == 3)
-							{
-								CEJSON MetaData;
-								MetaData["URLTemplate"] = "{Host}:{Port}";
-
-								TCFuture<void> OldSubscriptionDestroy;
-								if (pAppLaunch->m_TunnelSubscription)
-									OldSubscriptionDestroy = pAppLaunch->m_TunnelSubscription->f_Destroy();
-								else
-									OldSubscriptionDestroy = fg_Explicit();
-
-								OldSubscriptionDestroy > [this, pAppLaunch, MetaData = fg_Move(MetaData)](TCAsyncResult<void> &&) mutable
-									{
-										auto Logger = fg_LogError("Network Tunnel", "Publish network tunnel");
-
-										mp_NetworkTunnelServer
-											(
-											 	&CNetworkTunnelServer::f_PublishNetworkTunnel
-											 	, pAppLaunch->m_LogCategory
-											 	, fp_GetAppIPAddress(*pAppLaunch)
-											 	, 5599
-											 	, fg_Move(MetaData)
-											)
-											> Logger / [pAppLaunch](CActorSubscription &&_Subscription)
-											{
-												pAppLaunch->m_TunnelSubscription = fg_Move(_Subscription);
-											}
-										;
-									}
-								;
-							}
-						}
-					}
+					fp_HandleNodeDebuggerOutput(*pAppLaunch, _Output);
 				}
 			;
 		}
