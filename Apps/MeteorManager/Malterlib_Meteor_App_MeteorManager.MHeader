@@ -369,6 +369,7 @@ Property
 		DebuggerCommandArguments "--daemon-run-debug"
 		BaseFileName "@(MalterlibMeteorManagerPrefix)@(MalterlibMeteorManagerName)"
 		Group "Meteor/@(MalterlibMeteorManagerName)"
+		ExtraGroups "{Malterlib}/{CloudTarBinaries};@(Target.ExtraGroups)"
 	}
 	Compile
 	{
@@ -1025,16 +1026,6 @@ Property
 	{
 		Dependency.Link false
 	}
-	%Dependency "Exe_bsdtar=Com_bsdtar*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=bin/"
-	{
-		Dependency.Link false
-	}
-	%Dependency "Exe_gzip=Com_gzip*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=bin/"
-	{
-		!!PlatformFamily Windows
-		Dependency.Link false
-	}
-
 
 	Property
 	{
@@ -1045,11 +1036,6 @@ Property
 		CloudUploadSources "@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'CloudUploadSources_Template'));@(CloudUploadSources)"
 		
 		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_nginx.Target:Exe_nginx'))|/bin;@(CloudUploadSources)"
-		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Group:External.Group:libarchive.Target:Exe_bsdtar.Target:Exe_bsdtar'))|/bin;@(CloudUploadSources)"
-		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_gzip.Target:Exe_gzip'))|/bin;@(CloudUploadSources)"
-		{
-			!!PlatformFamily Windows
-		}
 
 		MalterlibCloud_VersionUploadSources "@(CloudUploadSources);@(MalterlibCloud_VersionUploadSources)"
 	}
