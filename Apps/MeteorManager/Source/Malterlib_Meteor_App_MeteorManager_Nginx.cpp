@@ -132,6 +132,7 @@ R"---(
 			add_header Cache-Control no-cache;
 			root {StaticRoot};
 			access_log logs/static_access_{PackageName}.log;
+			try_files $uri /index.html;
 		}
 )---"
 , R"---(
@@ -165,6 +166,7 @@ R"---(
 			add_header Cache-Control no-cache;
 			root {StaticRoot};
 			access_log logs/static_access_{PackageName}.log;
+			try_files $uri /index.html;
 		}
 
 		location /robots.txt {
