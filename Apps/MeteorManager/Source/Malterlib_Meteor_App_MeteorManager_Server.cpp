@@ -175,15 +175,39 @@ namespace NMib::NMeteor::NMeteorManager
 #ifdef DPlatformFamily_Windows
 	CStrSecure CMeteorManagerActor::fp_GetUserPassword(CStr const &_User)
 	{
-		if (auto pUsers = mp_AppState.m_StateDatabase.m_Data.f_GetMember("Users", EJSONType_Object))
+		if (mp_Options.m_bSaveUserPasswords)
 		{
-			if (auto pUser = pUsers->f_GetMember(_User, EJSONType_Object))
+			if (auto pUsers = mp_AppState.m_StateDatabase.m_Data.f_GetMember("Users", EJSONType_Object))
 			{
-				if (auto pPassword = pUser->f_GetMember("Password", EJSONType_String))
-					return pPassword->f_String();
+				if (auto pUser = pUsers->f_GetMember(_User, EJSONType_Object))
+				{
+					if (auto pPassword = pUser->f_GetMember("Password", EJSONType_String))
+						return pPassword->f_String();
+				}
 			}
 		}
+		else
+		{
+			if (auto pPassword = mp_UserPasswords.f_FindEqual(_User))
+				return *pPassword;
+		}
 		return {};
+	}
+
+	TCContinuation<void> CMeteorManagerActor::fp_SaveUserPassword(CStr const &_User, CStrSecure const &_Password)
+	{
+		TCContinuation<void> Continuation;
+		if (mp_Options.m_bSaveUserPasswords)
+		{
+			mp_AppState.m_StateDatabase.m_Data["Users"][_User]["Password"] = _Password;
+			mp_AppState.f_SaveStateDatabase() > Continuation;
+		}
+		else
+		{
+			mp_UserPasswords[_User] = _Password;
+			Continuation.f_SetResult();
+		}
+		return Continuation;
 	}
 #endif
 
@@ -219,6 +243,18 @@ namespace NMib::NMeteor::NMeteorManager
 				)
 			;
 		}
+#ifdef DPlatformFamily_Windows
+		else if (o_Password.f_IsEmpty())
+		{
+			o_Password = fg_HighEntropyRandomID("23456789ABCDEFGHJKLMNPQRSTWXYZabcdefghijkmnopqrstuvwxyz&=*!@~^") + "2Dg&";
+			NSys::fg_UserManagement_SetUserPassword
+				(
+					_User.m_UserName
+					, o_Password
+				)
+			;
+		}
+#endif
 	}
 
 	TCFuture<void> CMeteorManagerActor::fp_ExtractExeFS() const
@@ -499,6 +535,9 @@ namespace NMib::NMeteor::NMeteorManager
 
 		if (auto *pValue = Settings.f_GetMember("LoopbackPrefix"))
 			m_LoopbackPrefix = pValue->f_Integer();
+
+		if (auto *pValue = Settings.f_GetMember("SaveUserPasswords"))
+			m_bSaveUserPasswords = pValue->f_Boolean();
 
 		m_Mongo.f_SetDefaults(*this);
 

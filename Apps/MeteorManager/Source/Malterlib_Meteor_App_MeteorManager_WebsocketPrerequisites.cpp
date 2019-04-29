@@ -54,8 +54,7 @@ namespace NMib::NMeteor::NMeteorManager
 #ifdef DPlatformFamily_Windows
 				if (!_NodeInfo.m_UserPassword.f_IsEmpty())
 				{
-					mp_AppState.m_StateDatabase.m_Data["Users"][_NodeInfo.m_User.m_UserName]["Password"] = _NodeInfo.m_UserPassword;
-					mp_AppState.f_SaveStateDatabase() > Promise;
+					fp_SaveUserPassword(_NodeInfo.m_User.m_UserName, _NodeInfo.m_UserPassword) > Promise;
 					return;
 				}
 #endif

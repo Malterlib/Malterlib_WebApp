@@ -527,10 +527,15 @@ namespace NMib::NMeteor::NMeteorManager
 		Params.m_RunAsUserPassword = fp_GetUserPassword(LaunchUser.m_UserName);
 #endif
 		Params.m_RunAsGroup = LaunchUser.m_GroupName;
+
 		{
 			auto &Limit = Params.m_Limits[EProcessLimit_OpenedFiles];
-			Limit.m_Value = CMeteorManagerActor::fs_GetNodeFileLimits();
-			Limit.m_MaxValue = CMeteorManagerActor::fs_GetNodeFileLimits();
+			auto MaxFiles = NProcess::NPlatform::fg_Process_GetMaxFilesPerProc();
+			if (MaxFiles)
+			{
+				Limit.m_Value = fg_Min(MaxFiles, CMeteorManagerActor::fs_GetNodeFileLimits());
+				Limit.m_MaxValue = Limit.m_Value;
+			}
 		}
 
 		fs_SetupEnvironment(Params);

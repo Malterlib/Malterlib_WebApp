@@ -700,6 +700,15 @@ Property
 					!MeteorLoopbackPrefix ""
 				}
 				Contents	"@(Contents)"\
+							"	\"SaveUserPasswords\": @(MeteorManagerSaveUserPasswords),\n"
+				{
+					&
+					{
+						!MeteorManagerSaveUserPasswords ""
+						PlatformFamily Windows
+					}
+				}
+				Contents	"@(Contents)"\
 							"	\"DefaultDomain\": \"@(MeteorManagerDefaultDomain)\",\n"
 				{
 					!MeteorManagerDefaultDomain ""

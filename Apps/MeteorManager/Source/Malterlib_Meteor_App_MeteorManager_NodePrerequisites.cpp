@@ -7,6 +7,7 @@
 #include <Mib/File/VirtualFS>
 #include <Mib/File/VirtualFSs/MalterlibFS>
 #include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Compression/ZLib>
 
 namespace NMib::NMeteor::NMeteorManager
 {
@@ -262,8 +263,7 @@ namespace NMib::NMeteor::NMeteorManager
 #ifdef DPlatformFamily_Windows
 				if (!_NodeInfo.m_UserPassword.f_IsEmpty())
 				{
-					mp_AppState.m_StateDatabase.m_Data["Users"][_NodeInfo.m_User.m_UserName]["Password"] = _NodeInfo.m_UserPassword;
-					mp_AppState.f_SaveStateDatabase() > Promise;
+					fp_SaveUserPassword(_NodeInfo.m_User.m_UserName, _NodeInfo.m_UserPassword) > Promise;
 					return;
 				}
 #endif
@@ -339,6 +339,7 @@ namespace NMib::NMeteor::NMeteorManager
 			 	, bIsStatic = PackageOptions.f_IsStatic()
 				, ExcludeGzipPatterns = PackageOptions.m_ExcludeGzipPatterns
 				, bForceAppsReinstall = mp_bForceAppsReinstall
+			 	, FileActors = mp_FileActors
 			]
 			() mutable -> TCFuture<CPackageInfo>
 			{
@@ -433,7 +434,7 @@ namespace NMib::NMeteor::NMeteorManager
 						if (!bOwnPackageDirectory && CFile::fs_FileExists(PackageDirectory))
 							CFile::fs_DeleteDirectoryRecursive(PackageDirectory, true);
 
-						ThisActor(&CMeteorManagerActor::f_ExtractTar, MeteorPackageFileName, ProgramDirectory) > InstallPromise / [=]
+						ThisActor(&CMeteorManagerActor::f_ExtractTar, MeteorPackageFileName, ProgramDirectory) > InstallPromise / [=]() mutable
 							{
 								TCActorResultVector<CStr> Results;
 								try
@@ -479,27 +480,11 @@ namespace NMib::NMeteor::NMeteorManager
 
 									for (auto &File : Files)
 									{
-										ThisActor
-											(
-												&CMeteorManagerActor::f_LaunchTool
-#ifdef DPlatformFamily_Windows
-												, CFile::fs_GetProgramDirectory() / "bin/gzip"
-#else
-												, "gzip"
-#endif
-												, PackageDirectory
-												, fg_CreateVector<CStr>("-k", "-9", File)
-												, CStr{"GZipStatic"}
-												, ELogVerbosity_Errors
-												, fg_Default()
-												, true
-												, fg_Default()
-												, fg_Default()
-												, fg_Default()
-#ifdef DPlatformFamily_Windows
-												, fg_Default()
-#endif
-											)
+										g_Dispatch(*FileActors) > [File]() -> CStr
+											{
+												NCompression::fg_CompressGZip(File, File + ".gz");
+												return "";
+											}
 											> Results.f_AddResult()
 										;
 									}
@@ -612,8 +597,7 @@ namespace NMib::NMeteor::NMeteorManager
 #ifdef DPlatformFamily_Windows
 				if (_PackageInfo.m_bPasswordChanged && !_PackageInfo.m_UserPassword.f_IsEmpty())
 				{
-					mp_AppState.m_StateDatabase.m_Data["Users"][_PackageInfo.m_User.m_UserName]["Password"] = _PackageInfo.m_UserPassword;
-					mp_AppState.f_SaveStateDatabase() > Promise;
+					fp_SaveUserPassword(_PackageInfo.m_User.m_UserName, _PackageInfo.m_UserPassword) > Promise;
 					return;
 				}
 #endif

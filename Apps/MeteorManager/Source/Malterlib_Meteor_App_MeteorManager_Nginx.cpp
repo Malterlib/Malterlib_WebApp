@@ -617,10 +617,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				TCPromise<void> SavePasswordPromise;
 #ifdef DPlatformFamily_Windows
 				if (!_Results.m_UserPassword.f_IsEmpty())
-				{
-					mp_AppState.m_StateDatabase.m_Data["Users"][mp_NginxUser.m_UserName]["Password"] = _Results.m_UserPassword;
-					mp_AppState.f_SaveStateDatabase() > SavePasswordPromise;
-				}
+					fp_SaveUserPassword(mp_NginxUser.m_UserName, _Results.m_UserPassword) > SavePasswordPromise;
 				else
 #endif
 					SavePasswordPromise.f_SetResult();
@@ -1090,10 +1087,15 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		Params.m_bAllowExecutableLocate = true;
 		Params.m_bShowLaunched = false;
+
 		{
 			auto &Limit = Params.m_Limits[EProcessLimit_OpenedFiles];
-			Limit.m_Value = fs_GetNginxFileLimits(mp_AppLaunches.f_GetLen());
-			Limit.m_MaxValue = Limit.m_Value;
+			auto MaxFiles = NProcess::NPlatform::fg_Process_GetMaxFilesPerProc();
+			if (MaxFiles)
+			{
+				Limit.m_Value = fg_Min(MaxFiles, fs_GetNginxFileLimits(mp_AppLaunches.f_GetLen()));
+				Limit.m_MaxValue = Limit.m_Value;
+			}
 		}
 
 		fs_SetupEnvironment(Params);

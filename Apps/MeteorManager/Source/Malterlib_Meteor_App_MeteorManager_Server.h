@@ -88,6 +88,11 @@ namespace NMib::NMeteor::NMeteorManager
 				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket || f_IsNpmDynamic();
 			}
 
+			bool f_HasCustomExecutable() const
+			{
+				return m_Type == EPackageType_Custom || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket;
+			}
+
 			bool f_IsServer() const
 			{
 				return f_IsDynamicServer() || f_IsStatic();
@@ -165,6 +170,7 @@ namespace NMib::NMeteor::NMeteorManager
 		uint8 m_LoopbackPrefix = 0;
 		bool m_bUseInternalNode = false;
 		bool m_bRedirectWWW = false;
+		bool m_bSaveUserPasswords = false;
 		bool m_bServeAllSubdomains = false;
 		bool m_bStartNginx = true;
 	};
@@ -290,6 +296,7 @@ namespace NMib::NMeteor::NMeteorManager
 		;
 #ifdef DPlatformFamily_Windows
 		CStrSecure fp_GetUserPassword(CStr const &_User);
+		TCContinuation<void> fp_SaveUserPassword(CStr const &_User, CStrSecure const &_Password);
 #endif
 		static void fsp_SetupUser
 			(
@@ -424,6 +431,9 @@ namespace NMib::NMeteor::NMeteorManager
 		TCActor<CAwsCloudFrontActor> mp_CloudFrontActor;
 		TCActor<CAwsLambdaActor> mp_LambdaActor;
 
+#ifdef DPlatformFamily_Windows
+		TCMap<CStr, CStrSecure> mp_UserPasswords;
+#endif
 		TCActor<CNetworkTunnelsServer> mp_NetworkTunnelsServer;
 
 		// Precalculated config
