@@ -12,7 +12,7 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	CMeteorManagerActor::CMeteorManagerActor(CDistributedAppState &_AppState, CMeteorManagerOptions const &_Options)
 		: mp_AppState(_AppState)
-		, mp_pUniqueUserGroup{fg_Construct("/M/App/{}"_f << _Options.m_FullManagerName.f_Replace("_", "-"))}
+		, mp_pUniqueUserGroup{fg_Construct("/M/App/{}"_f << _Options.m_FullManagerName.f_Replace("_", "-"), _AppState.m_RootDirectory)}
 		, mp_NodeUser
 		{
 			mp_pUniqueUserGroup->f_GetUser("{}node_{}"_f << _Options.m_UserNamePrefix << _Options.m_ManagerName)
