@@ -543,7 +543,11 @@ namespace NMib::NMeteor::NMeteorManager
 											;
 											CStr UserName;
 											if (bOwnPackageDirectory)
+											{
+												for (auto &File : CFile::fs_FindFiles(PackageDirectory / "*", EFileAttrib_File, true))
+													CFile::fs_MakeFileWritable(File);
 												CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, User.m_UserName, User.m_GroupName);
+											}
 											else
 											{
 												CFile::fs_SetOwnerAndGroupRecursive

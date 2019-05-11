@@ -662,6 +662,8 @@ namespace NMib::NMeteor::NMeteorManager
 			, CMeteorManagerOptions const &_Options
 			, TCFunction<CEJSON (CStr const &_Name, CEJSON const &_Default)> const &_fGetConfigValue
 			, TCSet<CStr> const &_Tags
+			, CStr const &_FastCGIFile
+		 	, TCMap<CStr, CStr> const &_PackageIPs
 		)
 	{
 	}

@@ -87,6 +87,7 @@ R"---(
 		}
 
 {ServerRedirect_{PackageName}}
+{CustomizationInServer_{PackageName}}
 
 {StaticPackages}
 {SubPackages}
@@ -156,6 +157,8 @@ R"---(
 		}
 
 {ServerRedirect_{PackageName}}
+{CustomizationInServer_{PackageName}}
+
 {StaticPackages}
 {SubPackages}
 
@@ -245,6 +248,7 @@ R"---(
 		}
 
 {ServerRedirect_{PackageName}}
+{CustomizationInServer_{PackageName}}
 
 {StaticPackages}
 {SubPackages}
@@ -328,6 +332,7 @@ R"---(
 		}
 
 {ServerRedirect_{PackageName}}
+{CustomizationInServer_{PackageName}}
 
 {StaticPackages}
 {SubPackages}
@@ -631,6 +636,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				VariablesToRemove["{HTTPDefaultServerLocations_www}"];
 				VariablesToRemove["{HTTPSDefaultServerLocations_www}"];
 
+				TCMap<CStr, CStr> PackageIPs;
+
 				CStr UpstreamServers;
 				TCMap<CStr, CStr> Upstreams;
 				{
@@ -658,7 +665,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 								continue;
 							++nUpstream;
-							UpstreamServers += "\t\tserver {}:8080 max_fails=30 fail_timeout=30s;\n"_f << fp_GetAppIPAddress(AppLaunch);
+							CStr IPAddress = fp_GetAppIPAddress(AppLaunch);
+							UpstreamServers += "\t\tserver {}:8080 max_fails=30 fail_timeout=30s;\n"_f << IPAddress;
+							PackageIPs[Package.f_GetName()] = IPAddress;
 						}
 
 						if (bIsFastCGI)
@@ -838,6 +847,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							VariablesToRemove[("{{ServerNameExtra_{}}"_f << Package.f_GetName()).f_GetStr()];
 							VariablesToRemove[("{{ServerAccessCheck_{}}"_f << Package.f_GetName()).f_GetStr()];
 							VariablesToRemove[("{{ServerRedirect_{}}"_f << Package.f_GetName()).f_GetStr()];
+							VariablesToRemove[("{{CustomizationInServer_{}}"_f << Package.f_GetName()).f_GetStr()];
 							VariablesToRemove[("{{ServerRootOptions_{}}"_f << Package.f_GetName()).f_GetStr()];
 
 							CStr StaticPackages;
@@ -923,6 +933,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 								return fp_GetConfigValue(_Name, _Default);
 							}
 							, mp_Tags
+							, FastCGIFile
+						 	, PackageIPs
 						)
 					;
 				}
