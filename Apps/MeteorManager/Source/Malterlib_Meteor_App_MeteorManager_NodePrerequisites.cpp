@@ -89,6 +89,7 @@ namespace NMib::NMeteor::NMeteorManager
 						
 						return CFile::EDiffCopyChangeAction_Perform;
 					}
+					, {}
 					, 0.0f
 				)
 			;
@@ -480,7 +481,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 									for (auto &File : Files)
 									{
-										g_Dispatch(*FileActors) > [File]() -> CStr
+										g_Dispatch(*FileActors) / [File]() -> CStr
 											{
 												NCompression::fg_CompressGZip(File, File + ".gz");
 												return "";
