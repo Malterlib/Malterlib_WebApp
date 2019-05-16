@@ -3,7 +3,7 @@
 
 #include "Malterlib_Meteor_App_MeteorManager_Server.h"
 
-#include <Mib/Network/SSL>
+#include <Mib/Cryptography/Certificate>
 #include <Mib/Concurrency/Actor/Timer>
 
 namespace NMib::NMeteor::NMeteorManager
@@ -59,7 +59,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 					try
 					{
-						SetupResult.m_MongoAdminUserName = CSSLContext::fs_GetCertificateDistinguishedName_RFC2253(CFile::fs_ReadFile(ClientCertificatePath));
+						SetupResult.m_MongoAdminUserName = CCertificate::fs_GetCertificateDistinguishedName_RFC2253(CFile::fs_ReadFile(ClientCertificatePath));
 					}
 					catch (CException const &_Error)
 					{

@@ -4,7 +4,7 @@
 #include "Malterlib_Meteor_App_MeteorManager_Server.h"
 
 #include <Mib/Concurrency/Actor/Timer>
-#include <Mib/Network/SSL>
+#include <Mib/Cryptography/Certificate>
 #include <Mib/Concurrency/LogError>
 
 namespace NMib::NMeteor::NMeteorManager
