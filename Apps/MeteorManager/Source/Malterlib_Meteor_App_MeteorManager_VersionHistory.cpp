@@ -24,16 +24,16 @@ namespace NMib::NMeteor::NMeteorManager
 			)
 		;
 	}
-	
+
 	TCFuture<void> CMeteorManagerActor::fp_UpdateVersionHistory()
 	{
 		TCPromise<void> Promise;
-		
+
 		g_Dispatch(*mp_FileActors) / [VersionHistoryFileName = fp_GetDataPath("VersionHistory.txt")]
 			{
 				CStr VersionString = fsp_GetVersionString();
 
-				CRegistry_CStr HistoryRegistry;
+				CRegistry HistoryRegistry;
 				if (CFile::fs_FileExists(VersionHistoryFileName))
 					HistoryRegistry.f_ParseStr(CFile::fs_ReadStringFromFile(VersionHistoryFileName, true), VersionHistoryFileName);
 
@@ -63,13 +63,13 @@ namespace NMib::NMeteor::NMeteorManager
 
 				Versions.f_Sort();
 
-				CRegistry_CStr NewHistoryRegistry;
+				CRegistry NewHistoryRegistry;
 
 				mint nMaxVersions = 10;
 				mint nVersions = 0;
-				
+
 				TCVector<CStr> VersionHistory;
-				
+
 				for (auto iVersion = Versions.f_GetIterator(); iVersion && nVersions < nMaxVersions; ++iVersion, ++nVersions)
 				{
 					NewHistoryRegistry.f_SetValueNoPath(iVersion->m_Version, CStr::fs_ToStr( iVersion->m_Time.f_GetSeconds()));
@@ -96,7 +96,7 @@ namespace NMib::NMeteor::NMeteorManager
 				}
 
 				CFile::fs_WriteStringToFile(VersionHistoryFileName, NewHistoryRegistry.f_GenerateStr(), false);
-				
+
 				return VersionHistory;
 			}
 			> Promise / [this, Promise](TCVector<CStr> &&_VersionHistory)
