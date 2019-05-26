@@ -3,6 +3,8 @@
 
 #include "Malterlib_Meteor_App_MeteorManager_Server.h"
 
+#include <Mib/Container/Registry>
+
 namespace NMib::NMeteor::NMeteorManager
 {
 	CStr CMeteorManagerActor::fsp_GetVersionString()
