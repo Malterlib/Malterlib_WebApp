@@ -60,7 +60,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 	CStr CMeteorManagerActor::fp_GetAppIPAddress(CAppLaunch const &_AppLaunch) const
 	{
-		return fg_Format("127.{}.{}.1", mp_Options.m_LoopbackPrefix, 2 + _AppLaunch.f_GetKey().m_iAppSequence);
+		return fg_Format("127.{}.{}.1", mp_LoopbackPrefix, 2 + _AppLaunch.f_GetKey().m_iAppSequence);
 	}
 
 	CStr CMeteorManagerActor::fp_GetAppLocalURL(CAppLaunch const &_AppLaunch) const

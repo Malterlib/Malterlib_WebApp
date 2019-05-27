@@ -455,6 +455,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		uint64 mp_WebPort = 3000;
 		uint64 mp_WebSSLPort = 3443;
+		uint8 mp_LoopbackPrefix = 0;
 		bool mp_bIsStaging = false;
 		bool mp_bAllowRobots = true;
 		bool mp_bStartNgnix = true;

@@ -28,9 +28,9 @@ namespace NMib::NMeteor::NMeteorManager
 		CStr SetupOSFile = ProgramDirectory + "/Source/Malterlib_Meteor_App_MeteorManager_OSSetup.sh";
 
 		TCMap<CStr, CStr> Environment;
-		Environment["NumNodeServers"] = fg_Format("{}", fp_GetNumNodes());
+		Environment["NumNodeServers"] = "{}"_f << fp_GetNumNodes();
 		Environment["PlatformFamily"] = DMibStringize(DPlatformFamily);
-		Environment["LoopbackPrefix"] = fg_Format("{}", mp_Options.m_LoopbackPrefix);
+		Environment["LoopbackPrefix"] = "{}"_f << mp_LoopbackPrefix;
 
 		TCPromise<void> Promise;
 		f_LaunchTool(CProcessLaunch::fs_GetBashPath(), ProgramDirectory, {SetupOSFile}, "OSSetup", ELogVerbosity_Errors, Environment) > Promise.f_ReceiveAny();
