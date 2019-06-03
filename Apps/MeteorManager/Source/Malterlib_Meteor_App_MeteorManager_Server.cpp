@@ -194,20 +194,20 @@ namespace NMib::NMeteor::NMeteorManager
 		return {};
 	}
 
-	TCContinuation<void> CMeteorManagerActor::fp_SaveUserPassword(CStr const &_User, CStrSecure const &_Password)
+	TCFuture<void> CMeteorManagerActor::fp_SaveUserPassword(CStr const &_User, CStrSecure const &_Password)
 	{
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		if (mp_Options.m_bSaveUserPasswords)
 		{
 			mp_AppState.m_StateDatabase.m_Data["Users"][_User]["Password"] = _Password;
-			mp_AppState.f_SaveStateDatabase() > Continuation;
+			mp_AppState.f_SaveStateDatabase() > Promise;
 		}
 		else
 		{
 			mp_UserPasswords[_User] = _Password;
-			Continuation.f_SetResult();
+			Promise.f_SetResult();
 		}
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 #endif
 
