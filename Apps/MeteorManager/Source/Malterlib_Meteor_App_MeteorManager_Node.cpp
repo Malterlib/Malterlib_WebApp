@@ -306,7 +306,7 @@ namespace NMib::NMeteor::NMeteorManager
 			else
 				OldSubscriptionDestroy = fg_Explicit();
 
-			OldSubscriptionDestroy > [this, pAppLaunch = &_AppLaunch, MetaData = fg_Move(MetaData)](TCAsyncResult<void> &&) mutable
+			fg_Move(OldSubscriptionDestroy) > [this, pAppLaunch = &_AppLaunch, MetaData = fg_Move(MetaData)](TCAsyncResult<void> &&) mutable
 				{
 					auto Logger = fg_LogError("Network Tunnel", "Publish network tunnel");
 

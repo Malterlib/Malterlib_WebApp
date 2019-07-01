@@ -577,7 +577,7 @@ namespace NMib::NMeteor::NMeteorManager
 					else
 						InstallPromise.f_SetResult();
 					
-					InstallPromise > Promise / [_PackageName, Promise, PackageInfo]
+					InstallPromise.f_MoveFuture() > Promise / [_PackageName, Promise, PackageInfo]
 						{
 							DMibLogCategoryStr(_PackageName);
 							DLog(Info, "Setting up package was successful");

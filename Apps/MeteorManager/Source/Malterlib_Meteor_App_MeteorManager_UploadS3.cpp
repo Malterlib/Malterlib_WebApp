@@ -241,7 +241,7 @@ exports.handler = (event, context, callback) => {
 				}
 			;
 
-			RegisterPromise > Results.f_AddResult();
+			RegisterPromise.f_MoveFuture() > Results.f_AddResult();
 		}
 
 		TCPromise<void> Promise;
@@ -711,7 +711,7 @@ exports.handler = (event, context, callback) => {
 													;
 												}
 
-												ReadPromise > UploadPromise % ("Failed to read '{}'"_f << FileName) / [=](CByteVector &&_Data)
+												ReadPromise.f_MoveFuture() > UploadPromise % ("Failed to read '{}'"_f << FileName) / [=](CByteVector &&_Data)
 													{
 														if (fp_CheckDestroyed(UploadPromise))
 															return;
@@ -808,7 +808,7 @@ exports.handler = (event, context, callback) => {
 													;
 												}
 
-												CloudFrontInvalidateResult > Promise / [=]
+												CloudFrontInvalidateResult.f_MoveFuture() > Promise / [=]
 													{
 														if (fp_CheckDestroyed(Promise))
 															return;

@@ -1016,7 +1016,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, GroupName);
 						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", GroupName);
 					})
-					+ SavePasswordPromise
+					+ SavePasswordPromise.f_MoveFuture()
 					> Promise / [Promise]()
 					{
 						Promise.f_SetResult();
