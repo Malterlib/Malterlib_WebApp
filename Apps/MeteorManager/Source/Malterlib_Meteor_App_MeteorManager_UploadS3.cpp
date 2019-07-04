@@ -810,21 +810,42 @@ exports.handler = (event, context, callback) => {
 												if (!fg_CombineResults(Promise, fg_Move(_Results)))
 													return;
 
+												TCVector<CStr> PathsToInvalidate = {"/*"};
 												TCPromise<void> CloudFrontInvalidateResult;
 												if (CloudFrontDistribution.f_IsEmpty())
 													CloudFrontInvalidateResult.f_SetResult();
 												else
 												{
-													TCVector<CStr> PathsToInvalidate = {"/*"};
+													DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache");
 													mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, CloudFrontDistribution, PathsToInvalidate)
 														> CloudFrontInvalidateResult.f_ReceiveAny()
 													;
 												}
 
-												CloudFrontInvalidateResult.f_MoveFuture() > Promise / [=]
+												CloudFrontInvalidateResult.f_MoveFuture() > Promise / [=]() mutable
 													{
+														if (!CloudFrontDistribution.f_IsEmpty())
+															DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
+
 														if (fp_CheckDestroyed(Promise))
 															return;
+
+														fg_Timeout(10.0) > [=]() mutable
+															{
+																DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
+																Clock.f_Start();
+																mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, CloudFrontDistribution, PathsToInvalidate)
+																	> [=](TCAsyncResult<CStr> &&_Result)
+																	{
+																		if (!_Result)
+																			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache failed: {}", _Result.f_GetExceptionStr());
+																		else
+																			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again {fe2} s", Clock.f_GetTime());
+																	}
+																;
+															}
+														;
+
 														g_Dispatch(*mp_FileActors) / [=]()
 															{
 																CFile::fs_WriteStringToFile(_SourceCheckResults.m_ChecksumFile, _SourceCheckResults.m_ChecksumStr, false);
