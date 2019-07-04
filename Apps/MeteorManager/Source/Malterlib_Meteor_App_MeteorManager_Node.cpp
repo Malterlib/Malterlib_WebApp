@@ -128,7 +128,7 @@ namespace NMib::NMeteor::NMeteorManager
 	TCFuture<void> CMeteorManagerActor::fp_StartApps()
 	{
 		fp_UpdateAppLaunch(nullptr);
-		return mp_AppLaunchesPromise;
+		return mp_AppLaunchesPromise.f_Future();
 	}
 	
 	TCFuture<void> CMeteorManagerActor::fp_DestroyApps()
