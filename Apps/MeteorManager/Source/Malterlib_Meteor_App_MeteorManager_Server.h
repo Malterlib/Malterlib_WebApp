@@ -159,6 +159,9 @@ namespace NMib::NMeteor::NMeteorManager
 		CStr m_ContentSecurity_FrameSrc;
 		CStr m_ContentSecurity_ConnectSrc;
 		CStr m_ContentSecurity_ObjectSrc;
+		CStr m_ContentSecurity_ChildSrc;
+		CStr m_ContentSecurity_FormAction;
+		CStr m_ContentSecurity_ReportURI;
 
 		CStr m_AccessControl_AllowMethods;
 		CStr m_AccessControl_AllowHeaders;

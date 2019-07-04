@@ -491,6 +491,12 @@ namespace NMib::NMeteor::NMeteorManager
 				m_ContentSecurity_ConnectSrc = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("ObjectSrc"))
 				m_ContentSecurity_ObjectSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("ChildSrc"))
+				m_ContentSecurity_ChildSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("FormAction"))
+				m_ContentSecurity_FormAction = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("ReportURI"))
+				m_ContentSecurity_ReportURI = pValue->f_String();
 		}
 
 		if (auto *pContentSecurity = Settings.f_GetMember("AccessControl"))

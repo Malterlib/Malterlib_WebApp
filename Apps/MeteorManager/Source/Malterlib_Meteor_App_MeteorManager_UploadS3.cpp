@@ -105,7 +105,17 @@ exports.handler = (event, context, callback) => {
 			ContentSecurityPolicy += " style-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_StyleSrc;
 			ContentSecurityPolicy += " frame-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FrameSrc;
 			ContentSecurityPolicy += " connect-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ConnectSrc;
+			ContentSecurityPolicy += " child-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ChildSrc;
+			ContentSecurityPolicy += " form-action 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FormAction;
 			ContentSecurityPolicy += " object-src 'none' {} ;"_f << mp_Options.m_ContentSecurity_ObjectSrc;
+
+			if (mp_Options.m_ContentSecurity_ReportURI)
+			{
+				CStr ContentSecurityReportURI = mp_Options.m_ContentSecurity_ReportURI;
+				ContentSecurityReportURI = ContentSecurityReportURI.f_Replace("{DomainName}", mp_Domain);
+				ContentSecurityReportURI = ContentSecurityReportURI.f_Replace("{SSLPortRewrite}", "");
+				ContentSecurityPolicy += " report-uri {} ;"_f << ContentSecurityReportURI;
+			}
 
 			CStr AccessControl;
 			if (!mp_Options.m_AccessControl_AllowMethods.f_IsEmpty())
@@ -463,6 +473,9 @@ exports.handler = (event, context, callback) => {
 				Stream << Options.m_ContentSecurity_FrameSrc;
 				Stream << Options.m_ContentSecurity_ConnectSrc;
 				Stream << Options.m_ContentSecurity_ObjectSrc;
+				Stream << Options.m_ContentSecurity_ChildSrc;
+				Stream << Options.m_ContentSecurity_FormAction;
+				Stream << Options.m_ContentSecurity_ReportURI;
 				Stream << bRawTarGz;
 				Stream << DirectoryManifest;
 

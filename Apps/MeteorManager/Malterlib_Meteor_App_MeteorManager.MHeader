@@ -810,6 +810,24 @@ Property
 				}
 
 				Contents	"@(Contents)"\
+							"		\"FormAction\": \"@(ContentSecurity_FormAction)\",\n"
+				{
+					!ContentSecurity_FormAction ""
+				}
+
+				Contents	"@(Contents)"\
+							"		\"ReportURI\": \"@(ContentSecurity_ReportURI)\",\n"
+				{
+					!ContentSecurity_ReportURI ""
+				}
+
+				Contents	"@(Contents)"\
+							"		\"ChildSrc\": \"@(ContentSecurity_ChildSrc)\",\n"
+				{
+					!ContentSecurity_ChildSrc ""
+				}
+
+				Contents	"@(Contents)"\
 							"		\"ObjectSrc\": \"@(ContentSecurity_ObjectSrc)\",\n"
 				{
 					!ContentSecurity_ObjectSrc ""
