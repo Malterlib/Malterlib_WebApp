@@ -266,6 +266,11 @@ Property
 {
 	Property
 	{
+		ProductName "Malterlib Meteor Manager"
+		ProductName "@(MalterlibMeteorManagerProductName)"
+		{
+			!MalterlibMeteorManagerProductName ""
+		}
 		MalterlibTestApp true
 		MalterlibPostCopyProject "Malterlib_Meteor_MeteorManager"
 		{
