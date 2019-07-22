@@ -358,7 +358,7 @@ namespace NMib::NMeteor::NMeteorManager
 
 		CStr fp_GetPackageHostname(CStr const &_PackageName, EHostnamePrefix _Prefix) const;
 		CStr fp_GetPackageLocalURL(CStr const &_PackageName) const;
-		CStr fp_GetRootURL(CStr const &_Hostname) const;
+		CStr fp_GetRootURL(CStr const &_Hostname, CStr const &_SubPath) const;
 		CStr fp_GetAppIPAddress(CAppLaunch const &_AppLaunch) const;
 		CStr fp_GetAppLocalURL(CAppLaunch const &_AppLaunch) const;
 		void fp_UpdateAppLaunch(CExceptionPointer const &_pException);

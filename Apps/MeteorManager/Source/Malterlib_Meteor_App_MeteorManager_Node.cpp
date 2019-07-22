@@ -50,12 +50,22 @@ namespace NMib::NMeteor::NMeteorManager
 		return fg_Format("{}.{}", Prefix, mp_Domain);
 	}
 	
-	CStr CMeteorManagerActor::fp_GetRootURL(CStr const &_Hostname) const
+	CStr CMeteorManagerActor::fp_GetRootURL(CStr const &_Hostname, CStr const &_SubPath) const
 	{
-		if (mp_WebSSLPort == 443)
-			return fg_Format("https://{}/", _Hostname);
+		if (!_SubPath.f_IsEmpty())
+		{
+			if (mp_WebSSLPort == 443)
+				return fg_Format("https://{}/{}/", _Hostname, _SubPath);
+			else
+				return fg_Format("https://{}:{}/{}/", _Hostname, mp_WebSSLPort, _SubPath);
+		}
 		else
-			return fg_Format("https://{}:{}/", _Hostname, mp_WebSSLPort);
+		{
+			if (mp_WebSSLPort == 443)
+				return fg_Format("https://{}/", _Hostname);
+			else
+				return fg_Format("https://{}:{}/", _Hostname, mp_WebSSLPort);
+		}
 	}
 
 	CStr CMeteorManagerActor::fp_GetAppIPAddress(CAppLaunch const &_AppLaunch) const
@@ -586,12 +596,12 @@ namespace NMib::NMeteor::NMeteorManager
 				CStr Hostname = fp_GetPackageHostname(_AppLaunch.f_GetKey().m_PackageName, EHostnamePrefix_None);
 				CStr HostnameStatic = fp_GetPackageHostname(_AppLaunch.f_GetKey().m_PackageName, EHostnamePrefix_Static);
 				CalculatedSettings["Hostname"] = Hostname;
-				CalculatedSettings["RootURL"] = fp_GetRootURL(Hostname);
+				CalculatedSettings["RootURL"] = fp_GetRootURL(Hostname, PackageOptions.m_SubPath);
 
 				if (fp_GetConfigValue("EnableSeparateStaticRoot", false).f_Boolean())
 				{
 					CalculatedSettings["StaticHostname"] = HostnameStatic;
-					CalculatedSettings["StaticRootURL"] = fp_GetRootURL(HostnameStatic);
+					CalculatedSettings["StaticRootURL"] = fp_GetRootURL(HostnameStatic, PackageOptions.m_SubPath);
 				}
 			}
 			for (auto &Package : mp_Options.m_Packages)
@@ -601,7 +611,7 @@ namespace NMib::NMeteor::NMeteorManager
 				CStr Hostname = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 				CStr HostnameStatic = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static);
 				CalculatedSettings[fg_Format("Hostname_{}", Package.f_GetName())] = Hostname;
-				CalculatedSettings[fg_Format("RootURL_{}", Package.f_GetName())] = fp_GetRootURL(Hostname);
+				CalculatedSettings[fg_Format("RootURL_{}", Package.f_GetName())] = fp_GetRootURL(Hostname, PackageOptions.m_SubPath);
 				CalculatedSettings[fg_Format("LocalURL_{}", Package.f_GetName())] = fp_GetPackageLocalURL(Package.f_GetName());
 			}
 			

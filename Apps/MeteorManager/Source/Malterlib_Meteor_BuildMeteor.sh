@@ -116,6 +116,7 @@ ExcludePatterns="$ExcludePatterns;*/.example"
 ExcludePatterns="$ExcludePatterns;*/.npm"
 ExcludePatterns="$ExcludePatterns;*/.git"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
+ExcludePatterns="$ExcludePatterns;*/*.MRepoState"
 
 MTool BuildDependencies "OutputFile=`ConvertPath \"$DependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Input:`ConvertPath \"$ScriptDir/Malterlib_Meteor_BuildMeteorNpmInstall.sh\"`" "Find:`ConvertPath \"$MeteorDir\"`/*;RIF;33;$ExcludePatterns" "Find:`ConvertPath \"$SharedPackagesDir\"`/*;RIF;33;$ExcludePatterns"
 

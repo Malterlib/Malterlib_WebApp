@@ -23,18 +23,18 @@ namespace NMib::NMeteor::NMeteorManager
 ch8 const *g_pServerTemplate[2] =
 	{
 R"---(
-		location ~* "^/{SubPath}/[a-z0-9]{40}\.(css|js)$"
+		location ~* "^/{SubPath}/([a-z0-9]{40}\.(css|js))$"
 		{
 			gzip_static always;
 			expires max;
 			add_header Strict-Transport-Security "max-age=31536000;" always;
 			add_header Cache-Control public;
-			root {StaticRoot};
+			alias "{StaticRoot}/$1";
 			access_log logs/static_access_{PackageName}.log;
 		}
 
 		# pass all other requests to upstream
-		location /{SubPath}
+		location /{SubPath}/
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -82,7 +82,7 @@ R"---(
 			expires max;
 			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
 			add_header Cache-Control public;
-			root {StaticRoot};
+			root "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
 		}
 
@@ -131,7 +131,7 @@ R"---(
 			gzip_static always;
 			add_header Strict-Transport-Security "max-age=31536000;" always;
 			add_header Cache-Control no-cache;
-			root {StaticRoot};
+			root "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
 			try_files $uri /index.html;
 		}
@@ -167,7 +167,7 @@ R"---(
 			gzip_static always;
 			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
 			add_header Cache-Control no-cache;
-			root {StaticRoot};
+			root "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
 			try_files $uri /index.html;
 		}
@@ -189,7 +189,7 @@ R"---(
 			expires max;
 			add_header Strict-Transport-Security "max-age=31536000;" always;
 			add_header Cache-Control public;
-			root {StaticRoot};
+			root "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
 		}
 
@@ -243,7 +243,7 @@ R"---(
 			expires max;
 			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
 			add_header Cache-Control public;
-			root {StaticRoot};
+			root "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
 		}
 
@@ -385,17 +385,17 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		{
 			gzip_static always;
 			expires max;
-			root {StaticRoot};
+			root "{StaticRoot}";
 		}
 
 		location ~ "^/packages/.*\.(jpg|jpeg|png|gif|mp3|ico|pdf|svg|eot|woff|woff2|ttf|otf)$"
 		{
-			root {StaticRoot};
+			root "{StaticRoot}";
 		}
 
 		location ~ "\.(jpg|jpeg|png|gif|mp3|ico|pdf|svg|eot|woff|woff2|ttf|otf)$"
 		{
-			root {StaticRoot}/app;
+			root "{StaticRoot}/app";
 		}
 
 		location /robots.txt {
@@ -832,14 +832,14 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							if (bIsStatic)
 							{
 								if (Package.m_ExternalRoot.f_IsEmpty())
-									Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()).f_EscapeStr());
+									Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
 								else
-									Server = Server.f_Replace("{StaticRoot}", CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot).f_EscapeStr());
+									Server = Server.f_Replace("{StaticRoot}", CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot).f_EscapeStrNoQuotes());
 							}
 							else if (bIsMeteor)
-								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()).f_EscapeStr());
+								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
 							else
-								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()).f_EscapeStr());
+								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
 
 							VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
 							VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");
