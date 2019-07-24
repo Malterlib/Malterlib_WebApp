@@ -301,7 +301,7 @@ namespace NMib::NMeteor::NMeteorManager
 		;
 #ifdef DPlatformFamily_Windows
 		CStrSecure fp_GetUserPassword(CStr const &_User);
-		TCContinuation<void> fp_SaveUserPassword(CStr const &_User, CStrSecure const &_Password);
+		TCFuture<void> fp_SaveUserPassword(CStr const &_User, CStrSecure const &_Password);
 #endif
 		static void fsp_SetupUser
 			(
