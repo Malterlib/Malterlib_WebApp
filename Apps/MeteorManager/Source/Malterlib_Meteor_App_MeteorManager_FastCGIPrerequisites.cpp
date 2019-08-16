@@ -7,8 +7,10 @@ namespace NMib::NMeteor::NMeteorManager
 {
 	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_FastCGI()
 	{
+		TCPromise<void> Promise;
+
 		if (!mp_bNeedFCGI)
-			return fg_Explicit();
+			return Promise <<= g_Void;
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr FastCGIDirectory = fp_GetDataPath("FastCGIHome");
@@ -21,7 +23,6 @@ namespace NMib::NMeteor::NMeteorManager
 #endif
 		};
 	
-		TCPromise<void> Promise;
 		g_Dispatch(*mp_FileActors) /
 			[
 				ProgramDirectory
@@ -32,9 +33,10 @@ namespace NMib::NMeteor::NMeteorManager
 			]
 			() mutable -> TCFuture<CInfo>
 			{
+				TCPromise<CInfo> Promise;
+
 				DLog(Info, "Setting up fast cgi user");
 				
-				TCPromise<CInfo> Promise;
 				CInfo Info;
 				Info.m_User = FastCGIUser;
 				

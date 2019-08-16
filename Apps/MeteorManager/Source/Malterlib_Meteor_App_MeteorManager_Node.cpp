@@ -127,32 +127,36 @@ namespace NMib::NMeteor::NMeteorManager
 	TCFuture<void> CMeteorManagerActor::fp_SetupNetworkTunnels()
 	{
 		if (!mp_bNeedNode)
-			return fg_Explicit();
+			co_return {};
 
 		mp_NetworkTunnelsServer = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager, mp_AppState.f_AuditorFactory(), "Network Tunnel", "NetworkTunnel");
 		mp_NetworkTunnelsServer(&CNetworkTunnelsServer::f_Start) > fg_LogError("Tunnel Server", "Start tunnels server");
 
-		return fg_Explicit();
+		co_return {};
 	}
 
 	TCFuture<void> CMeteorManagerActor::fp_StartApps()
 	{
+		TCPromise<void> Promise;
+
 		fp_UpdateAppLaunch(nullptr);
-		return mp_AppLaunchesPromise.f_Future();
+
+		return Promise <<= mp_AppLaunchesPromise.f_Future();
 	}
 	
 	TCFuture<void> CMeteorManagerActor::fp_DestroyApps()
 	{
+		TCPromise<void> Promise;
+
 		TCActorResultVector<void> Destroys;
 		
 		for (auto &Launch : mp_AppLaunches)
 		{
 			if (!Launch.m_Launch)
 				continue;
-			Launch.m_Launch->f_Destroy() > Destroys.f_AddResult();
+			Launch.m_Launch.f_Destroy() > Destroys.f_AddResult();
 		}
 	
-		TCPromise<void> Promise;
 		Destroys.f_GetResults() > Promise.f_ReceiveAny();
 		return Promise.f_MoveFuture();
 	}
@@ -310,13 +314,13 @@ namespace NMib::NMeteor::NMeteorManager
 			CEJSON MetaData;
 			MetaData["URLTemplate"] = "{Host}:{Port}";
 
-			TCFuture<void> OldSubscriptionDestroy;
+			TCPromise<void> OldSubscriptionDestroy;
 			if (_AppLaunch.m_TunnelSubscription)
-				OldSubscriptionDestroy = _AppLaunch.m_TunnelSubscription->f_Destroy();
+				_AppLaunch.m_TunnelSubscription->f_Destroy() > OldSubscriptionDestroy;
 			else
-				OldSubscriptionDestroy = fg_Explicit();
+				OldSubscriptionDestroy.f_SetResult();
 
-			fg_Move(OldSubscriptionDestroy) > [this, pAppLaunch = &_AppLaunch, MetaData = fg_Move(MetaData)](TCAsyncResult<void> &&) mutable
+			OldSubscriptionDestroy.f_MoveFuture() > [this, pAppLaunch = &_AppLaunch, MetaData = fg_Move(MetaData)](TCAsyncResult<void> &&) mutable
 				{
 					auto Logger = fg_LogError("Network Tunnel", "Publish network tunnel");
 
@@ -340,14 +344,12 @@ namespace NMib::NMeteor::NMeteorManager
 
 	void CMeteorManagerActor::fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch)
 	{
-		if (_AppLaunch.m_Launch || mp_bStopped || mp_bDestroyed)
+		if (_AppLaunch.m_Launch || mp_bStopped || f_IsDestroyed())
 			return; // Launch already in progress
 		
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		
 		TCVector<CStr> Arguments;
-		TCPromise<void> Promise;
-		
 		auto *pAppLaunch = &_AppLaunch;
 		auto &LaunchKey = _AppLaunch.f_GetKey();
 		
@@ -427,7 +429,7 @@ namespace NMib::NMeteor::NMeteorManager
 				LaunchExecutable
 				, Arguments
 				, PackageDirectory
-				, [this, Promise, pAppLaunch, _bInitialLaunch](CProcessLaunchStateChangeVariant const &_Change, fp64 _TimeSinceStart)
+				, [this, pAppLaunch, _bInitialLaunch](CProcessLaunchStateChangeVariant const &_Change, fp64 _TimeSinceStart)
 				{
 					auto &AppLaunch = *pAppLaunch;
 					
@@ -437,7 +439,7 @@ namespace NMib::NMeteor::NMeteorManager
 					{
 					case EProcessLaunchState_Launched:
 						{
-							if (mp_bDestroyed || mp_bStopped)
+							if (f_IsDestroyed() || mp_bStopped)
 							{
 								if (AppLaunch.m_Launch)
 									AppLaunch.m_Launch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
@@ -456,7 +458,7 @@ namespace NMib::NMeteor::NMeteorManager
 						break;
 					case EProcessLaunchState_Exited:
 						{
-							if (!mp_bDestroyed && !mp_bStopped)
+							if (!f_IsDestroyed() && !mp_bStopped)
 							{
 								if (_bInitialLaunch)
 									fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Unexpected exit {}", _Change.f_Get<EProcessLaunchState_Exited>()))));
@@ -464,7 +466,7 @@ namespace NMib::NMeteor::NMeteorManager
 								DLog(Info, "Unexpected exit {}, scheduling relaunch in 10 seconds", _Change.f_Get<EProcessLaunchState_Exited>());
 								fg_Timeout(10.0) > [this, pAppLaunch]
 									{
-										if (!mp_bDestroyed && !mp_bStopped)
+										if (!f_IsDestroyed() && !mp_bStopped)
 											fp_LaunchApp(*pAppLaunch, false);
 									}
 								;

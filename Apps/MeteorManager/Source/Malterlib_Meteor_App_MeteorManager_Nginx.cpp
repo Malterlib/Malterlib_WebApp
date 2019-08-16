@@ -1029,8 +1029,10 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 	TCFuture<void> CMeteorManagerActor::fp_StartNginx()
 	{
-		if (mp_NginxLaunch || mp_bStopped || mp_bDestroyed || !mp_bStartNgnix)
-			return fg_Explicit(); // Launch already in progress
+		TCPromise<void> Promise;
+
+		if (mp_NginxLaunch || mp_bStopped || f_IsDestroyed() || !mp_bStartNgnix)
+			return Promise <<= g_Void; // Launch already in progress
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr NginxDirectory = fp_GetDataPath("nginx");
@@ -1039,8 +1041,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		TCVector<CStr> Arguments;
 		Arguments.f_Insert("-c");
 		Arguments.f_Insert(NginxConfig);
-
-		TCPromise<void> Promise;
 
 		CProcessLaunchActor::CLaunch Launch = CProcessLaunchParams::fs_LaunchExecutable
 			(
@@ -1053,7 +1053,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					{
 					case EProcessLaunchState_Launched:
 						{
-							if (mp_bStopped || mp_bDestroyed)
+							if (mp_bStopped || f_IsDestroyed())
 							{
 								if (mp_NginxLaunch)
 									mp_NginxLaunch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
@@ -1065,12 +1065,12 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						break;
 					case EProcessLaunchState_Exited:
 						{
-							if (!mp_bStopped && !mp_bDestroyed)
+							if (!mp_bStopped && !f_IsDestroyed())
 							{
 								DLogWithCategory(nginx, Info, "Scheduling relaunch of nginx in 10 seconds");
 								fg_Timeout(10.0) > [this]
 									{
-										if (!mp_bStopped && !mp_bDestroyed)
+										if (!mp_bStopped && !f_IsDestroyed())
 											fp_StartNginx() > fg_LogError("nginx", "Failed to launch nginx");
 									}
 								;

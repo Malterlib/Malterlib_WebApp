@@ -58,45 +58,29 @@ namespace NMib::NMeteor::NMeteorManager
 	{
 		mp_pManager = fg_ConstructActor<CMeteorManagerActor>(fg_Construct(self), mp_State, mp_Options);
 
-		return mp_pManager(&CMeteorManagerActor::f_Startup);
+		co_return co_await mp_pManager(&CMeteorManagerActor::f_Startup);
 	}
 
 	TCFuture<void> CMeteorManagerDaemonActor::fp_StopApp()
 	{
-		TCSharedPointer<CCanDestroyTracker> pCanDestroy = fg_Construct();
-
 		if (mp_pManager)
 		{
 			DMibLogWithCategory(Daemon, Info, "Shutting down");
-
-			mp_pManager->f_Destroy() > [pCanDestroy](TCAsyncResult<void> &&_Result)
-				{
-					if (!_Result)
-						DMibLogWithCategory(Daemon, Error, "Failed to shut down server: {}", _Result.f_GetExceptionStr());
-				}
-			;
-			mp_pManager = nullptr;
+			co_await (fg_Move(mp_pManager).f_Destroy() % "Failed to shut down server");
 		}
 
-		return pCanDestroy->f_Future();
+		co_return {};
 	}
 
 	TCFuture<void> CMeteorManagerDaemonActor::fp_PreStop()
 	{
 		if (!mp_pManager)
-			return fg_Explicit();
+			co_return  {};
 
 		DMibLogWithCategory(Daemon, Info, "Running pre-stop");
 
-		TCPromise<void> Promise;
-		mp_pManager(&CMeteorManagerActor::f_PreStop) > [Promise](TCAsyncResult<void> &&_Result)
-			{
-				if (!_Result)
-					DMibLogWithCategory(Daemon, Error, "Failed to pre-stop down server: {}", _Result.f_GetExceptionStr());
-				Promise.f_SetResult();
-			}
-		;
+		co_await (mp_pManager(&CMeteorManagerActor::f_PreStop) % "Failed to pre-stop down server");
 
-		return Promise.f_MoveFuture();
+		co_return {};
 	}
 }

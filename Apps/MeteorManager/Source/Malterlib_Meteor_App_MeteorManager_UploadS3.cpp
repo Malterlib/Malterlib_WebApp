@@ -17,27 +17,27 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials)
 	{
+		TCPromise<void> Promise;
+
 		CStr CloudFrontDistribution = fp_GetConfigValue("AWSCloudFrontDistribution", "").f_String();
 		CStr AWSLambdaRole = fp_GetConfigValue("AWSLambdaRole", "").f_String();
 
 		if (CloudFrontDistribution.f_IsEmpty())
 		{
 			DMibLogWithCategory(MeteorManager, Warning, "AWSCloudFrontDistribution value not specified in config, skipping Lambda creation");
-			return fg_Explicit();
+			return Promise <<= g_Void;
 		}
 
 		if (AWSLambdaRole.f_IsEmpty())
 		{
 			DMibLogWithCategory(MeteorManager, Warning, "AWSLambdaRole value not specified in config, skipping Lambda creation");
-			return fg_Explicit();
+			return Promise <<= g_Void;
 		}
 
 		auto AWSCredentials = _AWSCredentials;
 		AWSCredentials.m_Region = "us-east-1";
 
 		mp_LambdaActor = fg_Construct(*mp_CurlActors, AWSCredentials);
-
-		TCPromise<void> Promise;
 
 		CStr OriginRequestFunctionName = CStr("originrequest.{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain).f_ReplaceChar('.', '_');
 		TCMap<CStr, CStr> OriginRequestFiles;
@@ -188,6 +188,8 @@ exports.handler = (event, context, callback) => {
 
 	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_UploadS3FileChangeNotifications()
 	{
+		TCPromise<void> Promise;
+
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
 		TCActorResultVector<void> Results;
@@ -219,15 +221,17 @@ exports.handler = (event, context, callback) => {
 				 	, EFileChange_All
 					, g_ActorFunctor / [=](TCVector<CFileChangeNotification::CNotification> const &_Changes) -> TCFuture<void>
 				 	{
-						if (!mp_bInitialS3UploadDone || mp_bPendingS3Upload)
-							return fg_Explicit();
 						TCPromise<void> Promise;
+
+						if (!mp_bInitialS3UploadDone || mp_bPendingS3Upload)
+							return Promise <<= g_Void;
 						mp_bPendingS3Upload = true;
 						mp_S3UploadSequencer / [=]() -> TCFuture<void>
 							{
 								mp_bPendingS3Upload = false;
+								auto Future = fp_SetupPrerequisites_UploadS3Perform();
 								DMibLogWithCategory(MeteorManager, Info, "Updating S3 upload due to file changes");
-								return fp_SetupPrerequisites_UploadS3Perform();
+								return Future;
 							}
 							> [=](TCAsyncResult<void> &&_Result)
 							{
@@ -254,7 +258,6 @@ exports.handler = (event, context, callback) => {
 			RegisterPromise.f_MoveFuture() > Results.f_AddResult();
 		}
 
-		TCPromise<void> Promise;
 		Results.f_GetResults() > Promise / [=](TCVector<TCAsyncResult<void>> &&_Results)
 			{
 				if (!fg_CombineResults(Promise, fg_Move(_Results)))
@@ -389,7 +392,7 @@ exports.handler = (event, context, callback) => {
 		if (ManifestConfig.m_IncludeWildcards.f_IsEmpty())
 		{
 			Promise.f_SetResult();
-			return fg_Explicit();
+			return Promise <<= g_Void;
 		}
 
 		DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3");
@@ -405,19 +408,19 @@ exports.handler = (event, context, callback) => {
 		if (AWSCredentials.m_Region.f_IsEmpty())
 		{
 			DMibLogWithCategory(MeteorManager, Warning, "AWSS3Region value not specified in config, skipping S3 upload");
-			return fg_Explicit();
+			return Promise <<= g_Void;
 		}
 
 		if (AWSCredentials.m_AccessKeyID.f_IsEmpty())
 		{
 			DMibLogWithCategory(MeteorManager, Warning, "AWSAccessKeyID value not specified in config, skipping S3 upload");
-			return fg_Explicit();
+			return Promise <<= g_Void;
 		}
 
 		if (AWSCredentials.m_SecretKey.f_IsEmpty())
 		{
 			DMibLogWithCategory(MeteorManager, Warning, "AWSSecretKey value not specified in config, skipping S3 upload");
-			return fg_Explicit();
+			return Promise <<= g_Void;
 		}
 
 		DMibLogWithCategory(S3Upload, Info, "Getting source checksums");
@@ -746,15 +749,16 @@ exports.handler = (event, context, callback) => {
 								{
 									mp_S3PrioritySequencer / [=]() mutable -> TCFuture<void>
 										{
+											TCPromise<void> Promise;
+
 											if (auto pDestroyed = fp_CheckDestroyed())
-												return pDestroyed;
+												return Promise <<= pDestroyed;
 
 											TCActorResultVector<void> UploadResults;
 
 											for (auto &fUpload : PriorityUploadList)
 												mp_S3FileReadSequencer / fg_Move(fUpload) > UploadResults.f_AddResult();
 
-											TCPromise<void> Promise;
 											UploadResults.f_GetResults() > Promise / [=](TCVector<TCAsyncResult<void>> &&_Results)
 												{
 													if (!fg_CombineResults(Promise, fg_Move(_Results)))

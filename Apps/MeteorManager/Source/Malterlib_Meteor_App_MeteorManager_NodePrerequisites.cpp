@@ -21,8 +21,10 @@ namespace NMib::NMeteor::NMeteorManager
 	
 	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_OSSetup()
 	{
+		TCPromise<void> Promise;
+
 #ifdef DPlatformFamily_Windows
-		return fg_Explicit();
+		return Promise <<= g_Void;
 #else
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr SetupOSFile = ProgramDirectory + "/Source/Malterlib_Meteor_App_MeteorManager_OSSetup.sh";
@@ -32,7 +34,6 @@ namespace NMib::NMeteor::NMeteorManager
 		Environment["PlatformFamily"] = DMibStringize(DPlatformFamily);
 		Environment["LoopbackPrefix"] = "{}"_f << mp_LoopbackPrefix;
 
-		TCPromise<void> Promise;
 		f_LaunchTool(CProcessLaunch::fs_GetBashPath(), ProgramDirectory, {SetupOSFile}, "OSSetup", ELogVerbosity_Errors, Environment) > Promise.f_ReceiveAny();
 		return Promise.f_MoveFuture();
 #endif
@@ -111,8 +112,10 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_NodeExtract()
 	{
+		TCPromise<void> Promise;
+
 		if (!mp_bNeedNode)
-			return fg_Explicit();
+			return Promise <<= g_Void;
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr NodeDirectory = fp_GetDataPath("node");
@@ -141,14 +144,13 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 		}
 
-		TCPromise<void> Promise;
 		g_Dispatch(*mp_FileActors)
 			/ [ProgramDirectory, NodeDirectory, ThisActor = fg_ThisActor(this), NodeUser = mp_NodeUser, MongoSSLDirectory = fp_GetMongoSSLDirectory(), bNeedNode]
 			() mutable -> TCFuture<CNodeInfo>
 			{
-				DLog(Info, "Extracting node distribution");
-				
 				TCPromise<CNodeInfo> Promise;
+
+				DLog(Info, "Extracting node distribution");
 				
 				CStr DistFile;
 
@@ -277,12 +279,13 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Packages()
 	{
+		TCPromise<void> Promise;
+
 		TCActorResultVector<void> Results;
 		
 		for (auto &Package : mp_Options.m_Packages)
 			fp_SetupPrerequisites_Package(Package.f_GetName(), Package.m_Type) > Results.f_AddResult();
 	
-		TCPromise<void> Promise;
 		Results.f_GetResults() > Promise / [Promise](TCVector<TCAsyncResult<void>> &&_Results)
 			{
 				if (!fg_CombineResults(Promise, fg_Move(_Results)))
@@ -296,9 +299,9 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Package(CStr const &_PackageName, CMeteorManagerOptions::EPackageType _Type)
 	{
-		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
-
 		TCPromise<void> Promise;
+
+		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
 		struct CPackageInfo
 		{
@@ -616,8 +619,10 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Customization()
 	{
+		TCPromise<void> Promise;
+
 		if (!mp_pCustomization)
-			return fg_Explicit();
+			return Promise <<= g_Void;
 
 		TCMap<CStr, CUser> Users;
 
@@ -633,7 +638,7 @@ namespace NMib::NMeteor::NMeteorManager
 			Users(("package_{}"_f << mp_Options.m_Packages.fs_GetKey(Package)).f_GetStr(), Package.m_User);
 		}
 
-		return g_Dispatch(*mp_FileActors) / [pCustomization = mp_pCustomization, Tags = mp_Tags, Users]
+		return Promise <<= g_Dispatch(*mp_FileActors) / [pCustomization = mp_pCustomization, Tags = mp_Tags, Users]
 			{
 				pCustomization->f_SetupPrerequisites(Tags, Users);
 			}
@@ -643,6 +648,7 @@ namespace NMib::NMeteor::NMeteorManager
 	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Servers()
 	{
 		TCPromise<void> Promise;
+
 		fp_SetupPrerequisites_OSSetup()
 			+ fp_SetupPrerequisites_Mongo()
 			+ fp_SetupPrerequisites_NodeExtract()

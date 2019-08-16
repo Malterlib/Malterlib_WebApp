@@ -18,15 +18,19 @@ namespace NMib::NMeteor::NMeteorManager
 	TCFuture<void> CMeteorManagerActor::fp_SetupMongo()
 	{
 		if (mp_Options.m_Mongo.m_DatabaseSetupScript.f_IsEmpty())
-			return fg_Explicit();
+			co_return {};
 		
-		return fp_RunMongoScript
+		co_await fg_CallSafe
 			(
-				fg_Format("{}/Source/{}", CFile::fs_GetProgramDirectory(), mp_Options.m_Mongo.m_DatabaseSetupScript)
+			 	this
+			 	, &CMeteorManagerActor::fp_RunMongoScript
+				, fg_Format("{}/Source/{}", CFile::fs_GetProgramDirectory(), mp_Options.m_Mongo.m_DatabaseSetupScript)
 				, mp_MongoDatabase
 				, 120.0
 			)
 		;
+
+		co_return {};
 	}
 
 	TCFuture<void> CMeteorManagerActor::fp_SetupPrerequisites_Mongo()
@@ -91,6 +95,8 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCFuture<void> CMeteorManagerActor::fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout)
 	{
+		TCPromise<void> Promise;
+
 		CStr ScriptName = CFile::fs_GetFile(_Script);
 
 		CProcessLaunchParams Params;
@@ -107,7 +113,7 @@ namespace NMib::NMeteor::NMeteorManager
 		int64 MongoPort = mp_MongoPort;
 
 		if (MongoHost.f_IsEmpty())
-			return DMibErrorInstance(fg_Format("Failed to launch mongo for running {}: {}", ScriptName, "Hostname is empty"));
+			return Promise <<= DMibErrorInstance(fg_Format("Failed to launch mongo for running {}: {}", ScriptName, "Hostname is empty"));
 		
 		TCVector<CStr> CommandLineArgs = fg_CreateVector<CStr>
 			(
@@ -158,8 +164,6 @@ namespace NMib::NMeteor::NMeteorManager
 		;
 		
 		CStr MongoExecutable = fp_GetMongoExecutable("mongo");
-		
-		TCPromise<void> Promise;
 		
 		TCSharedPointer<TCFunctionMutable<void (TCPromise<void> const &_Promise)>> pDoLaunch = fg_Construct();
 		

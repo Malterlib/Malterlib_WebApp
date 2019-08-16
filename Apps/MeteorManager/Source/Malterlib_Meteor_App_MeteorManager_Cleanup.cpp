@@ -45,10 +45,16 @@ namespace NMib::NMeteor::NMeteorManager
 				Executables.f_Insert(CFile::fs_GetFileNoExt(PackageOptions.m_CustomExecutable));
 		}
 
-		return g_Dispatch(*mp_FileActors) / [Executables = fg_Move(Executables)]
-			{
-				fg_CleanupOldProcesses(Executables);
-			}
+		co_await
+			(
+			 	g_Dispatch(*mp_FileActors) / [Executables = fg_Move(Executables)]
+				{
+					fg_CleanupOldProcesses(Executables);
+				}
+			)
 		;
+
+		co_return {};
+
 	}
 }

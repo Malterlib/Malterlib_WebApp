@@ -73,8 +73,10 @@ namespace NMib::NMeteor::NMeteorManager
 #endif
 		)
 	{
-		if (mp_bDestroyed || mp_bStopped)
-			return fg_Explicit("");
+		TCPromise<CStr> Promise;
+
+		if (this->f_IsDestroyed() || mp_bStopped)
+			return Promise <<= "";
 		
 		auto *pToolLaunch = &mp_ToolLaunches.f_Insert();
 		pToolLaunch->m_ProcessLaunch = fg_ConstructActor<CProcessLaunchActor>();
@@ -139,7 +141,6 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 		;
 		
-		TCPromise<CStr> Promise;
 		pToolLaunch->m_ProcessLaunch(&CProcessLaunchActor::f_LaunchSimple, fg_Move(Launch))
 			> Promise / [pCleanup, Promise, _bSeparateStdErr, _LogCategory](CProcessLaunchActor::CSimpleLaunchResult &&_Result)
 			{

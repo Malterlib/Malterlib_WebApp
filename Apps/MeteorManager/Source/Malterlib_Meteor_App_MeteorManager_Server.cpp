@@ -111,13 +111,13 @@ namespace NMib::NMeteor::NMeteorManager
 
 		TCActorResultVector<void> Destroys;
 		for (auto &ToolLaunch : mp_ToolLaunches)
-			ToolLaunch.m_ProcessLaunch->f_Destroy() > Destroys.f_AddResult();
+			ToolLaunch.m_ProcessLaunch.f_Destroy() > Destroys.f_AddResult();
 
 		co_await Destroys.f_GetResults();
 		co_await fp_DestroyApps().f_Wrap();
 
 		if (mp_NginxLaunch)
-			co_await mp_NginxLaunch->f_Destroy().f_Wrap();
+			co_await mp_NginxLaunch.f_Destroy().f_Wrap();
 
 		DLog(Debug, "Pre-stop server done");
 
@@ -130,14 +130,14 @@ namespace NMib::NMeteor::NMeteorManager
 
 		TCActorResultVector<void> Destroys;
 		for (auto &ToolLaunch : mp_ToolLaunches)
-			ToolLaunch.m_ProcessLaunch->f_Destroy() > Destroys.f_AddResult();
+			ToolLaunch.m_ProcessLaunch.f_Destroy() > Destroys.f_AddResult();
 
 		mp_S3Actors.f_Destroy() > Destroys.f_AddResult();
 
 		if (mp_CloudFrontActor)
-			mp_CloudFrontActor->f_Destroy() > Destroys.f_AddResult();
+			mp_CloudFrontActor.f_Destroy() > Destroys.f_AddResult();
 		if (mp_LambdaActor)
-			mp_LambdaActor->f_Destroy() > Destroys.f_AddResult();
+			mp_LambdaActor.f_Destroy() > Destroys.f_AddResult();
 
 		mp_CurlActors.f_Destroy()  > Destroys.f_AddResult();
 
@@ -158,14 +158,14 @@ namespace NMib::NMeteor::NMeteorManager
 			}
 
 			if (mp_NetworkTunnelsServer)
-				mp_NetworkTunnelsServer->f_Destroy() > Destroys.f_AddResult();
+				mp_NetworkTunnelsServer.f_Destroy() > Destroys.f_AddResult();
 			mp_NetworkTunnelsServer.f_Clear();
 
 			co_await Destroys.f_GetResults();
 		}
 
 		if (mp_NginxLaunch)
-			co_await mp_NginxLaunch->f_Destroy();
+			co_await mp_NginxLaunch.f_Destroy();
 
 		co_await mp_FileActors.f_Destroy();
 
@@ -197,6 +197,7 @@ namespace NMib::NMeteor::NMeteorManager
 	TCFuture<void> CMeteorManagerActor::fp_SaveUserPassword(CStr const &_User, CStrSecure const &_Password)
 	{
 		TCPromise<void> Promise;
+
 		if (mp_Options.m_bSaveUserPasswords)
 		{
 			mp_AppState.m_StateDatabase.m_Data["Users"][_User]["Password"] = _Password;
@@ -259,7 +260,9 @@ namespace NMib::NMeteor::NMeteorManager
 
 	TCFuture<void> CMeteorManagerActor::fp_ExtractExeFS() const
 	{
-		return g_Dispatch(*mp_FileActors) / []
+		TCPromise<void> Promise;
+
+		return Promise <<= g_Dispatch(*mp_FileActors) / []
 			{
 				CExeFS ExeFS;
 				if (!fg_OpenExeFS(ExeFS))
@@ -295,6 +298,7 @@ namespace NMib::NMeteor::NMeteorManager
 	TCFuture<void> CMeteorManagerActor::fp_CheckVersion(CStr const &_Tool, CStr const &_Argument, CStr const &_ParseString, CVersion const &_NeededVersion)
 	{
 		TCPromise<void> Promise;
+
 		fp_RunToolForVersionCheck(_Tool, fg_CreateVector<CStr>(_Argument)) > Promise % "Failed to check version" / [=](CStr &&_Data)
 			{
 				if (_Data.f_IsEmpty())
