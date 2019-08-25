@@ -7,6 +7,8 @@ Import "Tool/*/*.MHeader"
 
 %Group "{Malterlib}/{Lib_Malterlib_Meteor}"
 {
+	Property.MalterlibConcurrency_DistributedActors true
+
 	%Group Meteor
 	{
 		%Group Include
