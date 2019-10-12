@@ -11,7 +11,7 @@ if [[ "$OutputDir" == "" ]]; then
 fi
 
 if [[ "$IntermediateDir" == "" ]]; then
-	IntermediateDir="/CompiledFiles/BuildNode"
+	IntermediateDir="/opt/CompiledFiles/BuildNode"
 	rm -rf "$IntermediateDir"
 fi
 
@@ -37,7 +37,7 @@ elif [[ $SysName ==  Linux* ]] ; then
 	StripCommand="strip --strip-unneeded"
 	function RunMD5()
 	{
-		md5sum "$1" | cut '-d ' -f 1 
+		md5sum "$1" | cut '-d ' -f 1
 	}
 else
 	echo "Couldn't detect system"
@@ -53,7 +53,7 @@ else
 	exit 1
 fi
 
-function AbsolutePath() 
+function AbsolutePath()
 {
 	pushd "$(dirname "$1")" > /dev/null
 	printf "%s/%s\n" "$(pwd)" "$(basename "$1")"
