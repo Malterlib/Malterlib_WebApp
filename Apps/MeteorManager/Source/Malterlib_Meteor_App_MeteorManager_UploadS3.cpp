@@ -390,10 +390,7 @@ exports.handler = (event, context, callback) => {
 		}
 
 		if (ManifestConfig.m_IncludeWildcards.f_IsEmpty())
-		{
-			Promise.f_SetResult();
 			return Promise <<= g_Void;
-		}
 
 		DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3");
 		NTime::CClock GlobalClock{true};
