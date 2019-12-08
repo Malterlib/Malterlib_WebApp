@@ -22,7 +22,7 @@
 			&
 			{
 				BuildScript ""
-				MalterlibMeteorToolType Meteor
+				MalterlibMeteorToolType "Meteor"
 			}
 		}
 		BuildScript "@('Source/Malterlib_Meteor_BuildExecutable.sh'->MakeAbsolute())"
@@ -32,8 +32,8 @@
 				BuildScript ""
 				|
 				{
-					MalterlibMeteorToolType FastCGI
-					MalterlibMeteorToolType Websocket
+					MalterlibMeteorToolType "FastCGI"
+					MalterlibMeteorToolType "Websocket"
 				}
 			}
 		}
@@ -42,7 +42,7 @@
 			&
 			{
 				BuildScript ""
-				MalterlibMeteorToolType Npm
+				MalterlibMeteorToolType "Npm"
 			}
 		}
 		BuildScript "@('Source/Malterlib_Meteor_BuildStatic.sh'->MakeAbsolute())"
@@ -50,7 +50,7 @@
 			&
 			{
 				BuildScript ""
-				MalterlibMeteorToolType Static
+				MalterlibMeteorToolType "Static"
 			}
 		}
 		BuildScript "@(MalterlibMeteorCustomBuildScript)"
@@ -58,7 +58,7 @@
 			&
 			{
 				BuildScript ""
-				MalterlibMeteorToolType Custom
+				MalterlibMeteorToolType "Custom"
 			}
 		}
 		BuildScript "@(Error('Missing build script. For custom builds specify with CustomBuildScript_@(MalterlibMeteorToolBuildName)'))"
@@ -77,12 +77,12 @@
 		MeteorCommand "meteor"
 		MeteorCommand "meteor.bat"
 		{
-			!!PlatformFamily Windows
+			!!PlatformFamily "Windows"
 		}
 		MalterlibExportEnvironmentMinGW true
 
 		Explodee_TargetIdentity "@(GetProperty('Property', 'TargetIdentity', '@(Explodee)'))"
-		Explodee_MatchesDependencies "true"
+		Explodee_MatchesDependencies true
 		{
 			|
 			{
@@ -149,27 +149,27 @@
 		Output "@(Builtin.GeneratorStateFile)"
 		Group "Meteor/@(MalterlibMeteorManagerName)/@(MalterlibMeteorToolBuildName)"
 	}
-	%Group Build
+	%Group "Build"
 	{
 		%File "Source/Malterlib_Meteor_*.sh"
 	}
-	%Group SharedPackages
+	%Group "SharedPackages"
 	{
 		&
 		{
-			MalterlibMeteorToolType Meteor
+			MalterlibMeteorToolType "Meteor"
 			!MalterlibMeteorSharedPackages ""
 		}
 		
 		%File "@(MalterlibMeteorSharedPackages)/^*"
 	}
-	%Group Source
+	%Group "Source"
 	{
 		Compile.AllowNonExisting true
 		Property.ExcludeFiles "*/.meteor/local;@(ExcludeFiles)"
 		%File "@(MeteorBuildDirectory)/^*"
 
-		%Group packages
+		%Group "packages"
 		{
 			Compile
 			{
@@ -196,7 +196,7 @@
 	Target
 	{
 		BaseName "Malterlib_MeteorManager"
-		Type StaticLibrary
+		Type "StaticLibrary"
 		Group "Meteor"
 	}
 	Compile
@@ -205,7 +205,7 @@
 		
 		PreprocessorDefines "@(Compile.PreprocessorDefines)"
 	}
-	%Group Source
+	%Group "Source"
 	{
 		%File "Source/Malterlib_Meteor*"
 		%File "Source/Malterlib_Meteor_App_MeteorManager_Server_DefaultCustomize.cpp"
@@ -285,7 +285,7 @@ Property
 			!!MalterlibMeteorManagerUserNamePrefix ""
 		}
 
-		MalterlibMeteorManagerPrefix MeteorManager_
+		MalterlibMeteorManagerPrefix "MeteorManager_"
 		{
 			&
 			{
@@ -391,7 +391,7 @@ Property
 			!NodeBinariesPath ""
 		}
 	}
-	%Group Source
+	%Group "Source"
 	{
 		%File "Source/Main.cpp"
 		%File "Source/Malterlib_Meteor_App_MeteorManager_Server_DefaultCustomize.cpp"
@@ -404,7 +404,7 @@ Property
 		}
 		%File "@(MeteorManagerExtraSources)"
 	}
-	%Group Settings
+	%Group "Settings"
 	{
 		%GenerateFile "SettingsFile"
 		{
@@ -710,7 +710,7 @@ Property
 					&
 					{
 						!MeteorManagerSaveUserPasswords ""
-						PlatformFamily Windows
+						PlatformFamily "Windows"
 					}
 				}
 				Contents	"@(Contents)"\
@@ -1034,7 +1034,7 @@ Property
 
 		BuildNeedNodeBinaries_NpmBuildType "@(NpmBuildType_@(Expand0))"
 
-		BuildNeedNodeBinaries_Template_Expand "true"
+		BuildNeedNodeBinaries_Template_Expand true
 		{
 			&
 			{
@@ -1047,7 +1047,7 @@ Property
 		BuildNeedNodeBinaries "@(BuildPackageNames_Meteor)@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildNeedNodeBinaries_Template'))"
 	}
 	
-	%Dependency Lib_Malterlib_MeteorManager
+	%Dependency "Lib_Malterlib_MeteorManager"
 	%Dependency "Lib_Malterlib_Cloud"
 	%Dependency "Lib_Malterlib"
 	%Dependency "@(BuildDependencies_Meteor);@(BuildDependencies_FastCGI);@(BuildDependencies_Websocket);@(BuildDependencies_Npm);@(BuildDependencies_Static);@(BuildDependencies_Custom)"

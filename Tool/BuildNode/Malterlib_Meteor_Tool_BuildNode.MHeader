@@ -3,7 +3,7 @@
 
 Property
 {
-	MalterlibMeteorBuildNode "false" // User(Node)=true: Support building mongo and mongo-tools binaries
+	MalterlibMeteorBuildNode false // User(Node)=true: Support building mongo and mongo-tools binaries
 	{
 		!!MalterlibMeteorBuildNode ""
 	}
@@ -15,7 +15,7 @@ Property
 
 	Repository
 	{
-		Type External
+		Type "External"
 		Remotes "upstream=https://github.com/nodejs/node.git;@(Repository.Remotes)"
 	}
 }

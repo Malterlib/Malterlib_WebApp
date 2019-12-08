@@ -9,9 +9,9 @@ Import "Tool/*/*.MHeader"
 {
 	Property.MalterlibConcurrency_DistributedActors true
 
-	%Group Meteor
+	%Group "Meteor"
 	{
-		%Group Include
+		%Group "Include"
 		{
 			Compile.Type "C++"
 			{
@@ -20,12 +20,12 @@ Import "Tool/*/*.MHeader"
 			//%File "Include/Mib/Meteor/^*"
 		}
 		%File "Source/*"
-		%Group Documentation
+		%Group "Documentation"
 		{
 			%File "Documentation/*"
 		}
 	}
-	%Dependency Lib_Malterlib_Web
+	%Dependency "Lib_Malterlib_Web"
 	{
 		Dependency.Indirect true
 	}
