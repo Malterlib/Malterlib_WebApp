@@ -1,0 +1,21 @@
+// Copyright © 2015 Hansoft AB
+// Distributed under the MIT license, see license text in LICENSE.Malterlib
+
+Property
+{
+	MalterlibWebAppBuildNode false // User(Node)=true: Support building mongo and mongo-tools binaries
+	{
+		!!MalterlibWebAppBuildNode ""
+	}
+}
+
+%Repository "node"
+{
+	!!MalterlibWebAppBuildNode true
+
+	Repository
+	{
+		Type "External"
+		Remotes "upstream=https://github.com/nodejs/node.git;@(Repository.Remotes)"
+	}
+}

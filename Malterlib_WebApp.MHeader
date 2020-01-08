@@ -1,0 +1,97 @@
+// Copyright © 2015 Hansoft AB
+// Distributed under the MIT license, see license text in LICENSE.Malterlib
+
+Import "../Core/Lib_Malterlib.MTarget"
+Import "Apps/*/*.MHeader"
+Import "Tool/*/*.MHeader"
+
+%Group "{Malterlib}/{Lib_Malterlib_WebApp}"
+{
+	Property.MalterlibConcurrency_DistributedActors true
+
+	%Group "WebApp"
+	{
+		%Group "Include"
+		{
+			Compile.Type "C++"
+			{
+				!!DocumentationEnabled true
+			}
+			//%File "Include/Mib/WebApp/^*"
+		}
+		%File "Source/*"
+		%Group "Documentation"
+		{
+			%File "Documentation/*"
+		}
+	}
+	%Dependency "Lib_Malterlib_Web"
+	{
+		Dependency.Indirect true
+	}
+}
+
+Property
+{
+	MalterlibLibrary_WebApp true
+	{
+		&
+		{
+			MalterlibLibrary_WebApp ""
+			MalterlibLibrary_All true
+		}
+	}
+	MalterlibSubLibraries "WebApp;@(MalterlibSubLibraries)"
+	{
+		!!MalterlibLibrary_WebApp true
+	}
+	MalterlibLibrarySeparate_Lib_Malterlib_WebApp true
+//	MalterlibSubLibrarySeparate_Lib_Malterlib_WebApp true
+	MalterlibIncludeRoots "@('Include'->MakeAbsolute());@(MalterlibIncludeRoots)"
+	{
+		!!MalterlibLibrary_WebApp true
+	}
+}
+
+%Group "{Test}/{Malterlib_WebApp}"
+{
+	Property
+	{
+		MalterlibLinkWithOpenSSL true
+	}
+	Compile
+	{
+		!!CompileDialect "C"
+		PrefixHeader "@('Test/PCH.h'->MakeAbsolute())"
+	}
+}
+
+Property
+{
+	!!MalterlibEnableInternalTests true
+
+	MalterlibTests "Malterlib_WebApp;@(MalterlibTests)"
+	MalterlibTestFiles_Malterlib_WebApp "@('Test/*'->MakeAbsolute())"
+	MalterlibTestDependencies_Malterlib_WebApp "Lib_Malterlib_WebApp"
+	MalterlibTestExtraGroups_Malterlib_WebApp "{Test}/{Malterlib_WebApp}"
+}
+
+%Workspace "Apps_Malterlib_WebApp"
+{
+	&
+	{
+		MalterlibEnableInternalWorkspaces true
+	}
+
+	Property.MalterlibPostCopyProject "Malterlib_WebApp"
+	{
+		!!TargetIsExecutable true
+	}
+
+	Property.MalterlibLog_Severities "Error;Critical;Warning;Info"
+	{
+		!!MalterlibLog_EnableVerboseDebugLog false
+	}
+
+	%Target "@(Malterlib_WebApp_App_Targets)"
+}
