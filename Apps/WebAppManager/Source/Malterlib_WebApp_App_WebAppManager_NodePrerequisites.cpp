@@ -344,6 +344,7 @@ namespace NMib::NWebApp::NWebAppManager
 				, ExcludeGzipPatterns = PackageOptions.m_ExcludeGzipPatterns
 				, bForceAppsReinstall = mp_bForceAppsReinstall
 			 	, FileActors = mp_FileActors
+				, NpmExecutable = fp_GetNodeExecutable("npm")
 			]
 			() mutable -> TCFuture<CPackageInfo>
 			{
@@ -501,7 +502,7 @@ namespace NMib::NWebApp::NWebAppManager
 											ThisActor
 												(
 													&CWebAppManagerActor::f_LaunchTool
-													, ProgramDirectory + "/node_dist/bin/npm"
+													, NpmExecutable
 													, PackageDirectory + "/programs/server"
 													, fg_CreateVector<CStr>("install", "--silent")
 													, CStr{"GZipStatic"}

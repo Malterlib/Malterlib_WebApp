@@ -22,11 +22,15 @@ else
 	TarExtractOptions="--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
 fi
 
-pushd "$NodeDirectory" > /dev/null
+NpmCommand="meteor npm"
 
-tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$NodePackage"
-export PATH="$PWD/bin:$PATH"
-popd > /dev/null
+if [[ "$NodePackage" != "" ]]; then
+	NpmCommand="npm"
+	pushd "$NodeDirectory" > /dev/null
+	tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$NodePackage"
+	export PATH="$PWD/bin:$PATH"
+	popd > /dev/null
+fi
 
 pushd "$TempDirectory" > /dev/null
 
@@ -36,7 +40,7 @@ pushd "$Name/programs/server/" > /dev/null
 
 export NPM_CONFIG_PROGRESS=false
 
-if ! npm install &>"$TempDirectory/npmerror.log" ; then
+if ! $NpmCommand install &>"$TempDirectory/npmerror.log" ; then
 	cat "$TempDirectory/npmerror.log"
 	exit 1
 fi
