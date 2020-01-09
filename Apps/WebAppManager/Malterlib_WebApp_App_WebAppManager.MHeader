@@ -981,6 +981,11 @@ Property
 			!MalterlibPostCopyProject ""
 		}
 
+		BuildDependencies_CommonProperties "MalterlibPostCopyDestination=@(MalterlibPostCopyDestination)*@(BuildDependencies_CommonProperties)"
+		{
+			!MalterlibPostCopyDestination ""
+		}
+
 		BuildDependencies_Meteor_Template_Expand "Tool_Malterlib_BuildWebApp=Tool_BuildWebApp_@(MalterlibWebAppManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibWebAppToolType=Meteor"
 		BuildDependencies_Meteor_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Meteor_Template_Expand'));"
 		{
@@ -1059,7 +1064,15 @@ Property
 	{
 		Dependency.Link false
 	}
-	%Dependency "Exe_nginx=Com_nginx_@(MalterlibWebAppManagerName)*NgnixTargetBaseName=nginx_@(MalterlibWebAppManagerName)*NgnixTargetGroup=WebApp/@(MalterlibWebAppManagerName)*HTTP_SSL=true*HTTP_V2=true*NGX_USER=@(MalterlibWebAppManagerUserNamePrefix)nginx_@(MalterlibWebAppManagerName)*NGX_GROUP=@(MalterlibWebAppManagerUserNamePrefix)nginx_@(MalterlibWebAppManagerName)*HTTP_GZIP_STATIC=true*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=bin/"
+	Property
+	{
+		NginxPostCopyDestination "bin/"
+		NginxPostCopyDestination "@(MalterlibPostCopyDestination)@(NginxPostCopyDestination)"
+		{
+			!MalterlibPostCopyDestination ""
+		}
+	}
+	%Dependency "Exe_nginx=Com_nginx_@(MalterlibWebAppManagerName)*NgnixTargetBaseName=nginx_@(MalterlibWebAppManagerName)*NgnixTargetGroup=WebApp/@(MalterlibWebAppManagerName)*HTTP_SSL=true*HTTP_V2=true*NGX_USER=@(MalterlibWebAppManagerUserNamePrefix)nginx_@(MalterlibWebAppManagerName)*NGX_GROUP=@(MalterlibWebAppManagerUserNamePrefix)nginx_@(MalterlibWebAppManagerName)*HTTP_GZIP_STATIC=true*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=@(NginxPostCopyDestination)"
 	{
 		Dependency.Link false
 	}
