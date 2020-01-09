@@ -502,9 +502,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 					TCVector<CStr> Subjects = fg_CreateVector<CStr>(Domain, "*." + Domain);
 
-					CCertificateSignOptions SignOptions;
-					SignOptions.m_Days = 365*20;
-
 					if (CFile::fs_FileExists(CaCertificateFile) && CFile::fs_FileExists(CaCertificateKeyFile))
 					{
 						CaCertData = CFile::fs_ReadFile(CaCertificateFile);
@@ -518,6 +515,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						Options.m_KeySetting = KeySettings;
 						Options.f_MakeCA();
 
+						CCertificateSignOptions SignOptions;
+						SignOptions.m_Days = 365*20;
 						SignOptions.f_AddExtension_SubjectKeyIdentifier();
 
 						CCertificate::fs_GenerateSelfSignedCertAndKey
@@ -541,8 +540,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					Options.m_Hostnames = Subjects;
 					Options.m_KeySetting = KeySettings;
 
-
-					SignOptions.m_Extensions.f_Clear();
+					CCertificateSignOptions SignOptions;
+					SignOptions.m_Serial = 1;
+					SignOptions.m_Days = 824;
 					SignOptions.f_AddExtension_AuthorityKeyIdentifier();
 					Options.f_AddExtension_BasicConstraints(false);
 					Options.f_AddExtension_KeyUsage(EKeyUsage_KeyEncipherment | EKeyUsage_DigitalSignature);
