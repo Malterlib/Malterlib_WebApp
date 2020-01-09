@@ -53,6 +53,36 @@ Property
 	}
 }
 
+%Group "{Test}/{Malterlib_WebApp}/WebAppManagerTestApps"
+{
+	!!TestingWorkspace true
+
+	Property
+	{
+		MalterlibWebAppManagerName TestWebAppManager
+		MalterlibWebAppManagerPrefix Empty
+
+		MalterlibWebAppSourceRoot "@('Test/TestApps'->MakeAbsolute())"
+
+		MeteorBuilds "Meteor=Meteor"
+
+		AllowRobots_Meteor false
+
+		WebAppManagerLoopbackPrefix 25
+
+		WebAppManagerMongoHost "localhost"
+		WebAppManagerMongoPort "25017"
+		WebAppManagerMongoDefaultDatabase "MeteorTestApp"
+
+		WebAppManagerDefaultDomain "webappmanagertest.malterlib.org"
+		WebAppManagerDefaultWebPort "5000"
+		WebAppManagerDefaultWebSSLPort "5443"
+
+		TempTestNameWorkaround_Test_Malterlib_WebApp_WebAppManagerTestApps Malterlib_WebApp_WebAppManager
+	}
+	%Target @(TempTestNameWorkaround_Test_Malterlib_WebApp_WebAppManagerTestApps)
+}
+
 %Group "{Test}/{Malterlib_WebApp}"
 {
 	Property
@@ -68,12 +98,24 @@ Property
 
 Property
 {
+	MalterlibWebAppEnableWebAppManagerTest false // User(Tests)=true: Enable building of web app manager. Requires meteor to be installed on system
+	{
+		!!MalterlibWebAppEnableWebAppManagerTest ""
+	}
+}
+
+Property
+{
 	!!MalterlibEnableInternalTests true
 
 	MalterlibTests "Malterlib_WebApp;@(MalterlibTests)"
 	MalterlibTestFiles_Malterlib_WebApp "@('Test/*'->MakeAbsolute())"
 	MalterlibTestDependencies_Malterlib_WebApp "Lib_Malterlib_WebApp"
 	MalterlibTestExtraGroups_Malterlib_WebApp "{Test}/{Malterlib_WebApp}"
+	MalterlibTestWorkspaceExtraGroups_Malterlib_WebApp "{Test}/{Malterlib_WebApp}/WebAppManagerTestApps"
+	{
+		!!MalterlibWebAppEnableWebAppManagerTest true
+	}
 }
 
 %Workspace "Apps_Malterlib_WebApp"
