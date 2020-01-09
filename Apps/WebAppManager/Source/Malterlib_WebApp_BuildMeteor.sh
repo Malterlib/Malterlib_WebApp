@@ -118,6 +118,14 @@ ExcludePatterns="$ExcludePatterns;*/.git"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 ExcludePatterns="$ExcludePatterns;*/*.MRepoState"
 
-MTool BuildDependencies "OutputFile=`ConvertPath \"$DependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Input:`ConvertPath \"$ScriptDir/Malterlib_WebApp_BuildMeteorNpmInstall.sh\"`" "Find:`ConvertPath \"$MeteorDir\"`/*;RIF;33;$ExcludePatterns" "Find:`ConvertPath \"$SharedPackagesDir\"`/*;RIF;33;$ExcludePatterns"
+DependencyCommands=("OutputFile=`ConvertPath \"$DependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Input:`ConvertPath \"$ScriptDir/Malterlib_WebApp_BuildMeteorNpmInstall.sh\"`" "Find:`ConvertPath \"$MeteorDir\"`/*;RIF;33;$ExcludePatterns")
+echo $DependencyCommands
+if [[ "$SharedPackagesDir" != "" ]]; then
+	DependencyCommands+=(@"Find:`ConvertPath \"$SharedPackagesDir\"`/*;RIF;33;$ExcludePatterns")
+fi
+
+echo "${DependencyCommands[@]}"
+
+MTool BuildDependencies "${DependencyCommands[@]}"
 
 exit 0
