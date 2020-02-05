@@ -1,0 +1,47 @@
+// Copyright © 2018 Nonna Holding AB
+// Distributed under the MIT license, see license text in LICENSE.Malterlib
+
+#include <Mib/Encoding/JSONShortcuts>
+#include "Malterlib_WebApp_App_AcmeManager.h"
+
+namespace NMib::NWebApp::NAcmeManager
+{
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainAdd(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	{
+		auto Auditor = f_Auditor();
+
+		CDomainSettings Settings;
+
+		try
+		{
+			fp_ParseSettings(_Params, Settings);
+		}
+		catch (CException const &_Exception)
+		{
+			co_return Auditor.f_Exception(_Exception.f_GetErrorStr());
+		}
+
+		CStr Name = _Params["Domain"].f_String();
+		bool bCreateAccountKey = _Params["CreateAccountKey"].f_Boolean();
+
+		if (!fg_IsValidHostname(Name))
+			co_return Auditor.f_Exception("'{}' is not a valid domain name"_f << Name);
+
+		if (mp_Domains.f_FindEqual(Name))
+			co_return Auditor.f_Exception("Domain '{}' already exists"_f << Name);
+
+		auto &Domain = mp_Domains[Name];
+
+		Domain.m_Settings = fg_Move(Settings);
+
+		fp_SaveState(Domain);
+
+		co_await (mp_State.m_StateDatabase.f_Save() % "[Add domain] Failed to save state" % Auditor);
+
+		Auditor.f_Info("Added domain '{}'"_f << Name);
+
+		co_await self(&CAcmeManagerActor::fp_UpdateAllDomains, bCreateAccountKey ? Name : "");
+
+		co_return 0;
+	}
+}

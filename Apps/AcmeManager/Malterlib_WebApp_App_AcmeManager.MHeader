@@ -1,0 +1,73 @@
+// Copyright © 2018 Nonna Holding AB
+// Distributed under the MIT license, see license text in LICENSE.Malterlib
+
+%Target "Lib_Malterlib_WebApp_AcmeManager"
+{
+	Property
+	{
+		MalterlibConcurrency_DistributedActors true
+		MalterlibCloudTargetLibrary true
+	}
+	Target
+	{
+		Type "StaticLibrary"
+		BaseName "Malterlib_WebApp_AcmeManager"
+		Group "Apps"
+	}
+	%Group "Source"
+	{
+		%File "Source/Malterlib_WebApp_App_*"
+	}
+
+	%Dependency "Lib_Malterlib_WebApp"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Malterlib_Web"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Malterlib_Cloud"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Malterlib_XML"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Malterlib"
+	{
+		Dependency.Indirect true
+	}
+}
+
+%Target "Malterlib_WebApp_AcmeManager"
+{
+	Property
+	{
+		ProductName "Malterlib ACME Manager"
+		MalterlibTestApp true
+		MalterlibPostCopyProject "Malterlib_WebApp_AcmeManager"
+		{
+			!!MalterlibPostCopyProject ""
+		}
+		MalterlibLinkWithOpenSSL true
+		MalterlibConcurrency_DistributedActors true
+		MalterlibTargetNameType "Normal"
+		MalterlibCloudVersionInfo_RunAsUser "MalterlibWebAppAppDistManager"
+		MalterlibCloudVersionInfo_RunAsGroup "MalterlibWebAppAppDistManager"
+	}
+	Target
+	{
+		DebuggerCommandArguments "--daemon-run-debug"
+		BaseFileName "AcmeManager"
+		Group "Apps"
+	}
+	%Group "Source"
+	{
+		%File "Source/Malterlib_WebApp_AppLocal_*"
+	}
+	%Dependency "Lib_Malterlib_WebApp_AcmeManager"
+}
+
+Property.Malterlib_WebApp_App_Targets "Malterlib_WebApp_AcmeManager;@(Malterlib_WebApp_App_Targets)"
