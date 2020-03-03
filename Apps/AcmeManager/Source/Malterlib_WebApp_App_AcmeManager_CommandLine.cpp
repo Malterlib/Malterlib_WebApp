@@ -106,6 +106,7 @@ namespace NMib::NWebApp::NAcmeManager
 							, "Default"_= true
 							, "Description"_= "Create ACME account private key if not already created"
 						}
+						, SettingsOption_AcmeDirectory
 						, SettingsOption_GenerateRSA
 						, SettingsOption_GenerateEC
 						, SettingsOption_IncludeWildcard
@@ -154,6 +155,7 @@ namespace NMib::NWebApp::NAcmeManager
 							, "Type"_= ""
 							, "Description"_= "Unique name of the domain to change settings for."
 						}
+						, fStripDefault(SettingsOption_AcmeDirectory)
 						, fStripDefault(SettingsOption_GenerateRSA)
 						, fStripDefault(SettingsOption_GenerateEC)
 						, fStripDefault(SettingsOption_IncludeWildcard)
