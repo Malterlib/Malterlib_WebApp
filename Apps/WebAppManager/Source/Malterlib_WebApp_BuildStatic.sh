@@ -11,7 +11,17 @@ mkdir -p "$OutputDir"
 
 OutputBundleTar="${OutputDir}${Name}.tar.gz"
 
-export PATH=/usr/local/bin:$PATH
+unset TOOLCHAINS
+export PATH="/usr/local/sbin:/usr/local/bin:$PATH"
+unset MACOSX_DEPLOYMENT_TARGET
+unset SDKROOT
+unset PRODUCT_SPECIFIC_LDFLAGS
+unset OTHER_CFLAGS_ONLY
+unset CC
+unset CLANG
+unset CPLUSPLUS
+unset LD
+unset LDPLUSPLUS
 
 if [[ "$Action" == "Rebuild" || "$Action" == "Clean" ]]; then
 	if [ -e "$OutputBundleTar" ]; then

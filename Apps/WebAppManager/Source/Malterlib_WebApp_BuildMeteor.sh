@@ -4,7 +4,17 @@ set -e
 
 ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+unset TOOLCHAINS
+export PATH="/usr/local/sbin:/usr/local/bin:$PATH"
+unset MACOSX_DEPLOYMENT_TARGET
 unset SDKROOT
+unset PRODUCT_SPECIFIC_LDFLAGS
+unset OTHER_CFLAGS_ONLY
+unset CC
+unset CLANG
+unset CPLUSPLUS
+unset LD
+unset LDPLUSPLUS
 
 Action="$1"
 OutputDir="$OutputDirectory"
@@ -18,7 +28,6 @@ NodePackage="$MalterlibWebAppNodePackagePath"
 
 OutputBundleTar="${OutputDir}${Name}.tar.gz"
 
-export PATH=/usr/local/bin:$PATH
 export METEOR_PACKAGE_DIRS="$SharedPackagesDir"
 
 if [[ "$Action" == "Rebuild" || "$Action" == "Clean" ]]; then
@@ -42,6 +51,9 @@ if [ -e "$OutputBundleTar" ] && [ -e "$DependencyFile" ]; then
 	echo rm -f \"$OutputBundleTar\"
 	exit 0
 fi
+
+OldPath="$PATH"
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 if [ -n "$MeteorCheckedOutPath" ]; then
 	PATH="$MeteorCheckedOutPath:$PATH"
@@ -74,6 +86,8 @@ if [ "$MeteorDebugPackage" == "true" ]; then
 else
 	$MeteorCommand build "$OutputDir" --server-only --architecture "$METEOR_ARCH" --directory
 fi
+
+export PATH="$OldPath"
 
 SysName=$(uname -s)
 if [[ $SysName ==  Darwin* ]] ; then

@@ -11,7 +11,42 @@ mkdir -p "$OutputDir"
 
 OutputBundleTar="${OutputDir}${Name}.tar.gz"
 
-export PATH=/usr/local/bin:$PATH
+unset TOOLCHAINS
+export PATH="/usr/local/sbin:/usr/local/bin:$PATH"
+unset MACOSX_DEPLOYMENT_TARGET
+unset SDKROOT
+unset PRODUCT_SPECIFIC_LDFLAGS
+unset OTHER_CFLAGS_ONLY
+unset CC
+unset CLANG
+unset CPLUSPLUS
+unset LD
+unset LDPLUSPLUS
+
+if [[ "$Action" == "Rebuild" || "$Action" == "Clean" ]]; then
+	if [ -e "$OutputBundleTar" ]; then
+		rm -rf "$OutputBundleTar"
+	fi
+fi
+
+if [ "$Action" == "Clean" ]; then
+	exit 0
+fi
+
+DependencyFile=${OutputDir}$Name.MalterlibDependency
+
+if [ -e "$DependencyFile" ]; then
+	MTool CheckDependencies Verbose=true "Directory=$OutputDir"
+fi
+
+if [ -e "$OutputBundleTar" ] && [ -e "$DependencyFile" ]; then
+	echo Bundle is up to date. To force rebuild:
+	echo rm -f \"$OutputBundleTar\"
+	exit 0
+fi
+
+OldPath="$PATH"
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 if [[ "$MalterlibWebAppHostNodePackagePath" != "" ]]; then
 	NodeDirectory="`mktemp -d`"
@@ -34,28 +69,6 @@ if [[ "$MalterlibWebAppHostNodePackagePath" != "" ]]; then
 	tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$MalterlibWebAppHostNodePackagePath"
 	export PATH="$PWD/bin:$PATH"
 	popd > /dev/null
-fi
-
-if [[ "$Action" == "Rebuild" || "$Action" == "Clean" ]]; then
-	if [ -e "$OutputBundleTar" ]; then
-		rm -rf "$OutputBundleTar"
-	fi
-fi
-
-if [ "$Action" == "Clean" ]; then
-	exit 0
-fi
-
-DependencyFile=${OutputDir}$Name.MalterlibDependency
-
-if [ -e "$DependencyFile" ]; then
-	MTool CheckDependencies Verbose=true "Directory=$OutputDir"
-fi
-
-if [ -e "$OutputBundleTar" ] && [ -e "$DependencyFile" ]; then
-	echo Bundle is up to date. To force rebuild:
-	echo rm -f \"$OutputBundleTar\"
-	exit 0
 fi
 
 echo "Building $Name bundle"
@@ -85,6 +98,8 @@ else
 	echo "Unknown NpmBuildType: '$NpmBuildType'"
 	exit 1
 fi
+
+export PATH="$OldPath"
 
 cp -r $SourceDir "${OutputDir}$Name"
 

@@ -4,9 +4,17 @@ set -e
 
 ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-export PATH="/usr/local/bin:$PATH"
-
-export SDKROOT=
+unset TOOLCHAINS
+export PATH="/usr/local/sbin:/usr/local/bin:$PATH"
+unset MACOSX_DEPLOYMENT_TARGET
+unset SDKROOT
+unset PRODUCT_SPECIFIC_LDFLAGS
+unset OTHER_CFLAGS_ONLY
+unset CC
+unset CLANG
+unset CPLUSPLUS
+unset LD
+unset LDPLUSPLUS
 
 Package="$1"
 NodePackage="$2"
@@ -22,10 +30,10 @@ else
 	TarExtractOptions="--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
 fi
 
-NpmCommand="meteor npm"
+OldPath="$PATH"
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 if [[ "$NodePackage" != "" ]]; then
-	NpmCommand="npm"
 	pushd "$NodeDirectory" > /dev/null
 	tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$NodePackage"
 	export PATH="$PWD/bin:$PATH"
@@ -40,10 +48,12 @@ pushd "$Name/programs/server/" > /dev/null
 
 export NPM_CONFIG_PROGRESS=false
 
-if ! $NpmCommand install &>"$TempDirectory/npmerror.log" ; then
+if ! npm install &>"$TempDirectory/npmerror.log" ; then
 	cat "$TempDirectory/npmerror.log"
 	exit 1
 fi
+
+export PATH="$OldPath"
 
 popd > /dev/null
 
