@@ -17,7 +17,7 @@ Import "Tool/*/*.MHeader"
 			{
 				!!DocumentationEnabled true
 			}
-			//%File "Include/Mib/WebApp/^*"
+			%File "Include/Mib/WebApp/^*"
 		}
 		%File "Source/*"
 		%Group "Documentation"
