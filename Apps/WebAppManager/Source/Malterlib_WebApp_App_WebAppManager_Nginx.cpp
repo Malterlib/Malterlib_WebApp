@@ -406,8 +406,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_Nginx()
 	{
-		TCPromise<void> Promise;
-
 		struct CResults
 		{
 			CStr m_ConfigContents;
@@ -432,295 +430,298 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		CStr CertificateLocality = fp_GetConfigValue("CertificateLocality", DProductLocality).f_String();
 		CStr CertificateOrganizationalUnit = fp_GetConfigValue("CertificateOrganizationalUnit", DProductOrganizationalUnit).f_String();
 
-		g_Dispatch(*mp_FileActors) /
-			[
-				ProgramDirectory = CFile::fs_GetProgramDirectory()
-				, NginxDirectory
-				, bIsStaging = mp_bIsStaging
-				, Domain = mp_Domain
-				, Packages = mp_Options.m_Packages
-				, DhParamFile
-				, ConfigFile
-				, User = mp_NginxUser
-				, CertificateOrganization
-				, CertificateCountry
-				, CertificateLocality
-				, CertificateOrganizationalUnit
-			 	, FastCGIFile
-				, ManagerName = mp_Options.m_ManagerName
-			]
-			() mutable -> CResults
-			{
-				CResults Results;
-
-				Results.m_User = User;
-#ifdef DPlatformFamily_Windows
-				fsp_SetupUser(Results.m_User, Results.m_UserPassword);
-#else
-				fsp_SetupUser(Results.m_User);
-#endif
-
-				CFile::fs_CreateDirectory(NginxDirectory + "/root");
-				CFile::fs_CreateDirectory(NginxDirectory + "/logs");
-				CFile::fs_CreateDirectory(NginxDirectory + "/.tmp");
-				CFile::fs_CreateDirectory(NginxDirectory + "/certificates");
-
-				Results.m_CertificateFile = NginxDirectory + "/certificates/web.pem";
-				Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web.key";
-				CStr CertificateRequestFile = NginxDirectory + "/certificates/web.csr";
-
-				CStr CaCertificateFile = NginxDirectory + "/certificates/web_ca.pem";
-				CStr CaCertificateKeyFile = NginxDirectory + "/certificates/web_ca.key";
-
-				if (bIsStaging)
+		auto SetupResults = co_await
+			(
+				g_Dispatch(*mp_FileActors) /
+				[
+					ProgramDirectory = CFile::fs_GetProgramDirectory()
+					, NginxDirectory
+					, bIsStaging = mp_bIsStaging
+					, Domain = mp_Domain
+					, Packages = mp_Options.m_Packages
+					, DhParamFile
+					, ConfigFile
+					, User = mp_NginxUser
+					, CertificateOrganization
+					, CertificateCountry
+					, CertificateLocality
+					, CertificateOrganizationalUnit
+					, FastCGIFile
+					, ManagerName = mp_Options.m_ManagerName
+				]
+				() mutable -> CResults
 				{
-					Results.m_CertificateFile = NginxDirectory + "/certificates/web-staging.pem";
-					Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web-staging.key";
-					CertificateRequestFile = NginxDirectory + "/certificates/web-staging.csr";
-				}
+					CResults Results;
 
-				if (!CFile::fs_FileExists(Results.m_CertificateFile))
-				{
-#ifdef DMibDebug
-					CPublicKeySetting KeySettings = CPublicKeySettings_EC_secp384r1{};
-#else
-					CPublicKeySetting KeySettings = CPublicKeySettings_RSA{8192};
-#endif
+					Results.m_User = User;
+	#ifdef DPlatformFamily_Windows
+					fsp_SetupUser(Results.m_User, Results.m_UserPassword);
+	#else
+					fsp_SetupUser(Results.m_User);
+	#endif
 
-					TCMap<CStr, CStr> RelativeDistinguishedNames;
+					CFile::fs_CreateDirectory(NginxDirectory + "/root");
+					CFile::fs_CreateDirectory(NginxDirectory + "/logs");
+					CFile::fs_CreateDirectory(NginxDirectory + "/.tmp");
+					CFile::fs_CreateDirectory(NginxDirectory + "/certificates");
 
-					RelativeDistinguishedNames["C"] = CertificateCountry;
-					RelativeDistinguishedNames["L"] = CertificateLocality;
-					RelativeDistinguishedNames["O"] = CertificateOrganization;
-					RelativeDistinguishedNames["OU"] = CertificateOrganizationalUnit;
+					Results.m_CertificateFile = NginxDirectory + "/certificates/web.pem";
+					Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web.key";
+					CStr CertificateRequestFile = NginxDirectory + "/certificates/web.csr";
 
-					CByteVector CertData;
-					CByteVector CertRequestData;
-					CSecureByteVector KeyData;
-					CByteVector CaCertData;
-					CSecureByteVector CaKeyData;
+					CStr CaCertificateFile = NginxDirectory + "/certificates/web_ca.pem";
+					CStr CaCertificateKeyFile = NginxDirectory + "/certificates/web_ca.key";
 
-					TCVector<CStr> Subjects = fg_CreateVector<CStr>(Domain, "*." + Domain);
-
-					if (CFile::fs_FileExists(CaCertificateFile) && CFile::fs_FileExists(CaCertificateKeyFile))
+					if (bIsStaging)
 					{
-						CaCertData = CFile::fs_ReadFile(CaCertificateFile);
-						CaKeyData = CFile::fs_ReadFileSecure(CaCertificateKeyFile);
+						Results.m_CertificateFile = NginxDirectory + "/certificates/web-staging.pem";
+						Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web-staging.key";
+						CertificateRequestFile = NginxDirectory + "/certificates/web-staging.csr";
 					}
-					else
+
+					if (!CFile::fs_FileExists(Results.m_CertificateFile))
 					{
+	#ifdef DMibDebug
+						CPublicKeySetting KeySettings = CPublicKeySettings_EC_secp384r1{};
+	#else
+						CPublicKeySetting KeySettings = CPublicKeySettings_RSA{8192};
+	#endif
+
+						TCMap<CStr, CStr> RelativeDistinguishedNames;
+
+						RelativeDistinguishedNames["C"] = CertificateCountry;
+						RelativeDistinguishedNames["L"] = CertificateLocality;
+						RelativeDistinguishedNames["O"] = CertificateOrganization;
+						RelativeDistinguishedNames["OU"] = CertificateOrganizationalUnit;
+
+						CByteVector CertData;
+						CByteVector CertRequestData;
+						CSecureByteVector KeyData;
+						CByteVector CaCertData;
+						CSecureByteVector CaKeyData;
+
+						TCVector<CStr> Subjects = fg_CreateVector<CStr>(Domain, "*." + Domain);
+
+						if (CFile::fs_FileExists(CaCertificateFile) && CFile::fs_FileExists(CaCertificateKeyFile))
+						{
+							CaCertData = CFile::fs_ReadFile(CaCertificateFile);
+							CaKeyData = CFile::fs_ReadFileSecure(CaCertificateKeyFile);
+						}
+						else
+						{
+							CCertificateOptions Options;
+							Options.m_CommonName = fg_Format("{} CA {nfh,sj16,sf0}", ManagerName, fg_GetHighEntropyRandomInteger<uint64>());
+							Options.m_RelativeDistinguishedNames = RelativeDistinguishedNames;
+							Options.m_KeySetting = KeySettings;
+							Options.f_MakeCA();
+
+							CCertificateSignOptions SignOptions;
+							SignOptions.m_Days = 365*20;
+							SignOptions.f_AddExtension_SubjectKeyIdentifier();
+
+							CCertificate::fs_GenerateSelfSignedCertAndKey
+								(
+									Options
+									, CaCertData
+									, CaKeyData
+									, SignOptions
+								)
+							;
+							CFile::fs_WriteFile(CaCertData, CaCertificateFile);
+	#ifdef DPlatformFamily_Windows
+							CFile::fs_WriteFile(CaCertData, NginxDirectory + "/certificates/web_ca.crt");
+	#endif
+							CFile::fs_WriteFileSecure(CaKeyData, CaCertificateKeyFile);
+						}
+
 						CCertificateOptions Options;
-						Options.m_CommonName = fg_Format("{} CA {nfh,sj16,sf0}", ManagerName, fg_GetHighEntropyRandomInteger<uint64>());
+						Options.m_CommonName = Domain;
 						Options.m_RelativeDistinguishedNames = RelativeDistinguishedNames;
+						Options.m_Hostnames = Subjects;
 						Options.m_KeySetting = KeySettings;
-						Options.f_MakeCA();
 
 						CCertificateSignOptions SignOptions;
-						SignOptions.m_Days = 365*20;
-						SignOptions.f_AddExtension_SubjectKeyIdentifier();
+						SignOptions.m_Serial = 1;
+						SignOptions.m_Days = 824;
+						SignOptions.f_AddExtension_AuthorityKeyIdentifier();
+						Options.f_AddExtension_BasicConstraints(false);
+						Options.f_AddExtension_KeyUsage(EKeyUsage_KeyEncipherment | EKeyUsage_DigitalSignature);
 
-						CCertificate::fs_GenerateSelfSignedCertAndKey
-							(
-								Options
-								, CaCertData
-								, CaKeyData
-								, SignOptions
-							)
-						;
-						CFile::fs_WriteFile(CaCertData, CaCertificateFile);
-#ifdef DPlatformFamily_Windows
-						CFile::fs_WriteFile(CaCertData, NginxDirectory + "/certificates/web_ca.crt");
-#endif
-						CFile::fs_WriteFileSecure(CaKeyData, CaCertificateKeyFile);
+						CCertificate::fs_GenerateClientCertificateRequest(Options, CertRequestData, KeyData);
+						CCertificate::fs_SignClientCertificate(CaCertData, CaKeyData, CertRequestData, CertData, SignOptions);
+
+						CFile::fs_WriteFile(CertData, Results.m_CertificateFile);
+						CFile::fs_WriteFileSecure(KeyData, Results.m_CertificateKeyFile);
+						CFile::fs_WriteFile(CertRequestData, CertificateRequestFile);
 					}
 
-					CCertificateOptions Options;
-					Options.m_CommonName = Domain;
-					Options.m_RelativeDistinguishedNames = RelativeDistinguishedNames;
-					Options.m_Hostnames = Subjects;
-					Options.m_KeySetting = KeySettings;
+					if (CFile::fs_FileExists(DhParamFile))
+						Results.m_bHasDHParamFile = true;
 
-					CCertificateSignOptions SignOptions;
-					SignOptions.m_Serial = 1;
-					SignOptions.m_Days = 824;
-					SignOptions.f_AddExtension_AuthorityKeyIdentifier();
-					Options.f_AddExtension_BasicConstraints(false);
-					Options.f_AddExtension_KeyUsage(EKeyUsage_KeyEncipherment | EKeyUsage_DigitalSignature);
+					CFile::fs_SetUnixAttributesRecursive(NginxDirectory + "/certificates", EFileAttrib_UserRead, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
 
-					CCertificate::fs_GenerateClientCertificateRequest(Options, CertRequestData, KeyData);
-					CCertificate::fs_SignClientCertificate(CaCertData, CaKeyData, CertRequestData, CertData, SignOptions);
+					Results.m_ConfigContents = CFile::fs_ReadStringFromFile(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_Nginx.conf");
+					CFile::fs_DiffCopyFileOrDirectory(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_FastCGI.conf", FastCGIFile, nullptr);
 
-					CFile::fs_WriteFile(CertData, Results.m_CertificateFile);
-					CFile::fs_WriteFileSecure(KeyData, Results.m_CertificateKeyFile);
-					CFile::fs_WriteFile(CertRequestData, CertificateRequestFile);
-				}
-
-				if (CFile::fs_FileExists(DhParamFile))
-					Results.m_bHasDHParamFile = true;
-
-				CFile::fs_SetUnixAttributesRecursive(NginxDirectory + "/certificates", EFileAttrib_UserRead, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
-
-				Results.m_ConfigContents = CFile::fs_ReadStringFromFile(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_Nginx.conf");
-				CFile::fs_DiffCopyFileOrDirectory(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_FastCGI.conf", FastCGIFile, nullptr);
-
-				{
-					for (auto &Package : Packages)
 					{
-						if (!Package.f_IsServer())
-							continue;
-
-						if (Package.m_RedirectsFile.f_IsEmpty())
-							continue;
-
-						CStr RedirectPath = fg_Format("{}/{}/{}", CFile::fs_GetProgramDirectory(), Package.f_GetName(), Package.m_RedirectsFile);
-
-						CStr RedirectContents;
-						try
+						for (auto &Package : Packages)
 						{
-							CJSON const RedirectJSON = CJSON::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath), RedirectPath);
-
-							for (auto const &Redirect : RedirectJSON["redirects"].f_Array())
-							{
-								CStr Path = Redirect["path"].f_String();
-								CStr RedirectTo = Redirect["redirectTo"].f_String();
-								CStr Campaign = Redirect["campaign"].f_String();
-								CStr ReferrerCookie = Redirect["referrerCookie"].f_String();
-								CStr CampaignPercentEncoded;
-								CURL::fs_PercentEncode(CampaignPercentEncoded, Campaign);
-								RedirectContents += fg_Format
-									(
-										"			if ($uri ~* ^/{}$) {{\n"
-										"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{}\";\n"
-										"				return 302 {}?campaign={};\n"
-										"			}\n"
-										, Path
-										, ReferrerCookie
-										, Domain
-										, RedirectTo
-										, CampaignPercentEncoded
-									)
-								;
-							}
-						}
-						catch (CException const &_Exception)
-						{
-							DMibError(fg_Format("Failed to generate redirects: {}", _Exception));
-						}
-
-						Results.m_Redirects[Package.f_GetName()] = fg_Move(RedirectContents);
-					}
-
-				}
-
-				return Results;
-			}
-			> Promise / [=](CResults &&_Results)
-			{
-				CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
-
-				mp_NginxUser = _Results.m_User;
-				TCPromise<void> SavePasswordPromise;
-#ifdef DPlatformFamily_Windows
-				if (!_Results.m_UserPassword.f_IsEmpty())
-					fp_SaveUserPassword(mp_NginxUser.m_UserName, _Results.m_UserPassword) > SavePasswordPromise;
-				else
-#endif
-					SavePasswordPromise.f_SetResult();
-
-				CStr ConfigContents = _Results.m_ConfigContents;
-
-				CStr PidFile = NginxDirectory + "/nginx.pid";
-
-				TCSet<CStr> VariablesToRemove;
-				VariablesToRemove["{HTTPDefaultServerLocations}"];
-				VariablesToRemove["{HTTPDefaultServerLocations_www}"];
-				VariablesToRemove["{HTTPSDefaultServerLocations_www}"];
-
-				TCMap<CStr, CStr> PackageIPs;
-
-				CStr UpstreamServers;
-				TCMap<CStr, CStr> Upstreams;
-				{
-					for (auto &Package : mp_Options.m_Packages)
-					{
-						if (!Package.f_IsServer() || Package.f_IsStatic())
-							continue;
-
-						bool bIsFastCGI = Package.m_Type == CWebAppManagerOptions::EPackageType_FastCGI;
-
-						auto &UpstreamName = Upstreams[Package.f_GetName()];
-
-						UpstreamName = "upstream_{}"_f << Package.f_GetName();
-
-						UpstreamServers += "\n	# {} Upstream\n\n"_f << Package.f_GetName();
-						UpstreamServers += "	upstream {}\n"_f << UpstreamName;
-						UpstreamServers += "	{\n";
-
-						if (Package.m_StickyHeader.f_IsEmpty() && Package.m_StickyCookie.f_IsEmpty())
-							UpstreamServers += "		ip_hash; # for sticky sessions\n";
-
-						mint nUpstream = 0;
-						for (auto &AppLaunch : mp_AppLaunches)
-						{
-							if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
+							if (!Package.f_IsServer())
 								continue;
-							++nUpstream;
-							CStr IPAddress = fp_GetAppIPAddress(AppLaunch);
-							UpstreamServers += "\t\tserver {}:8080 max_fails=30 fail_timeout=30s;\n"_f << IPAddress;
-							PackageIPs[Package.f_GetName()] = IPAddress;
-						}
 
-						if (bIsFastCGI)
-							UpstreamServers += "\t\tkeepalive {};\n"_f << nUpstream;
+							if (Package.m_RedirectsFile.f_IsEmpty())
+								continue;
 
-						UpstreamServers += "	}\n\n";
+							CStr RedirectPath = fg_Format("{}/{}/{}", CFile::fs_GetProgramDirectory(), Package.f_GetName(), Package.m_RedirectsFile);
 
-						if (!Package.m_StickyHeader.f_IsEmpty())
-						{
-							CStr PreviousUpstream = UpstreamName;
-							UpstreamName = "$upstreamStickyHeader_{}"_f << Package.f_GetName();
-
-							UpstreamServers += "	map $http_{} {}\n"_f << Package.m_StickyHeader << UpstreamName;
-							UpstreamServers += "	{\n";
-							UpstreamServers += "		default {};\n"_f << PreviousUpstream;
-
-							for (auto &AppLaunch : mp_AppLaunches)
+							CStr RedirectContents;
+							try
 							{
-								if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
-									continue;
-								UpstreamServers += "		{} {}:8080;\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch);
+								CJSON const RedirectJSON = CJSON::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath), RedirectPath);
+
+								for (auto const &Redirect : RedirectJSON["redirects"].f_Array())
+								{
+									CStr Path = Redirect["path"].f_String();
+									CStr RedirectTo = Redirect["redirectTo"].f_String();
+									CStr Campaign = Redirect["campaign"].f_String();
+									CStr ReferrerCookie = Redirect["referrerCookie"].f_String();
+									CStr CampaignPercentEncoded;
+									CURL::fs_PercentEncode(CampaignPercentEncoded, Campaign);
+									RedirectContents += fg_Format
+										(
+											"			if ($uri ~* ^/{}$) {{\n"
+											"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{}\";\n"
+											"				return 302 {}?campaign={};\n"
+											"			}\n"
+											, Path
+											, ReferrerCookie
+											, Domain
+											, RedirectTo
+											, CampaignPercentEncoded
+										)
+									;
+								}
+							}
+							catch (CException const &_Exception)
+							{
+								DMibError(fg_Format("Failed to generate redirects: {}", _Exception));
 							}
 
-							UpstreamServers += "	}\n\n";
+							Results.m_Redirects[Package.f_GetName()] = fg_Move(RedirectContents);
 						}
-						if (!Package.m_StickyCookie.f_IsEmpty())
-						{
-							CStr PreviousUpstream = UpstreamName;
-							UpstreamName = "$upstreamStickyCookie_{}"_f << Package.f_GetName();
 
-							UpstreamServers += "	map $cookie_{} {}\n"_f << Package.m_StickyCookie << UpstreamName;
-							UpstreamServers += "	{\n";
-							UpstreamServers += "		default {};\n"_f << PreviousUpstream;
-
-							for (auto &AppLaunch : mp_AppLaunches)
-							{
-								if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
-									continue;
-								UpstreamServers += "		{} {}:8080;\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch);
-							}
-
-							UpstreamServers += "	}\n\n";
-						}
 					}
-					UpstreamServers += "{WebAppManagerUpstream}\n";
-					VariablesToRemove["{WebAppManagerUpstream}"];
+
+					return Results;
+				}
+			)
+		;
+
+		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+
+		mp_NginxUser = SetupResults.m_User;
+		TCPromise<void> SavePasswordPromise;
+#ifdef DPlatformFamily_Windows
+		if (!SetupResults.m_UserPassword.f_IsEmpty())
+			fp_SaveUserPassword(mp_NginxUser.m_UserName, SetupResults.m_UserPassword) > SavePasswordPromise;
+		else
+#endif
+			SavePasswordPromise.f_SetResult();
+
+		CStr ConfigContents = SetupResults.m_ConfigContents;
+
+		CStr PidFile = NginxDirectory + "/nginx.pid";
+
+		TCSet<CStr> VariablesToRemove;
+		VariablesToRemove["{HTTPDefaultServerLocations}"];
+		VariablesToRemove["{HTTPDefaultServerLocations_www}"];
+		VariablesToRemove["{HTTPSDefaultServerLocations_www}"];
+
+		TCMap<CStr, CStr> PackageIPs;
+
+		CStr UpstreamServers;
+		TCMap<CStr, CStr> Upstreams;
+		{
+			for (auto &Package : mp_Options.m_Packages)
+			{
+				if (!Package.f_IsServer() || Package.f_IsStatic())
+					continue;
+
+				bool bIsFastCGI = Package.m_Type == CWebAppManagerOptions::EPackageType_FastCGI;
+
+				auto &UpstreamName = Upstreams[Package.f_GetName()];
+
+				UpstreamName = "upstream_{}"_f << Package.f_GetName();
+
+				UpstreamServers += "\n	# {} Upstream\n\n"_f << Package.f_GetName();
+				UpstreamServers += "	upstream {}\n"_f << UpstreamName;
+				UpstreamServers += "	{\n";
+
+				if (Package.m_StickyHeader.f_IsEmpty() && Package.m_StickyCookie.f_IsEmpty())
+					UpstreamServers += "		ip_hash; # for sticky sessions\n";
+
+				mint nUpstream = 0;
+				for (auto &AppLaunch : mp_AppLaunches)
+				{
+					if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
+						continue;
+					++nUpstream;
+					CStr IPAddress = fp_GetAppIPAddress(AppLaunch);
+					UpstreamServers += "\t\tserver {}:8080 max_fails=30 fail_timeout=30s;\n"_f << IPAddress;
+					PackageIPs[Package.f_GetName()] = IPAddress;
 				}
 
-				ConfigContents = ConfigContents.f_Replace("{WebAppManagerUpstream}", UpstreamServers);
+				if (bIsFastCGI)
+					UpstreamServers += "\t\tkeepalive {};\n"_f << nUpstream;
 
-				VariablesToRemove["{WebAppManagerHTTPServers}"];
-				if (mp_Options.m_bRedirectWWW)
+				UpstreamServers += "	}\n\n";
+
+				if (!Package.m_StickyHeader.f_IsEmpty())
 				{
+					CStr PreviousUpstream = UpstreamName;
+					UpstreamName = "$upstreamStickyHeader_{}"_f << Package.f_GetName();
+
+					UpstreamServers += "	map $http_{} {}\n"_f << Package.m_StickyHeader << UpstreamName;
+					UpstreamServers += "	{\n";
+					UpstreamServers += "		default {};\n"_f << PreviousUpstream;
+
+					for (auto &AppLaunch : mp_AppLaunches)
+					{
+						if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
+							continue;
+						UpstreamServers += "		{} {}:8080;\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch);
+					}
+
+					UpstreamServers += "	}\n\n";
+				}
+				if (!Package.m_StickyCookie.f_IsEmpty())
+				{
+					CStr PreviousUpstream = UpstreamName;
+					UpstreamName = "$upstreamStickyCookie_{}"_f << Package.f_GetName();
+
+					UpstreamServers += "	map $cookie_{} {}\n"_f << Package.m_StickyCookie << UpstreamName;
+					UpstreamServers += "	{\n";
+					UpstreamServers += "		default {};\n"_f << PreviousUpstream;
+
+					for (auto &AppLaunch : mp_AppLaunches)
+					{
+						if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
+							continue;
+						UpstreamServers += "		{} {}:8080;\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch);
+					}
+
+					UpstreamServers += "	}\n\n";
+				}
+			}
+			UpstreamServers += "{WebAppManagerUpstream}\n";
+			VariablesToRemove["{WebAppManagerUpstream}"];
+		}
+
+		ConfigContents = ConfigContents.f_Replace("{WebAppManagerUpstream}", UpstreamServers);
+
+		VariablesToRemove["{WebAppManagerHTTPServers}"];
+		if (mp_Options.m_bRedirectWWW)
+		{
 					CStr Section = R"---(
 	server
 	{
@@ -738,60 +739,60 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 {WebAppManagerHTTPServers}
 )---";
 
-					ConfigContents = ConfigContents.f_Replace("{WebAppManagerHTTPServers}", Section);
-				}
+			ConfigContents = ConfigContents.f_Replace("{WebAppManagerHTTPServers}", Section);
+		}
 
-				CStr Servers;
-				TCMap<CStr, CStr> VariablesToReplace;
+		CStr Servers;
+		TCMap<CStr, CStr> VariablesToReplace;
+		{
+			TCMap<CStr, CStr> SubPathServers;
+			for (int i = 0; i < 2; ++i)
+			{
+				bool bIsSubPackage = i == 0;
+
+				for (auto &Package : mp_Options.m_Packages)
 				{
-					TCMap<CStr, CStr> SubPathServers;
-					for (int i = 0; i < 2; ++i)
+					if (!Package.f_IsServer())
+						continue;
+
+					if (bIsSubPackage && Package.m_SubPath.f_IsEmpty())
+						continue;
+					else if (!bIsSubPackage && !Package.m_SubPath.f_IsEmpty())
+						continue;
+
+					bool bIsFastCGI = Package.m_Type == CWebAppManagerOptions::EPackageType_FastCGI;
+					bool bIsWebsocket = Package.m_Type == CWebAppManagerOptions::EPackageType_Websocket;
+					bool bIsMeteor = Package.m_Type == CWebAppManagerOptions::EPackageType_Meteor;
+					bool bIsStatic = Package.f_IsStatic();
+
+					auto &UpstreamName = Upstreams[Package.f_GetName()];
+
+					CStr Server;
+					if (bIsStatic)
+						Server = g_pStaticServerTemplate[i];
+					else if (bIsFastCGI)
+						Server = g_pFastCGIServerTemplate[i];
+					else if (bIsWebsocket)
+						Server = g_pWebsocketServerTemplate[i];
+					else
+						Server = g_pServerTemplate[i];
+
+					if (!bIsSubPackage && bEnableSeparateStaticRoot && Package.m_Type == CWebAppManagerOptions::EPackageType_Meteor)
 					{
-						bool bIsSubPackage = i == 0;
+						Server += g_pServerSeparateStaticRootTemplate;
+						Server = Server.f_Replace("{ServerNameStatic}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static));
+						Server = Server.f_Replace("{ServerNameStaticSource}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_StaticSource));
+					}
 
-						for (auto &Package : mp_Options.m_Packages)
-						{
-							if (!Package.f_IsServer())
-								continue;
+					CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 
-							if (bIsSubPackage && Package.m_SubPath.f_IsEmpty())
-								continue;
-							else if (!bIsSubPackage && !Package.m_SubPath.f_IsEmpty())
-								continue;
+					bool bIsMainServer = ServerName == mp_Domain && Package.m_SubPath.f_IsEmpty();
 
-							bool bIsFastCGI = Package.m_Type == CWebAppManagerOptions::EPackageType_FastCGI;
-							bool bIsWebsocket = Package.m_Type == CWebAppManagerOptions::EPackageType_Websocket;
-							bool bIsMeteor = Package.m_Type == CWebAppManagerOptions::EPackageType_Meteor;
-							bool bIsStatic = Package.f_IsStatic();
+					Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots && mp_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
 
-							auto &UpstreamName = Upstreams[Package.f_GetName()];
-
-							CStr Server;
-							if (bIsStatic)
-								Server = g_pStaticServerTemplate[i];
-							else if (bIsFastCGI)
-								Server = g_pFastCGIServerTemplate[i];
-							else if (bIsWebsocket)
-								Server = g_pWebsocketServerTemplate[i];
-							else
-								Server = g_pServerTemplate[i];
-
-							if (!bIsSubPackage && bEnableSeparateStaticRoot && Package.m_Type == CWebAppManagerOptions::EPackageType_Meteor)
-							{
-								Server += g_pServerSeparateStaticRootTemplate;
-								Server = Server.f_Replace("{ServerNameStatic}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static));
-								Server = Server.f_Replace("{ServerNameStaticSource}", fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_StaticSource));
-							}
-
-							CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
-
-							bool bIsMainServer = ServerName == mp_Domain && Package.m_SubPath.f_IsEmpty();
-
-							Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots && mp_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
-
-							if (bIsMainServer)
-							{
-								CStr Section = R"---(
+					if (bIsMainServer)
+					{
+						CStr Section = R"---(
 		set $invalid_host "true";
 
 		if ($host ~ "^{DomainNameEscaped}$" )
@@ -810,75 +811,75 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		}
 )---";
 
-								Server = Server.f_Replace("{CheckServerNameLogic}", Section);
-							}
-							else
-								Server = Server.f_Replace("{CheckServerNameLogic}", "");
+						Server = Server.f_Replace("{CheckServerNameLogic}", Section);
+					}
+					else
+						Server = Server.f_Replace("{CheckServerNameLogic}", "");
 
-							if (bIsMainServer && mp_Options.m_bServeAllSubdomains)
-								Server = Server.f_Replace("{ServerName}", ("{} ~^[a-z0-9-]*\\.{}$"_f << ServerName << ServerName.f_Replace(".", "\\.")).f_GetStr());
-							else
-								Server = Server.f_Replace("{ServerName}", ServerName);
+					if (bIsMainServer && mp_Options.m_bServeAllSubdomains)
+						Server = Server.f_Replace("{ServerName}", ("{} ~^[a-z0-9-]*\\.{}$"_f << ServerName << ServerName.f_Replace(".", "\\.")).f_GetStr());
+					else
+						Server = Server.f_Replace("{ServerName}", ServerName);
 
-							Server = Server.f_Replace("{SubPath}", Package.m_SubPath);
+					Server = Server.f_Replace("{SubPath}", Package.m_SubPath);
 
-							if (bIsFastCGI)
-								Server = Server.f_Replace("{FastCGIFile}", FastCGIFile);
+					if (bIsFastCGI)
+						Server = Server.f_Replace("{FastCGIFile}", FastCGIFile);
 
-							Server = Server.f_Replace("{PackageName}", Package.f_GetName());
-							Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
-							Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
+					Server = Server.f_Replace("{PackageName}", Package.f_GetName());
+					Server = Server.f_Replace("{UpstreamSticky}", UpstreamName);
+					Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
 
-							if (bIsStatic)
-							{
-								if (Package.m_ExternalRoot.f_IsEmpty())
-									Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
-								else
-									Server = Server.f_Replace("{StaticRoot}", CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot).f_EscapeStrNoQuotes());
-							}
-							else if (bIsMeteor)
-								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
-							else
-								Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
+					if (bIsStatic)
+					{
+						if (Package.m_ExternalRoot.f_IsEmpty())
+							Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
+						else
+							Server = Server.f_Replace("{StaticRoot}", CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot).f_EscapeStrNoQuotes());
+					}
+					else if (bIsMeteor)
+						Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
+					else
+						Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
 
-							VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
-							VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");
+					VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
+					VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");
 
-							VariablesToRemove[("{{ServerNameExtra_{}}"_f << Package.f_GetName()).f_GetStr()];
-							VariablesToRemove[("{{ServerAccessCheck_{}}"_f << Package.f_GetName()).f_GetStr()];
-							VariablesToRemove[("{{ServerRedirect_{}}"_f << Package.f_GetName()).f_GetStr()];
-							VariablesToRemove[("{{CustomizationInServer_{}}"_f << Package.f_GetName()).f_GetStr()];
-							VariablesToRemove[("{{ServerRootOptions_{}}"_f << Package.f_GetName()).f_GetStr()];
+					VariablesToRemove[("{{ServerNameExtra_{}}"_f << Package.f_GetName()).f_GetStr()];
+					VariablesToRemove[("{{ServerAccessCheck_{}}"_f << Package.f_GetName()).f_GetStr()];
+					VariablesToRemove[("{{ServerRedirect_{}}"_f << Package.f_GetName()).f_GetStr()];
+					VariablesToRemove[("{{CustomizationInServer_{}}"_f << Package.f_GetName()).f_GetStr()];
+					VariablesToRemove[("{{ServerRootOptions_{}}"_f << Package.f_GetName()).f_GetStr()];
 
-							CStr StaticPackages;
+					CStr StaticPackages;
 
-							if (bIsMainServer)
-							{
-								for (auto &Package : mp_Options.m_Packages)
-								{
-									if (Package.f_IsDynamicServer() || Package.m_StaticPath.f_IsEmpty())
-										continue;
+					if (bIsMainServer)
+					{
+						for (auto &Package : mp_Options.m_Packages)
+						{
+							if (Package.f_IsDynamicServer() || Package.m_StaticPath.f_IsEmpty())
+								continue;
 
-									StaticPackages += "		location {}\n"_f << Package.m_StaticPath;
-									StaticPackages += "		{\n";
-									StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
-									if (Package.f_IsStatic())
-										StaticPackages += "			gzip_static always;\n";
-									StaticPackages += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload;\" always;\n";
-									StaticPackages += "			add_header Cache-Control no-cache;\n";
-									StaticPackages += "			access_log logs/static_access_{}.log;\n"_f << Package.f_GetName();
-									StaticPackages += "		}\n";
-								}
-							}
+							StaticPackages += "		location {}\n"_f << Package.m_StaticPath;
+							StaticPackages += "		{\n";
+							StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
+							if (Package.f_IsStatic())
+								StaticPackages += "			gzip_static always;\n";
+							StaticPackages += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload;\" always;\n";
+							StaticPackages += "			add_header Cache-Control no-cache;\n";
+							StaticPackages += "			access_log logs/static_access_{}.log;\n"_f << Package.f_GetName();
+							StaticPackages += "		}\n";
+						}
+					}
 
-							Server = Server.f_Replace("{StaticPackages}", StaticPackages);
-							if (!bIsSubPackage)
-								Server = Server.f_Replace("{SubPackages}", SubPathServers[ServerName]);
-							Server = Server.f_Replace("{PathRedirect}",  _Results.m_Redirects[Package.f_GetName()]);
+					Server = Server.f_Replace("{StaticPackages}", StaticPackages);
+					if (!bIsSubPackage)
+						Server = Server.f_Replace("{SubPackages}", SubPathServers[ServerName]);
+					Server = Server.f_Replace("{PathRedirect}",  SetupResults.m_Redirects[Package.f_GetName()]);
 
-							if (bIsMainServer && mp_Options.m_bRedirectWWW)
-							{
-								Server += R"---(
+					if (bIsMainServer && mp_Options.m_bRedirectWWW)
+					{
+						Server += R"---(
 	server
 	{
 		listen {SSLPort};
@@ -896,135 +897,135 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		return 302 https://{DomainName}{SSLPortRewrite}$request_uri;
 	}
 )---";
-							}
-
-							if (bIsMainServer)
-							{
-								Server += "\n";
-								Servers = Server + Servers;
-							}
-							else if (bIsSubPackage)
-							{
-								auto &ParentServer = SubPathServers[ServerName];
-								ParentServer += "\n";
-								ParentServer += Server;
-							}
-							else
-							{
-								Servers += "\n";
-								Servers += Server;
-							}
-						}
 					}
-					Servers += "{WebAppManagerServers}\n";
-					VariablesToRemove["{WebAppManagerServers}"];
+
+					if (bIsMainServer)
+					{
+						Server += "\n";
+						Servers = Server + Servers;
+					}
+					else if (bIsSubPackage)
+					{
+						auto &ParentServer = SubPathServers[ServerName];
+						ParentServer += "\n";
+						ParentServer += Server;
+					}
+					else
+					{
+						Servers += "\n";
+						Servers += Server;
+					}
 				}
-				ConfigContents = ConfigContents.f_Replace("{WebAppManagerServers}", Servers);
+			}
+			Servers += "{WebAppManagerServers}\n";
+			VariablesToRemove["{WebAppManagerServers}"];
+		}
+		ConfigContents = ConfigContents.f_Replace("{WebAppManagerServers}", Servers);
 
-				if (mp_pCustomization)
-				{
-					mp_pCustomization->f_ManipulateNginxConfig
-						(
-							ConfigContents
-							, mp_AppState
-							, mp_Options
-							, [&](CStr const &_Name, CEJSON const &_Default) -> CEJSON
-							{
-								return fp_GetConfigValue(_Name, _Default);
-							}
-							, mp_Tags
-							, FastCGIFile
-						 	, PackageIPs
-						)
-					;
-				}
+		if (mp_pCustomization)
+		{
+			mp_pCustomization->f_ManipulateNginxConfig
+				(
+					ConfigContents
+					, mp_AppState
+					, mp_Options
+					, [&](CStr const &_Name, CEJSON const &_Default) -> CEJSON
+					{
+						return fp_GetConfigValue(_Name, _Default);
+					}
+					, mp_Tags
+					, FastCGIFile
+					, PackageIPs
+				)
+			;
+		}
 
-				for (auto &ToRemove : VariablesToRemove)
-					ConfigContents = ConfigContents.f_Replace(ToRemove, "");
+		for (auto &ToRemove : VariablesToRemove)
+			ConfigContents = ConfigContents.f_Replace(ToRemove, "");
 
-				{
-					CStr RedirectReferrerCookie = mp_Options.m_HTTPRedirectReferrerCookie.f_IsEmpty() ? "RedirectReferrer" : mp_Options.m_HTTPRedirectReferrerCookie;
-					ConfigContents = ConfigContents.f_Replace("{HTTPRedirectReferrerCookie}", RedirectReferrerCookie);
-				}
+		{
+			CStr RedirectReferrerCookie = mp_Options.m_HTTPRedirectReferrerCookie.f_IsEmpty() ? "RedirectReferrer" : mp_Options.m_HTTPRedirectReferrerCookie;
+			ConfigContents = ConfigContents.f_Replace("{HTTPRedirectReferrerCookie}", RedirectReferrerCookie);
+		}
 
-				for (auto &ReplaceWith : VariablesToReplace)
-					ConfigContents = ConfigContents.f_Replace(VariablesToReplace.fs_GetKey(ReplaceWith), ReplaceWith);
+		for (auto &ReplaceWith : VariablesToReplace)
+			ConfigContents = ConfigContents.f_Replace(VariablesToReplace.fs_GetKey(ReplaceWith), ReplaceWith);
 
-				ConfigContents = ConfigContents.f_Replace("{DomainName}", mp_Domain);
-				ConfigContents = ConfigContents.f_Replace("{DomainNameEscaped}", mp_Domain.f_Replace(".", "\\."));
+		ConfigContents = ConfigContents.f_Replace("{DomainName}", mp_Domain);
+		ConfigContents = ConfigContents.f_Replace("{DomainNameEscaped}", mp_Domain.f_Replace(".", "\\."));
 
-				ConfigContents = ConfigContents.f_Replace("{Root}", (NginxDirectory + "/root").f_EscapeStr());
-				ConfigContents = ConfigContents.f_Replace("{Port}", CStr::fs_ToStr(mp_WebPort));
-				ConfigContents = ConfigContents.f_Replace("{SSLPort}", CStr::fs_ToStr(mp_WebSSLPort));
-				if (mp_WebSSLPort == 443)
-					ConfigContents = ConfigContents.f_Replace("{SSLPortRewrite}", "");
-				else
-					ConfigContents = ConfigContents.f_Replace("{SSLPortRewrite}", ":" + CStr::fs_ToStr(mp_WebSSLPort));
-				ConfigContents = ConfigContents.f_Replace("{Certificate}", _Results.m_CertificateFile.f_EscapeStr());
-				ConfigContents = ConfigContents.f_Replace("{CertificateKey}", _Results.m_CertificateKeyFile.f_EscapeStr());
-				ConfigContents = ConfigContents.f_Replace("{PidFile}", PidFile.f_EscapeStr());
-				ConfigContents = ConfigContents.f_Replace("{WorkerMaxOpenedFiles}", CStr::fs_ToStr(fs_GetNginxWorkerFileLimits()));
+		ConfigContents = ConfigContents.f_Replace("{Root}", (NginxDirectory + "/root").f_EscapeStr());
+		ConfigContents = ConfigContents.f_Replace("{Port}", CStr::fs_ToStr(mp_WebPort));
+		ConfigContents = ConfigContents.f_Replace("{SSLPort}", CStr::fs_ToStr(mp_WebSSLPort));
+		if (mp_WebSSLPort == 443)
+			ConfigContents = ConfigContents.f_Replace("{SSLPortRewrite}", "");
+		else
+			ConfigContents = ConfigContents.f_Replace("{SSLPortRewrite}", ":" + CStr::fs_ToStr(mp_WebSSLPort));
+		ConfigContents = ConfigContents.f_Replace("{Certificate}", SetupResults.m_CertificateFile.f_EscapeStr());
+		ConfigContents = ConfigContents.f_Replace("{CertificateKey}", SetupResults.m_CertificateKeyFile.f_EscapeStr());
+		ConfigContents = ConfigContents.f_Replace("{PidFile}", PidFile.f_EscapeStr());
+		ConfigContents = ConfigContents.f_Replace("{WorkerMaxOpenedFiles}", CStr::fs_ToStr(fs_GetNginxWorkerFileLimits()));
 
 #ifdef DPlatformFamily_Windows
-				ConfigContents = ConfigContents.f_Replace("{NgnixUserLine}", "");
+		ConfigContents = ConfigContents.f_Replace("{NgnixUserLine}", "");
 #else
-				ConfigContents = ConfigContents.f_Replace("{NgnixUserLine}", ("user {} {};"_f << mp_NginxUser.m_UserName << mp_NginxUser.m_GroupName).f_GetStr());
+		ConfigContents = ConfigContents.f_Replace("{NgnixUserLine}", ("user {} {};"_f << mp_NginxUser.m_UserName << mp_NginxUser.m_GroupName).f_GetStr());
 #endif
 
-				{
-					if (_Results.m_bHasDHParamFile)
-						ConfigContents = ConfigContents.f_Replace("{ssl_dhparam}", fg_Format("ssl_dhparam {};", DhParamFile));
-					else
-						ConfigContents = ConfigContents.f_Replace("{ssl_dhparam}", "");
-				}
+		{
+			if (SetupResults.m_bHasDHParamFile)
+				ConfigContents = ConfigContents.f_Replace("{ssl_dhparam}", fg_Format("ssl_dhparam {};", DhParamFile));
+			else
+				ConfigContents = ConfigContents.f_Replace("{ssl_dhparam}", "");
+		}
 
-				{
-					CStr RobotsTxtContents;
+		{
+			CStr RobotsTxtContents;
 
-					if (fp_GetConfigValue("AllowRobots", false).f_Boolean())
-						RobotsTxtContents = "User-agent: *\\nAllow: /";
-					else
-						RobotsTxtContents = "User-agent: *\\nDisallow: /";
+			if (fp_GetConfigValue("AllowRobots", false).f_Boolean())
+				RobotsTxtContents = "User-agent: *\\nAllow: /";
+			else
+				RobotsTxtContents = "User-agent: *\\nDisallow: /";
 
-					ConfigContents = ConfigContents.f_Replace("{AllowRobots}", RobotsTxtContents);
-				}
+			ConfigContents = ConfigContents.f_Replace("{AllowRobots}", RobotsTxtContents);
+		}
 
-				{
-					CStr ContentTypesContents;
-					for (auto &Extensions : CWebAppManagerActor::fsp_GetContentTypes())
-					{
-						if (Extensions.f_IsEmpty())
-							continue;
+		{
+			CStr ContentTypesContents;
+			for (auto &Extensions : CWebAppManagerActor::fsp_GetContentTypes())
+			{
+				if (Extensions.f_IsEmpty())
+					continue;
 
-						auto &ContentType = TCMap<CStr, TCVector<CStr>>::fs_GetKey(Extensions);
+				auto &ContentType = TCMap<CStr, TCVector<CStr>>::fs_GetKey(Extensions);
 
-						ContentTypesContents += "		{}	"_f << ContentType;
+				ContentTypesContents += "		{}	"_f << ContentType;
 
-						for (auto &Extension : Extensions)
-							ContentTypesContents += " {}"_f << Extension;
+				for (auto &Extension : Extensions)
+					ContentTypesContents += " {}"_f << Extension;
 
-						ContentTypesContents += ";\n";
+				ContentTypesContents += ";\n";
 
-					}
-					ConfigContents = ConfigContents.f_Replace("{ContentTypes}", ContentTypesContents);
-				}
-
-				(g_Dispatch(*mp_FileActors) / [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_UserName, GroupName = mp_NginxUser.m_GroupName, NginxDirectory]()
-					{
-						CFile::fs_WriteStringToFile(ConfigFile, ConfigContents, false);
-
-						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, GroupName);
-						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", GroupName);
-					})
-					+ SavePasswordPromise.f_MoveFuture()
-					> Promise / [Promise]()
-					{
-						Promise.f_SetResult();
-					}
-				;
 			}
+			ConfigContents = ConfigContents.f_Replace("{ContentTypes}", ContentTypesContents);
+		}
+
+
+		co_await
+			(
+				g_Dispatch(*mp_FileActors) / [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_UserName, GroupName = mp_NginxUser.m_GroupName, NginxDirectory]()
+				{
+					CFile::fs_WriteStringToFile(ConfigFile, ConfigContents, false);
+
+					CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, GroupName);
+					CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", GroupName);
+				}
+			)
 		;
-		return Promise.f_MoveFuture();
+
+		co_await SavePasswordPromise.f_MoveFuture();
+
+		co_return {};
 	}
 
 	TCFuture<void> CWebAppManagerActor::fp_StartNginx()
