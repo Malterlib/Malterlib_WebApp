@@ -129,6 +129,13 @@ namespace NMib::NWebApp::NWebAppManager
 		DLog(Debug, "Destroy server");
 
 		TCActorResultVector<void> Destroys;
+
+		if (mp_CertificateDeployActor)
+			fg_Move(mp_CertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
+
+		if (mp_CertificateDeploySubscription)
+			fg_Exchange(mp_CertificateDeploySubscription, nullptr)->f_Destroy() > Destroys.f_AddResult();
+
 		for (auto &ToolLaunch : mp_ToolLaunches)
 			ToolLaunch.m_ProcessLaunch.f_Destroy() > Destroys.f_AddResult();
 

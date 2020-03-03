@@ -19,6 +19,7 @@
 #include <Mib/Web/AWS/CloudFront>
 #include <Mib/Web/AWS/Lambda>
 #include <Mib/Web/Curl>
+#include <Mib/WebApp/WebCertificateDeploy>
 #include <Mib/Cloud/NetworkTunnelsServer>
 
 #include "Malterlib_WebApp_App_WebAppManager_Helpers.h"
@@ -387,7 +388,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCSharedPointer<CUniqueUserGroup> mp_pUniqueUserGroup;
 
 		CWebAppManagerOptions mp_Options;
-		TCRoundRobinActors<CSeparateThreadActor> mp_FileActors{4};
+		TCRoundRobinActors<CSeparateThreadActor> mp_FileActors{5};
 
 		TCSharedPointer<ICWebAppManagerCustomization> mp_pCustomization;
 
@@ -440,6 +441,9 @@ namespace NMib::NWebApp::NWebAppManager
 		TCMap<CStr, CStrSecure> mp_UserPasswords;
 #endif
 		TCActor<CNetworkTunnelsServer> mp_NetworkTunnelsServer;
+
+		TCActor<CWebCertificateDeployActor> mp_CertificateDeployActor;
+		CActorSubscription mp_CertificateDeploySubscription;
 
 		// Precalculated config
 

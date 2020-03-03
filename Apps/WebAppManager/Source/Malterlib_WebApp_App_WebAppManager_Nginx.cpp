@@ -1023,6 +1023,60 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			)
 		;
 
+		mp_CertificateDeployActor = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager, *mp_FileActors);
+
+		co_await mp_CertificateDeployActor(&CWebCertificateDeployActor::f_Start);
+
+		{
+			auto fGetFilesSettings = [&](CStr const &_Path)
+				{
+					CWebCertificateDeployActor::CCertificateFileSettings FileSettings;
+					FileSettings.m_Path = _Path;
+					FileSettings.m_Attributes = EFileAttrib_UserRead;
+					FileSettings.m_User = "root";
+					FileSettings.m_Group = mp_NginxUser.m_GroupName;
+
+					return FileSettings;
+				}
+			;
+
+			CWebCertificateDeployActor::CDomainSettings DomainSettings;
+			DomainSettings.m_DomainName = mp_Domain;
+			DomainSettings.m_FileSettings_Ec = CWebCertificateDeployActor::CCertificateFilesSettings
+				{
+					fGetFilesSettings(SetupResults.m_CertificateKeyFile)
+					, fGetFilesSettings(SetupResults.m_CertificateFile)
+				}
+			;
+
+			DomainSettings.m_fOnStatusChange = g_ActorFunctor / [](CHostInfo &&_HostInfo, CWebCertificateDeployActor::CDomainStatus &&_Status) -> TCFuture<void>
+				{
+					if (_Status.m_Severity == CWebCertificateDeployActor::EStatusSeverity_Error)
+						DMibLogWithCategory(Certificate, Error, "{}", _Status.m_Description);
+					else if (_Status.m_Severity == CWebCertificateDeployActor::EStatusSeverity_Warning)
+						DMibLogWithCategory(Certificate, Warning, "{}", _Status.m_Description);
+					else
+						DMibLogWithCategory(Certificate, Info, "{}", _Status.m_Description);
+
+					co_return {};
+				}
+			;
+
+			DomainSettings.m_fOnCertificateUpdated = g_ActorFunctor / [this](CStr &&_DomainName, CWebCertificateDeployActor::ECertificate _Certificate) -> TCFuture<void>
+				{
+					if (!mp_NginxLaunch)
+						co_return {};
+
+#ifndef DPlatformFamily_Windows
+ 					co_await mp_NginxLaunch(&CProcessLaunchActor::f_Signal, 1); // SIGHUP
+#endif
+					co_return {};
+				}
+			;
+
+			mp_CertificateDeploySubscription = co_await mp_CertificateDeployActor(&CWebCertificateDeployActor::f_AddDomain, fg_Move(DomainSettings));
+		}
+
 		co_await SavePasswordPromise.f_MoveFuture();
 
 		co_return {};

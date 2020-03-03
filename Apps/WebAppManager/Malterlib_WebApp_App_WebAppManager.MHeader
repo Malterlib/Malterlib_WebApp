@@ -224,6 +224,10 @@
 	{
 		Dependency.Indirect true
 	}
+	%Dependency "Lib_Malterlib_WebApp"
+	{
+		Dependency.Indirect true
+	}
 	%Dependency "Lib_Malterlib_XML"
 	{
 		Dependency.Indirect true
