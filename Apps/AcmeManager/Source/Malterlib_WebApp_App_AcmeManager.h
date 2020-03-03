@@ -97,6 +97,8 @@ namespace NMib::NWebApp::NAcmeManager
 
 		TCFuture<void> fp_UpdateAllDomains(CStr const &_CreateAccountForDomainName);
 
+		void fp_HandleSecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info);
+
 		TCFuture<void> fp_SecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info, NStr::CStr const &_CreatePrivateKeyForDomain);
 		TCFuture<void> fp_SecretsManagerRemoved(TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo);
 
@@ -128,6 +130,8 @@ namespace NMib::NWebApp::NAcmeManager
 		TCMap<CStr, CDomain> mp_Domains;
 
 		TCTrustedActorSubscription<CSecretsManager> mp_SecretsManagerSubscription;
+		TCMap<TCWeakDistributedActor<CActor>, CStr> mp_LastSecretsManagerError;
+		TCSet<TCWeakDistributedActor<CActor>> mp_RetryingSecretsManagers;
 
 		TCRoundRobinActors<CCurlActor> mp_CurlActors{2};
 		TCActor<CAwsRoute53Actor> mp_Route53Actor;

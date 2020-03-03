@@ -21,10 +21,13 @@ namespace NMib::NWebApp::NAcmeManager
 
 	TCFuture<void> CAcmeManagerActor::fp_StartApp(NEncoding::CEJSON const &_Params)
 	{
+		auto OnResume = g_OnResume / [&]
+			{
+				if (mp_State.m_bStoppingApp || f_IsDestroyed())
+					DMibError("Startup aborted");
+			}
+		;
 		co_await fp_ReadState();
-
-		if (mp_State.m_bStoppingApp)
-			co_return DMibErrorInstance("Startup aborted");
 
 		CAwsCredentials AWSCredentials;
 
@@ -59,14 +62,11 @@ namespace NMib::NWebApp::NAcmeManager
 			)
 		;
 
-		if (mp_State.m_bStoppingApp)
-			co_return DMibErrorInstance("Startup aborted");
-
 		mp_SecretsManagerSubscription.f_OnActor
 			(
 				[this](TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo)
 				{
-					self(&CAcmeManagerActor::fp_SecretsManagerAdded, _SecretsManager, _ActorInfo, "") > fg_LogError("Mib/WebApp/AcmeManager", "Failed to handle secrets manager added");
+					fp_HandleSecretsManagerAdded(_SecretsManager, _ActorInfo);
 				}
 			)
 		;
@@ -90,7 +90,6 @@ namespace NMib::NWebApp::NAcmeManager
 				}
 			)
 		;
-
 
 		co_return {};
 	}

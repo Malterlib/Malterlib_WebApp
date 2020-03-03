@@ -305,7 +305,6 @@ namespace NMib::NWebApp::NAcmeManager
 						co_return true;
 				}
 			}
-
 		}
 		catch (CException const &)
 		{

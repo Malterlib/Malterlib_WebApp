@@ -75,7 +75,7 @@ namespace NMib::NWebApp::NAcmeManager
 			CStr Status;
 
 			if (Domain.m_Statuses.f_IsEmpty())
-				Status = "Waiting for a secrets manager to become available";
+				Status = "{}No secrets manager found, or not yet updated{}"_f << AnsiEncoding.f_StatusWarning() << AnsiEncoding.f_Default();
 			else
 			{
 				for (auto &DomainStatus : Domain.m_Statuses)

@@ -6,6 +6,47 @@
 
 namespace NMib::NWebApp::NAcmeManager
 {
+	void CAcmeManagerActor::fp_HandleSecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info)
+	{
+		self(&CAcmeManagerActor::fp_SecretsManagerAdded, _SecretsManager, _Info, "") > [=](TCAsyncResult<void> &&_Result)
+			{
+				if (!_Result)
+				{
+					auto &LastError = mp_LastSecretsManagerError[_SecretsManager];
+
+					auto Error = _Result.f_GetExceptionStr();
+
+					if (Error != LastError)
+					{
+						DLogWithCategory(Mib/WebApp/AcmeManager, Error, "Failed to handle secrets manager added for '{}' (will retry every 10 secords): {}", _Info.m_HostInfo, Error);
+						LastError = Error;
+						for (auto &Domain : mp_Domains)
+							fp_UpdateDomainStatus(Domain, _Info.m_HostInfo, EStatusSeverity_Error, Error);
+					}
+
+					if (!mp_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
+						return;
+
+					if (mp_RetryingSecretsManagers(_SecretsManager).f_WasCreated())
+					{
+						fg_Timeout(10.0) > [=]
+							{
+								mp_RetryingSecretsManagers.f_Remove(_SecretsManager);
+
+								if (!mp_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
+									return;
+
+								fp_HandleSecretsManagerAdded(_SecretsManager, _Info);
+							}
+						;
+					}
+				}
+				else
+					mp_LastSecretsManagerError.f_Remove(_SecretsManager);
+			}
+		;
+	}
+
 	TCFuture<void> CAcmeManagerActor::fp_SecretsManagerAdded
 		(
 			TCDistributedActor<CSecretsManager> const &_SecretsManager
@@ -98,6 +139,8 @@ namespace NMib::NWebApp::NAcmeManager
 
 	TCFuture<void> CAcmeManagerActor::fp_SecretsManagerRemoved(TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo)
 	{
+		mp_LastSecretsManagerError.f_Remove(_SecretsManager);
+		mp_RetryingSecretsManagers.f_Remove(_SecretsManager);
 		bool bDoneSometing = false;
 		for (auto &Domain : mp_Domains)
 		{
@@ -106,9 +149,11 @@ namespace NMib::NWebApp::NAcmeManager
 			if (Domain.m_DomainState->m_SecretsManager == _SecretsManager)
 			{
 				Domain.m_DomainState.f_Clear();
-				fp_UpdateDomainStatus(Domain, _ActorInfo.m_HostInfo, EStatusSeverity_Warning, "Lost secrets manager, waiting");
+				fp_UpdateDomainStatus(Domain, _ActorInfo.m_HostInfo, EStatusSeverity_Warning, "Lost active secrets manager, waiting");
 				bDoneSometing = true;
 			}
+			else
+				fp_UpdateDomainStatus(Domain, _ActorInfo.m_HostInfo, EStatusSeverity_Warning, "Lost secrets manager");
 		}
 
 		if (bDoneSometing)
