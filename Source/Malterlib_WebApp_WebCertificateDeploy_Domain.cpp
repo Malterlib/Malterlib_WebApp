@@ -18,8 +18,8 @@ namespace NMib::NWebApp
 
 		Domain.m_Settings = fg_Move(_DomainSettings);
 
-		fg_CallSafe(&Internal, &CInternal::f_UpdateDomainForAllSecretManagers, Domain.m_Settings.m_DomainName)
-			> fg_LogError("Mib/WebApp/WebCertificateDeploy", "Update domain '{}' for all secret managers had some failures"_f << Domain.m_Settings.m_DomainName)
+		fg_CallSafe(&Internal, &CInternal::f_UpdateDomainForAllSecretsManagers, Domain.m_Settings.m_DomainName)
+			> fg_LogError("Mib/WebApp/WebCertificateDeploy", "Update domain '{}' for all secrets managers had some failures"_f << Domain.m_Settings.m_DomainName)
 		;
 
 		co_return g_ActorSubscription / [pInternal = &Internal, DomainName = Domain.m_Settings.m_DomainName]() -> TCFuture<void>

@@ -1,0 +1,71 @@
+// Copyright © 2018 Nonna Holding AB
+// Distributed under the MIT license, see license text in LICENSE.Malterlib
+
+%Target "Lib_Malterlib_WebApp_WebCertificateManager"
+{
+	Property
+	{
+		MalterlibConcurrency_DistributedActors true
+		MalterlibCloudTargetLibrary true
+	}
+	Target
+	{
+		Type "StaticLibrary"
+		BaseName "Malterlib_WebApp_WebCertificateManager"
+		Group "Apps"
+	}
+	%Group "Source"
+	{
+		%File "Source/Malterlib_WebApp_App_*"
+	}
+
+	%Dependency "Lib_Malterlib_WebApp"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Malterlib_Web"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Malterlib_Cloud"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Malterlib_XML"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Malterlib"
+	{
+		Dependency.Indirect true
+	}
+}
+
+%Target "Malterlib_WebApp_WebCertificateManager"
+{
+	Property
+	{
+		ProductName "Malterlib Web Certificate Manager"
+		MalterlibTestApp true
+		MalterlibPostCopyProject "Malterlib_WebApp_WebCertificateManager"
+		{
+			!!MalterlibPostCopyProject ""
+		}
+		MalterlibLinkWithOpenSSL true
+		MalterlibConcurrency_DistributedActors true
+		MalterlibTargetNameType "Normal"
+	}
+	Target
+	{
+		DebuggerCommandArguments "--daemon-run-debug"
+		BaseFileName "WebCertificateManager"
+		Group "Apps"
+	}
+	%Group "Source"
+	{
+		%File "Source/Malterlib_WebApp_AppLocal_*"
+	}
+	%Dependency "Lib_Malterlib_WebApp_WebCertificateManager"
+}
+
+Property.Malterlib_WebApp_App_Targets "Malterlib_WebApp_WebCertificateManager;@(Malterlib_WebApp_App_Targets)"

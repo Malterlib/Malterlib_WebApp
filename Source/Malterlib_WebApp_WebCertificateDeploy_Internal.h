@@ -18,6 +18,7 @@ namespace NMib::NWebApp
 	using namespace NNetwork;
 	using namespace NStorage;
 	using namespace NCloud;
+	using namespace NException;
 
 	struct CWebCertificateDeployActor::CInternal : public CActorInternal
 	{
@@ -57,10 +58,12 @@ namespace NMib::NWebApp
 		TCFuture<void> f_SecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info);
 		TCFuture<void> f_SecretsManagerRemoved(TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo);
 		void f_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState);
-		TCFuture<void> f_UpdateDomainForSecretManager(CStr const &_DomainName, TCDistributedActor<CSecretsManager> const &_SecretsManager, CHostInfo const &_SecretsManagerHostInfo);
-		TCFuture<void> f_UpdateDomainForAllSecretManagers(CStr const &_DomainName);
+		TCFuture<void> f_UpdateDomainForSecretsManager(CStr const &_DomainName, TCDistributedActor<CSecretsManager> const &_SecretsManager, CHostInfo const &_SecretsManagerHostInfo);
+		TCFuture<void> f_UpdateDomainForAllSecretsManagers(CStr const &_DomainName);
+		TCFuture<void> f_UpdateAllDomainsForAllSecretsManagers();
+		CExceptionPointer f_UpdateDomain_CheckSecret(CSecretsManager::CSecretProperties const &_Properties, CSecretsManager::CSecretID const &_SecretID, bool _bCertificate);
+		TCFuture<void> f_UpdateDomain_UpdateFiles(CStr const &_DomainName, CStr const &_CertificateType, CCertificateFilesSettings const &_FileSettings);
 		TCFuture<void> f_UpdateDomain(CStr const &_DomainName);
-		TCFuture<void> f_UpdateAllDomains();
 		void f_UpdateDomainStatus(CDomain &o_Domain, CHostInfo const &_HostInfo, EStatusSeverity _Severity, CStr const &_Status);
 
 		CWebCertificateDeployActor *m_pThis;

@@ -5,6 +5,8 @@
 
 namespace NMib::NWebApp
 {
+	using namespace NTime;
+
 	CWebCertificateDeployActor::CInternal::CInternal
 		(
 			CWebCertificateDeployActor *_pThis
@@ -30,16 +32,7 @@ namespace NMib::NWebApp
 		 	, TCActor<CDistributedActorTrustManager> const &_TrustManager
 			, TCActor<CSeparateThreadActor> const &_FileActor
 		)
-		: mp_pInternal
-		(
-			fg_Construct
-			(
-				this
-				, _DistributionManager
-				, _TrustManager
-				, _FileActor
-			)
-		)
+		: mp_pInternal(fg_Construct(this, _DistributionManager, _TrustManager, _FileActor))
 	{
 	}
 
@@ -82,13 +75,13 @@ namespace NMib::NWebApp
 			)
 		;
 
-		// Retry every hour in case permissions problems etc have been fixed
+		// Retry every hour in case permission problems etc have been fixed
 		Internal.m_TimerSubscription = co_await fg_RegisterTimer
 			(
-				60.0*60.0
+				CTimeSpanConvert::fs_CreateHourSpan(1).f_GetSeconds()
 				, [this]() -> TCFuture<void>
 				{
-					auto Result = co_await fg_CallSafe(&*mp_pInternal, &CInternal::f_UpdateAllDomains).f_Wrap();
+					auto Result = co_await fg_CallSafe(&*mp_pInternal, &CInternal::f_UpdateAllDomainsForAllSecretsManagers).f_Wrap();
 					if (!Result)
 						DMibLogWithCategory(Mib/WebApp/WebCertificateDeploy, Error, "Update all domains had some failures: {}", Result.f_GetExceptionStr());
 

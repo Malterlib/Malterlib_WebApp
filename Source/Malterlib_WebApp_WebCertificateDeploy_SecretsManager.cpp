@@ -21,7 +21,7 @@ namespace NMib::NWebApp
 							(
 								Mib/WebApp/WebCertificateDeploy
 								, Error
-								, "Failed to handle secrets manager added for '{}' (will retry every 10 secords): {}"
+								, "Failed to handle secrets manager added for '{}' (will retry every 10 seconds): {}"
 								, _Info.m_HostInfo
 								, Error
 							)
@@ -61,7 +61,7 @@ namespace NMib::NWebApp
 
 		auto OnResume = g_OnResume / [&]
 			{
-				if (this->m_pThis->f_IsDestroyed())
+				if (m_pThis->f_IsDestroyed())
 					DMibError("Shutting down");
 
 				if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
@@ -102,14 +102,25 @@ namespace NMib::NWebApp
 					}
 
 					if (!m_Domains.f_FindEqual(DomainName))
+					{
+						DMibLogWithCategory
+							(
+								Mib/WebApp/WebCertificateDeploy
+								, Warning
+								, "Certificate deploy manager has access to a domain '{}' certificate that it shouldn't have access to. Secrets manager: {}"
+								, DomainName
+								, _Info.m_HostInfo
+							)
+						;
 						continue;
+					}
 
 					DomainsToUpdate[DomainName];
 				}
 
 				for (auto &DomainName : DomainsToUpdate)
 				{
-					fg_CallSafe(this, &CInternal::f_UpdateDomainForSecretManager, DomainName, _SecretsManager, _Info.m_HostInfo)
+					fg_CallSafe(this, &CInternal::f_UpdateDomainForSecretsManager, DomainName, _SecretsManager, _Info.m_HostInfo)
 						> fg_LogError("Mib/WebApp/WebCertificateDeploy", "Update domain '{}' for secrets manager '{}' failed"_f << DomainName << _Info.m_HostInfo)
 					;
 				}
@@ -141,7 +152,7 @@ namespace NMib::NWebApp
 			co_await Subscription->f_Destroy().f_Wrap();
 		}
 
-		bool bDoneSometing = false;
+		TCActorResultVector<void> UpdateDomainResults;
 		for (auto &Domain : m_Domains)
 		{
 			if (!Domain.m_DomainState)
@@ -150,15 +161,16 @@ namespace NMib::NWebApp
 			if (Domain.m_DomainState->m_SecretsManager == _SecretsManager)
 			{
 				Domain.m_DomainState.f_Clear();
+
 				f_UpdateDomainStatus(Domain, _ActorInfo.m_HostInfo, EStatusSeverity_Warning, "Lost active secrets manager, waiting");
-				bDoneSometing = true;
+
+				fg_CallSafe(this, &CInternal::f_UpdateDomainForAllSecretsManagers, Domain.f_GetName()) > UpdateDomainResults.f_AddResult();
 			}
 			else
 				f_UpdateDomainStatus(Domain, _ActorInfo.m_HostInfo, EStatusSeverity_Warning, "Lost secrets manager");
 		}
 
-		if (bDoneSometing)
-			co_await fg_CallSafe(this, &CInternal::f_UpdateAllDomains);
+		co_await UpdateDomainResults.f_GetResults() | g_Unwrap;
 
 		co_return {};
 	}
