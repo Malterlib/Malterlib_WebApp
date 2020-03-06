@@ -1,4 +1,4 @@
-// Copyright © 2018 Nonna Holding AB
+// Copyright © 2020 Nonna Holding AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Encoding/JSONShortcuts>
@@ -385,7 +385,7 @@ namespace NMib::NWebApp::NAcmeManager
 		auto &SecretProperties = *SecretPropertiesResult;
 
 		if (!SecretProperties.m_Secret)
-			co_return DMibErrorInstance("No secret found for '{}' on secret manager"_f << SecretID);
+			co_return DMibErrorInstance("No secret found for '{}' on secrets manager"_f << SecretID);
 
 		if (!SecretProperties.m_Secret->f_IsOfType<NContainer::CSecureByteVector>())
 			co_return DMibErrorInstance("Expected '{}' to be a binary secret"_f << SecretID);

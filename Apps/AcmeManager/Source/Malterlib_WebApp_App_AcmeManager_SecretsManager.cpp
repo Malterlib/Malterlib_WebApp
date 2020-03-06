@@ -1,4 +1,4 @@
-// Copyright © 2018 Nonna Holding AB
+// Copyright © 2020 Nonna Holding AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Encoding/JSONShortcuts>
@@ -18,7 +18,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 					if (Error != LastError)
 					{
-						DLogWithCategory(Mib/WebApp/AcmeManager, Error, "Failed to handle secrets manager added for '{}' (will retry every 10 secords): {}", _Info.m_HostInfo, Error);
+						DLogWithCategory(Mib/WebApp/AcmeManager, Error, "Failed to handle secrets manager added for '{}' (will retry every 10 seconds): {}", _Info.m_HostInfo, Error);
 						LastError = Error;
 						for (auto &Domain : mp_Domains)
 							fp_UpdateDomainStatus(Domain, _Info.m_HostInfo, EStatusSeverity_Error, Error);
@@ -98,7 +98,7 @@ namespace NMib::NWebApp::NAcmeManager
 					{
 						if (pCurrentStatus->m_Severity == EStatusSeverity_Success && DomainState.m_SecretsManager != Domain.m_DomainState->m_SecretsManager)
 						{
-							fp_UpdateDomainStatus(Domain, DomainState.m_SecretsManagerHostInfo, EStatusSeverity_Info, "Aborted, another secret manager already succeeded");
+							fp_UpdateDomainStatus(Domain, DomainState.m_SecretsManagerHostInfo, EStatusSeverity_Info, "Aborted, another secrets manager already succeeded");
 							co_return {};
 						}
 					}
