@@ -126,19 +126,22 @@ Property
 		MalterlibEnableInternalWorkspaces true
 	}
 
-	Property.MalterlibPostCopyProject "Malterlib_WebApp"
+	Property
 	{
-		!!TargetIsExecutable true
-	}
-
-	Property.MalterlibLog_Severities "Error;Critical;Warning;Info"
-	{
-		!!MalterlibLog_EnableVerboseDebugLog false
+		MalterlibCloud_EnableVersionUpload true
+		MalterlibWebAppEnableWebAppManagerTestInAppsWorkspace true
+		MalterlibPostCopyProject "Malterlib_WebApp"
+		{
+			!!TargetIsExecutable true
+		}
+		
+		MalterlibLog_Severities "Error;Critical;Warning;Info"
+		{
+			!!MalterlibLog_EnableVerboseDebugLog false
+		}
 	}
 
 	%Target "@(Malterlib_WebApp_App_Targets)"
-
-	Property.MalterlibWebAppEnableWebAppManagerTestInAppsWorkspace true
 
 	Workspace.ExtraGroups "{Test}/{Malterlib_WebApp}/WebAppManagerTestApps;@(Workspace.ExtraGroups)"
 	{
