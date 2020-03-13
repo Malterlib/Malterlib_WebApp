@@ -293,6 +293,13 @@ namespace NMib::NWebApp::NWebAppManager
 				if (SourceFileTime == DestinationFileTime)
 					return;
 
+				auto Files = CFile::fs_FindFiles(ProgramDirectory + "/node-*");
+				if (!Files.f_IsEmpty())
+				{
+					for (auto &File : Files)
+						CFile::fs_DeleteDirectoryRecursive(File);
+				}
+
 				MalterlibFS.f_CopyFilesWithAttribs("*", DiskFS, ProgramDirectory);
 
 				TCBinaryStreamFile<> Stream;
