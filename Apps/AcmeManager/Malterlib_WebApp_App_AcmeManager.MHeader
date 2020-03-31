@@ -54,8 +54,8 @@
 		MalterlibLinkWithOpenSSL true
 		MalterlibConcurrency_DistributedActors true
 		MalterlibTargetNameType "Normal"
-		MalterlibCloudVersionInfo_RunAsUser "MalterlibWebAppAppDistManager"
-		MalterlibCloudVersionInfo_RunAsGroup "MalterlibWebAppAppDistManager"
+		MalterlibCloudVersionInfo_RunAsUser "MalterlibWebAppAcmeManager"
+		MalterlibCloudVersionInfo_RunAsGroup "MalterlibWebAppAcmeManager"
 	}
 	Target
 	{
