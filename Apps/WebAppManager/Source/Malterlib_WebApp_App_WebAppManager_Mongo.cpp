@@ -198,7 +198,16 @@ namespace NMib::NWebApp::NWebAppManager
 					{
 						if (!_StdOut)
 						{
-							if (_StdOut.f_GetExceptionStr().f_Find("exception: connect failed") >= 0 && _Timeout != 0.0f && Clock.f_GetTime() < _Timeout)
+							if
+								(
+									(
+										_StdOut.f_GetExceptionStr().f_Find("exception: connect failed") >= 0
+										|| _StdOut.f_GetExceptionStr().f_Find("The OS returned an error from execve") >= 0
+										|| _StdOut.f_GetExceptionStr().f_Find("not master and slaveOk=false") >= 0
+									)
+									&& _Timeout != 0.0f
+									&& Clock.f_GetTime() < _Timeout
+								)
 							{
 								fg_Timeout(0.1) > _Promise / [pDoLaunch, _Promise]
 									{
