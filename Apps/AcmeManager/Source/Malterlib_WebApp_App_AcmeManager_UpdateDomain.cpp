@@ -166,6 +166,21 @@ namespace NMib::NWebApp::NAcmeManager
 
 			co_await mp_Route53Actor(&CAwsRoute53Actor::f_ChangeResourceRecordSets, Zone.m_ID, SetParams);
 
+			if (pDomain->m_Settings.m_bManualDNSChallenge)
+			{
+				fp_UpdateDomainStatus
+					(
+						*pDomain
+						, pDomainState->m_SecretsManagerHostInfo
+						, EStatusSeverity_Warning
+						, "Issuing {} certificate: Waiting for manual release of DNS challenge. Run when ready: ./AcmeManager --domain-release-dns-challenge --domain {}"_f
+						<< _CertificateType
+						<< _DomainName
+					)
+				;
+				co_await pDomainState->m_OnReleaseDNSChallenge.f_Insert().f_Future();
+			}
+
 			fp_UpdateDomainStatus
 				(
 					*pDomain
@@ -461,5 +476,33 @@ namespace NMib::NWebApp::NAcmeManager
 		fp_UpdateDomainStatus(*pDomain, pDomainState->m_SecretsManagerHostInfo, EStatusSeverity_Success, "All certificates issued and up to date");
 
 		co_return {};
+	}
+
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainReleaseDNSChallenge(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	{
+		auto Auditor = f_Auditor();
+
+		CStr Name = _Params["Domain"].f_String();
+
+		auto *pDomain = mp_Domains.f_FindEqual(Name);
+		if (!pDomain)
+			co_return Auditor.f_Exception(fg_Format("No such domain '{}'", Name));
+
+		if (!pDomain->m_DomainState)
+			co_return Auditor.f_Exception(fg_Format("Domain '{}' not currently processing", Name));
+
+		auto &DomainState = *pDomain->m_DomainState;
+
+		if (DomainState.m_OnReleaseDNSChallenge.f_IsEmpty())
+			co_return Auditor.f_Exception(fg_Format("No DNS challenges waiting for domain '{}'", Name));
+
+		for (auto &OnRelease : DomainState.m_OnReleaseDNSChallenge)
+			OnRelease.f_SetResult();
+
+		DomainState.m_OnReleaseDNSChallenge.f_Clear();
+
+		Auditor.f_Info(fg_Format("Released DNS challenge '{}'", Name));
+
+		co_return 0;
 	}
 }

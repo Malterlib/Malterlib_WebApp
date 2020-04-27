@@ -33,6 +33,7 @@ namespace NMib::NWebApp::NAcmeManager
 			bool m_bGenerateRSA = true;
 			bool m_bGenerateEC = true;
 			bool m_bIncludeWildcard = true;
+			bool m_bManualDNSChallenge = false;
 			CAcmeClientActor::EDefaultDirectory m_AcmeDirectory = CAcmeClientActor::EDefaultDirectory_LetsEncryptStaging;
 			CStr m_AcmeCustomDirectory;
 			CPublicKeySetting m_AccountKeySettings = CPublicKeySettings_EC_secp521r1{};
@@ -45,6 +46,7 @@ namespace NMib::NWebApp::NAcmeManager
 			CHostInfo m_SecretsManagerHostInfo;
 			TCActor<CAcmeClientActor> m_AcmeClientRSA;
 			TCActor<CAcmeClientActor> m_AcmeClientEC;
+			TCVector<TCPromise<void>> m_OnReleaseDNSChallenge;
 		};
 
 		enum EStatusSeverity
@@ -84,6 +86,7 @@ namespace NMib::NWebApp::NAcmeManager
 		TCFuture<uint32> fp_CommandLine_DomainList(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
 		TCFuture<uint32> fp_CommandLine_DomainAdd(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
 		TCFuture<uint32> fp_CommandLine_DomainCreateAccountKey(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainReleaseDNSChallenge(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
 		TCFuture<uint32> fp_CommandLine_DomainChangeSettings(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
 		TCFuture<uint32> fp_CommandLine_DomainRemove(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
 

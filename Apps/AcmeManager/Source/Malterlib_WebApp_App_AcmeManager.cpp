@@ -121,6 +121,11 @@ namespace NMib::NWebApp::NAcmeManager
 					Domain.m_DomainState->m_AcmeClientEC.f_Destroy() > Destroys.f_AddResult();
 				if (Domain.m_DomainState->m_AcmeClientRSA)
 					Domain.m_DomainState->m_AcmeClientRSA.f_Destroy() > Destroys.f_AddResult();
+
+				for (auto &OnRelease : Domain.m_DomainState->m_OnReleaseDNSChallenge)
+					OnRelease.f_SetException(DMibErrorInstance("Shutting down"));
+				
+				Domain.m_DomainState->m_OnReleaseDNSChallenge.f_Clear();
 			}
 
 		}
@@ -132,6 +137,8 @@ namespace NMib::NWebApp::NAcmeManager
 
 	void CAcmeManagerActor::fp_UpdateDomainStatus(CDomain &o_Domain, CHostInfo const &_HostInfo, EStatusSeverity _Severity, CStr const &_Status)
 	{
+		DLogWithCategory(Mib/WebApp/AcmeManager, Info, "<{}> Changing domain status: {}", o_Domain.f_GetName(), _Status);
+
 		auto &Status = o_Domain.m_Statuses[_HostInfo];
 		Status.m_Description = _Status;
 		Status.m_Severity = _Severity;
@@ -139,7 +146,19 @@ namespace NMib::NWebApp::NAcmeManager
 
 	auto CAcmeManagerActor::CDomainSettings::f_Tuple() const
 	{
-		return fg_TupleReferences(m_EllipticCurveType, m_RSASettings, m_bGenerateRSA, m_bGenerateEC, m_bIncludeWildcard, m_AcmeDirectory, m_AcmeCustomDirectory, m_AccountKeySettings);
+		return fg_TupleReferences
+			(
+				m_EllipticCurveType
+				, m_RSASettings
+				, m_bGenerateRSA
+				, m_bGenerateEC
+				, m_bIncludeWildcard
+				, m_bManualDNSChallenge
+				, m_AcmeDirectory
+				, m_AcmeCustomDirectory
+				, m_AccountKeySettings
+			)
+		;
 	}
 
 	bool CAcmeManagerActor::CDomainSettings::operator == (CAcmeManagerActor::CDomainSettings const &_Right) const

@@ -78,6 +78,14 @@ namespace NMib::NWebApp::NAcmeManager
 				, "Description"_= "The key type to use for the account. Default will use secp521r1 or secp384r1 if Let's encrypt directory is used."
 			}
 		;
+		auto SettingsOption_ManualDNSChallenge = "ManualDNSChallenge?"_=
+			{
+				"Names"_= {"--manual-dns-challenge-release"}
+				, "Type"_= false
+				, "Default"_= false
+				, "Description"_= "Wait for DNS challenge to be manually released before continuing."
+			}
+		;
 
 		auto fStripDefault = [](auto &&_Template)
 			{
@@ -113,6 +121,7 @@ namespace NMib::NWebApp::NAcmeManager
 						, SettingsOption_EllipticCurveType
 						, SettingsOption_RSAKeyLength
 						, SettingsOption_AccountKeySettings
+						, SettingsOption_ManualDNSChallenge
 					}
 				}
 				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
@@ -145,6 +154,27 @@ namespace NMib::NWebApp::NAcmeManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
+					"Names"_= {"--domain-release-dns-challenge"}
+					, "Description"_= "Releases a domain that has manual DNS challenge release enabled\n"
+					, "Options"_=
+					{
+						"Domain"_=
+						{
+							"Names"_= {"--domain"}
+							, "Type"_= ""
+							, "Description"_= "The domain name"
+						}
+					}
+				}
+				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				{
+					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainReleaseDNSChallenge, _Params, _pCommandLine);
+				}
+			)
+		;
+		DomainManagement.f_RegisterCommand
+			(
+				{
 					"Names"_= {"--domain-change-settings"}
 					, "Description"_= "Change settings for domain.\n"
 					, "Options"_=
@@ -162,6 +192,7 @@ namespace NMib::NWebApp::NAcmeManager
 						, fStripDefault(SettingsOption_EllipticCurveType)
 						, fStripDefault(SettingsOption_RSAKeyLength)
 						, fStripDefault(SettingsOption_AccountKeySettings)
+						, fStripDefault(SettingsOption_ManualDNSChallenge)
 					}
 				}
 				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)

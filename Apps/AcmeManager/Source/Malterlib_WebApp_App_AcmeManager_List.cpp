@@ -35,6 +35,7 @@ namespace NMib::NWebApp::NAcmeManager
 		fAddHeading("EC Type");
 		fAddHeading("RSA Key Length");
 		fAddHeading("Include Wildcard");
+		fAddHeading("Manual DNS Challenge");
 		fAddHeading("ACME Directory");
 		fAddHeading("Account Key Type");
 		fAddHeading("Status", false);
@@ -100,6 +101,7 @@ namespace NMib::NWebApp::NAcmeManager
 				 	, fsp_EllipticCurveTypeToStr(Domain.m_Settings.m_EllipticCurveType)
 				 	, "{}"_f << Domain.m_Settings.m_RSASettings.m_KeyLength
 				 	, Domain.m_Settings.m_bIncludeWildcard ? "true" : "false"
+				 	, Domain.m_Settings.m_bManualDNSChallenge ? "true" : "false"
 					, AcmeDirectory
 					, AccountKeyType
 				 	, Status
