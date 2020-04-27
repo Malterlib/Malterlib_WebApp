@@ -58,10 +58,20 @@ namespace NMib::NWebApp::NAcmeManager
 		if (_Challenge.m_Type != CAcmeClientActor::EChallengeType_Dns01)
 			co_return false;
 
-		CStr FullyQualifiedDomain = _Challenge.m_DomainName + ".";
+		CStr FullyQualifiedRootDomain = _Challenge.m_DomainName;
+		{
+			auto DomainParts = FullyQualifiedRootDomain.f_Split(".");
+			if (DomainParts.f_GetLen() > 2)
+			{
+				DomainParts.f_Remove(0, DomainParts.f_GetLen() - 2);
+				FullyQualifiedRootDomain = CStr::fs_Join(DomainParts, ".");
+			}
+
+			FullyQualifiedRootDomain += ".";
+		}
 
 		CAwsRoute53Actor::CListHostedZonesByNameParams Params;
-		Params.m_DNSName = FullyQualifiedDomain;
+		Params.m_DNSName = FullyQualifiedRootDomain;
 		auto Zones = co_await mp_Route53Actor(&CAwsRoute53Actor::f_ListHostedZonesByName, Params);
 
 		CTime Now = CTime::fs_NowUTC();
@@ -78,11 +88,11 @@ namespace NMib::NWebApp::NAcmeManager
 
 		for (auto &Zone : Zones)
 		{
-			if (Zone.m_Name != FullyQualifiedDomain)
+			if (Zone.m_Name != FullyQualifiedRootDomain)
 				continue;
 
 			CAwsRoute53Actor::CListResourceRecordSetsParams Params;
-			Params.m_Name = "_acme-challenge.{}"_f << FullyQualifiedDomain;
+			Params.m_Name = "_acme-challenge.{}."_f << _Challenge.m_DomainName;
 			Params.m_Type = CAwsRoute53Actor::EResourceRecordType_TXT;
 			Params.m_MaxItems = 1;
 
