@@ -8,6 +8,14 @@
 		MalterlibConcurrency_DistributedActors true
 		MalterlibCloudTargetLibrary true
 	}
+	Compile.PrefixHeader ""
+	{
+		&
+		{
+			PlatformFamily Windows
+			CompileDialect C
+		}
+	}
 	Target
 	{
 		Type "StaticLibrary"

@@ -1,6 +1,12 @@
 // Copyright © 2020 Nonna Holding AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
+#include <Mib/Core/Platform>
+
+#ifdef DCompiler_MSVC_Workaround
+#pragma warning(disable:4724)
+#endif
+
 #include <Mib/Encoding/JSONShortcuts>
 #include "Malterlib_WebApp_App_AcmeManager.h"
 
