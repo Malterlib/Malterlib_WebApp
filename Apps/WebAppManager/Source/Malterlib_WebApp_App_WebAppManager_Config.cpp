@@ -59,6 +59,7 @@ namespace NMib::NWebApp::NWebAppManager
 		mp_MongoDatabase = fp_GetConfigValue("MongoDatabase", mp_Options.m_Mongo.m_DefaultDatabase).f_String();
 		mp_MongoReplicaName = fp_GetConfigValue("MongoReplicaName", mp_Options.m_Mongo.m_DefaultReplicaName).f_String();
 		mp_LoopbackPrefix = fp_GetConfigValue("LoopbackPrefix", mp_Options.m_LoopbackPrefix).f_Integer();
+		mp_LocalPort = fp_GetConfigValue("LocalPort", 8080).f_Integer();
 
 		fp_ParseConfig_DDPSelf();
 	}

@@ -667,7 +667,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						continue;
 					++nUpstream;
 					CStr IPAddress = fp_GetAppIPAddress(AppLaunch);
-					UpstreamServers += "\t\tserver {}:8080 max_fails=30 fail_timeout=30s;\n"_f << IPAddress;
+					UpstreamServers += "\t\tserver {}:{} max_fails=30 fail_timeout=30s;\n"_f << IPAddress << mp_LocalPort;
 					PackageIPs[Package.f_GetName()] = IPAddress;
 				}
 
@@ -689,7 +689,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					{
 						if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 							continue;
-						UpstreamServers += "		{} {}:8080;\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch);
+						UpstreamServers += "		{} {}:{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch) << mp_LocalPort;
 					}
 
 					UpstreamServers += "	}\n\n";
@@ -707,7 +707,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					{
 						if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 							continue;
-						UpstreamServers += "		{} {}:8080;\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch);
+						UpstreamServers += "		{} {}:{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch) << mp_LocalPort;
 					}
 
 					UpstreamServers += "	}\n\n";

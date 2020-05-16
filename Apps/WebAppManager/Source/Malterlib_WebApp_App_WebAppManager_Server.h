@@ -462,6 +462,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		uint64 mp_WebPort = 3000;
 		uint64 mp_WebSSLPort = 3443;
+		uint16 mp_LocalPort = 8080;
 		uint8 mp_LoopbackPrefix = 0;
 		bool mp_bIsStaging = false;
 		bool mp_bAllowRobots = true;

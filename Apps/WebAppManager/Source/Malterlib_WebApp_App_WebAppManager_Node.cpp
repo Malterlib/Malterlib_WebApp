@@ -75,7 +75,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 	CStr CWebAppManagerActor::fp_GetAppLocalURL(CAppLaunch const &_AppLaunch) const
 	{
-		return fg_Format("http://{}:8080/", fp_GetAppIPAddress(_AppLaunch));
+		return fg_Format("http://{}:{}/", fp_GetAppIPAddress(_AppLaunch), mp_LocalPort);
 	}
 
 	CStr CWebAppManagerActor::fp_GetPackageLocalURL(CStr const &_PackageName) const
@@ -582,6 +582,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CalculatedSettings["PackageName"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_PackageName);
 			CalculatedSettings["BackendIdentifier"] = _AppLaunch.m_BackendIdentifier;
 			CalculatedSettings["LocalIP"] = fp_GetAppIPAddress(_AppLaunch);
+			CalculatedSettings["LocalPort"] = CStr::fs_ToStr(mp_LocalPort);
 			CalculatedSettings["WebSSLPort"] = CStr::fs_ToStr(mp_WebSSLPort);
 			CalculatedSettings["WebPort"] = CStr::fs_ToStr(mp_WebPort);
 
