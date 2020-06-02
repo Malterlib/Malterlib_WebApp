@@ -12,7 +12,7 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 23;
+		uint32 gc_UpdateVersion = 24;
 	}
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials)
@@ -50,7 +50,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		{
 			OriginRequestConfig.m_Handler = "index.handler";
-			OriginRequestConfig.m_Runtime = "nodejs8.10";
+			OriginRequestConfig.m_Runtime = "nodejs12.x";
 			OriginRequestConfig.m_Role = AWSLambdaRole;
 			OriginRequestConfig.m_MemorySizeMB = 128;
 			OriginRequestConfig.m_TimeoutSeconds = 3;
@@ -96,7 +96,7 @@ exports.handler = (event, context, callback) => {
 
 		{
 			OriginResponseConfig.m_Handler = "index.handler";
-			OriginResponseConfig.m_Runtime = "nodejs8.10";
+			OriginResponseConfig.m_Runtime = "nodejs12.x";
 			OriginResponseConfig.m_Role = AWSLambdaRole;
 			OriginResponseConfig.m_MemorySizeMB = 128;
 			OriginResponseConfig.m_TimeoutSeconds = 3;
@@ -480,6 +480,10 @@ exports.handler = (event, context, callback) => {
 					Stream << Options.m_ContentSecurity_ChildSrc;
 					Stream << Options.m_ContentSecurity_FormAction;
 					Stream << Options.m_ContentSecurity_ReportURI;
+					Stream << Options.m_AccessControl_AllowMethods;
+					Stream << Options.m_AccessControl_AllowHeaders;
+					Stream << Options.m_AccessControl_AllowOrigin;
+					Stream << Options.m_AccessControl_MaxAge;
 					Stream << bRawTarGz;
 					Stream << DirectoryManifest;
 
