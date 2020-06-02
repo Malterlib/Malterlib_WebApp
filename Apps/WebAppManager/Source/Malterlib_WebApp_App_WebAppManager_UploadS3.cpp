@@ -17,7 +17,12 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials)
 	{
-		TCPromise<void> Promise;
+		auto OnResume = g_OnResume / [&]
+			{
+				if (f_IsDestroyed())
+					DMibError("Shutting down");
+			}
+		;
 
 		CStr CloudFrontDistribution = fp_GetConfigValue("AWSCloudFrontDistribution", "").f_String();
 		CStr AWSLambdaRole = fp_GetConfigValue("AWSLambdaRole", "").f_String();
@@ -25,13 +30,13 @@ namespace NMib::NWebApp::NWebAppManager
 		if (CloudFrontDistribution.f_IsEmpty())
 		{
 			DMibLogWithCategory(WebAppManager, Warning, "AWSCloudFrontDistribution value not specified in config, skipping Lambda creation");
-			return Promise <<= g_Void;
+			co_return {};
 		}
 
 		if (AWSLambdaRole.f_IsEmpty())
 		{
 			DMibLogWithCategory(WebAppManager, Warning, "AWSLambdaRole value not specified in config, skipping Lambda creation");
-			return Promise <<= g_Void;
+			co_return {};
 		}
 
 		auto AWSCredentials = _AWSCredentials;
@@ -151,45 +156,43 @@ exports.handler = (event, context, callback) => {
 )----").f_Replace("{ContentSecurityPolicy}", ContentSecurityPolicy).f_Replace("{AccessControl}", AccessControl);
 		}
 
-		mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, OriginRequestFunctionName, OriginRequestFiles, OriginRequestConfig)
-			+ mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, OriginResponseFunctionName, OriginResponseFiles, OriginResponseConfig)
-			> Promise % "Update AWS Lambda functions" / [=](CAwsLambdaActor::CFunctionInfo &&_OriginRequestInfo, CAwsLambdaActor::CFunctionInfo &&_OriginResponseInfo)
-			{
-				if (fp_CheckDestroyed(Promise))
-					return;
-
-				if
-					(
-					 	_OriginRequestInfo.m_Version.f_IsEmpty()
-					 	|| _OriginRequestInfo.m_Version == "$LATEST"
-					 	|| _OriginResponseInfo.m_Version.f_IsEmpty()
-					 	|| _OriginResponseInfo.m_Version == "$LATEST"
-					)
-				{
-					Promise.f_SetResult();
-					return;
-				}
-
-				NContainer::TCMap<CAwsCloudFrontActor::EFunctionEventType, NStr::CStr> FunctionAssociations;
-				FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginRequest] = _OriginRequestInfo.m_Arn;
-				FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginResponse] = _OriginResponseInfo.m_Arn;
-
-				mp_CloudFrontActor(&CAwsCloudFrontActor::f_UpdateDistributionLambdaFunctions, CloudFrontDistribution, FunctionAssociations)
-					> Promise % "Associate AWS Lambda function with CloudFront distribution" / [=]
-					{
-						Promise.f_SetResult();
-					}
-				;
-			}
+		auto [OriginRequestInfo, OriginResponseInfo] = co_await
+			(
+				(
+					mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, OriginRequestFunctionName, OriginRequestFiles, OriginRequestConfig)
+					+ mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, OriginResponseFunctionName, OriginResponseFiles, OriginResponseConfig)
+				)
+				% "Update AWS Lambda functions"
+			)
 		;
 
-		return Promise.f_MoveFuture();
+		if
+			(
+				OriginRequestInfo.m_Version.f_IsEmpty()
+				|| OriginRequestInfo.m_Version == "$LATEST"
+				|| OriginResponseInfo.m_Version.f_IsEmpty()
+				|| OriginResponseInfo.m_Version == "$LATEST"
+			)
+		{
+			co_return {};
+		}
+
+		NContainer::TCMap<CAwsCloudFrontActor::EFunctionEventType, NStr::CStr> FunctionAssociations;
+		FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginRequest] = OriginRequestInfo.m_Arn;
+		FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginResponse] = OriginResponseInfo.m_Arn;
+
+		co_await
+			(
+				mp_CloudFrontActor(&CAwsCloudFrontActor::f_UpdateDistributionLambdaFunctions, CloudFrontDistribution, FunctionAssociations)
+				% "Associate AWS Lambda function with CloudFront distribution"
+			)
+		;
+
+		co_return {};
 	}
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UploadS3FileChangeNotifications()
 	{
-		TCPromise<void> Promise;
-
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
 		TCActorResultVector<void> Results;
@@ -213,61 +216,54 @@ exports.handler = (event, context, callback) => {
 
 			CStr Root = CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot);
 
-			TCPromise<void> RegisterPromise;
-			mp_FileChangeNotificationActor
-				(
-				 	&CFileChangeNotificationActor::f_RegisterForChanges
-				 	, Root
-				 	, EFileChange_All
-					, g_ActorFunctor / [=](TCVector<CFileChangeNotification::CNotification> const &_Changes) -> TCFuture<void>
-				 	{
-						TCPromise<void> Promise;
+			(
+				self / [=]() -> TCFuture<void>
+				{
+					auto Subscription = co_await mp_FileChangeNotificationActor
+						(
+							&CFileChangeNotificationActor::f_RegisterForChanges
+							, Root
+							, EFileChange_All
+							, g_ActorFunctor / [=](TCVector<CFileChangeNotification::CNotification> const &_Changes) -> TCFuture<void>
+							{
+								if (!mp_bInitialS3UploadDone || mp_bPendingS3Upload)
+									co_return {};
+								mp_bPendingS3Upload = true;
 
-						if (!mp_bInitialS3UploadDone || mp_bPendingS3Upload)
-							return Promise <<= g_Void;
-						mp_bPendingS3Upload = true;
-						mp_S3UploadSequencer / [=]() -> TCFuture<void>
-							{
-								mp_bPendingS3Upload = false;
-								auto Future = fp_SetupPrerequisites_UploadS3Perform();
-								DMibLogWithCategory(WebAppManager, Info, "Updating S3 upload due to file changes");
-								return Future;
-							}
-							> [=](TCAsyncResult<void> &&_Result)
-							{
-								if (!_Result)
-									DMibLogWithCategory(WebAppManager, Error, "Failed to update S3 upload due to file changes: {}", _Result.f_GetExceptionStr());
+								auto Result = co_await
+									(
+										mp_S3UploadSequencer / [=]() -> TCFuture<void>
+										{
+											mp_bPendingS3Upload = false;
+											DMibLogWithCategory(WebAppManager, Info, "Updating S3 upload due to file changes");
+											co_await self(&CWebAppManagerActor::fp_SetupPrerequisites_UploadS3Perform);
+											co_return {};
+										}
+									)
+									.f_Wrap()
+								;
+
+								if (!Result)
+									DMibLogWithCategory(WebAppManager, Error, "Failed to update S3 upload due to file changes: {}", Result.f_GetExceptionStr());
 								else
 									DMibLogWithCategory(WebAppManager, Info, "S3 upload due to file changes finished");
 
-								Promise.f_SetResult();
+								co_return {};
 							}
-						;
+							, CFileChangeNotificationActor::CCoalesceSettings{}
+						)
+					;
+					mp_S3FileChangeNotificationSubscriptions.f_Insert(fg_Move(Subscription));
 
-						return Promise.f_MoveFuture();
-					}
-				 	, CFileChangeNotificationActor::CCoalesceSettings{}
-				)
-				> RegisterPromise / [=](NConcurrency::CActorSubscription &&_Subscription)
-				{
-					mp_S3FileChangeNotificationSubscriptions.f_Insert(fg_Move(_Subscription));
-					RegisterPromise.f_SetResult();
+					co_return {};
 				}
-			;
-
-			RegisterPromise.f_MoveFuture() > Results.f_AddResult();
+			)
+			> Results.f_AddResult();
 		}
 
-		Results.f_GetResults() > Promise / [=](TCVector<TCAsyncResult<void>> &&_Results)
-			{
-				if (!fg_CombineResults(Promise, fg_Move(_Results)))
-					return;
+		co_await Results.f_GetResults() | g_Unwrap;
 
-				Promise.f_SetResult();
-			}
-		;
-
-		return Promise.f_MoveFuture();
+		co_return {};
 	}
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UploadS3()
@@ -275,7 +271,8 @@ exports.handler = (event, context, callback) => {
 		return mp_S3UploadSequencer / [=]() -> TCFuture<void>
 			{
 				mp_bInitialS3UploadDone = true;
-				return fp_SetupPrerequisites_UploadS3Perform();
+				co_await self(&CWebAppManagerActor::fp_SetupPrerequisites_UploadS3Perform);
+				co_return {};
 			}
 		;
 	}
@@ -307,7 +304,12 @@ exports.handler = (event, context, callback) => {
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UploadS3Perform()
 	{
-		TCPromise<void> Promise;
+		auto OnResume = g_OnResume / [&]
+			{
+				if (f_IsDestroyed())
+					DMibError("Shutting down");
+			}
+		;
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
@@ -390,7 +392,7 @@ exports.handler = (event, context, callback) => {
 		}
 
 		if (ManifestConfig.m_IncludeWildcards.f_IsEmpty())
-			return Promise <<= g_Void;
+			co_return {};
 
 		DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3");
 		NTime::CClock GlobalClock{true};
@@ -405,468 +407,435 @@ exports.handler = (event, context, callback) => {
 		if (AWSCredentials.m_Region.f_IsEmpty())
 		{
 			DMibLogWithCategory(WebAppManager, Warning, "AWSS3Region value not specified in config, skipping S3 upload");
-			return Promise <<= g_Void;
+			co_return {};
 		}
 
 		if (AWSCredentials.m_AccessKeyID.f_IsEmpty())
 		{
 			DMibLogWithCategory(WebAppManager, Warning, "AWSAccessKeyID value not specified in config, skipping S3 upload");
-			return Promise <<= g_Void;
+			co_return {};
 		}
 
 		if (AWSCredentials.m_SecretKey.f_IsEmpty())
 		{
 			DMibLogWithCategory(WebAppManager, Warning, "AWSSecretKey value not specified in config, skipping S3 upload");
-			return Promise <<= g_Void;
+			co_return {};
 		}
 
 		DMibLogWithCategory(S3Upload, Info, "Getting source checksums");
 		NTime::CClock Clock{true};
 
-		g_Dispatch(*mp_FileActors) / [=, Options = mp_Options, Domain = mp_Domain]() mutable -> CSourceCheckResults
-			{
-				CHash_MD5 Checksum;
-
-				auto fAddChecksum = [&](CHashDigest_MD5 const &_Checksum)
-					{
-						Checksum.f_AddData(_Checksum.f_GetData(), _Checksum.fs_GetSize());
-					}
-				;
-
-				CDirectoryManifest PreviousDirectoryManifest;
-				CDirectoryManifest DirectoryManifest;
-
+		CSourceCheckResults SourceCheckResults = co_await
+			(
+				g_Dispatch(*mp_FileActors) / [=, Options = mp_Options, Domain = mp_Domain]() mutable -> CSourceCheckResults
 				{
-					CStr PreviousManifestFile = ProgramDirectory / "S3UploadPreviousManifest.bin";
+					CHash_MD5 Checksum;
 
-					bool bPreviousExists = CFile::fs_FileExists(PreviousManifestFile);
-
-					if (bPreviousExists)
-						PreviousDirectoryManifest = TCBinaryStreamFile<>::fs_ReadFile<CDirectoryManifest>(PreviousManifestFile);
-
-					DirectoryManifest = CDirectoryManifest::fs_GetManifest(ManifestConfig, nullptr, nullptr, NFile::EFileOpen_None, &PreviousDirectoryManifest);
-					if (!DirectoryManifest.m_Files.f_FindEqual("robots.txt"))
-					{
-						auto &ManifestFile = DirectoryManifest.m_Files["robots.txt"];
-						ManifestFile.m_SymlinkData = bAllowRobots ? "User-agent: *\nAllow: /" : "User-agent: *\nDisallow: /";
-						ManifestFile.m_Digest = CHash_SHA256::fs_DigestFromData(ManifestFile.m_SymlinkData.f_GetStr(), ManifestFile.m_SymlinkData.f_GetLen());
-					}
-
-					TCBinaryStreamFile<>::fs_WriteFile(DirectoryManifest, PreviousManifestFile + ".tmp");
-
-					if (bPreviousExists)
-						CFile::fs_AtomicReplaceFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
-					else
-						CFile::fs_RenameFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
-				}
-
-				CBinaryStreamMemory<> Stream;
-				Stream << gc_UpdateVersion; // Version
-				Stream << bAllowRobots;
-				Stream << CloudFrontDistribution;
-				Stream << Options.m_ContentSecurity_ImgSrc;
-				Stream << Options.m_ContentSecurity_MediaSrc;
-				Stream << Options.m_ContentSecurity_FontSrc;
-				Stream << Domain;
-				Stream << Options.m_ContentSecurity_ScriptSrc;
-				Stream << Options.m_ContentSecurity_StyleSrc;
-				Stream << Options.m_ContentSecurity_FrameSrc;
-				Stream << Options.m_ContentSecurity_ConnectSrc;
-				Stream << Options.m_ContentSecurity_ObjectSrc;
-				Stream << Options.m_ContentSecurity_ChildSrc;
-				Stream << Options.m_ContentSecurity_FormAction;
-				Stream << Options.m_ContentSecurity_ReportURI;
-				Stream << bRawTarGz;
-				Stream << DirectoryManifest;
-
-				fAddChecksum(CHash_MD5::fs_DigestFromData(Stream.f_GetVector()));
-
-				for (auto &File : ChecksumFiles)
-					fAddChecksum(fsp_GetFileChecksum(File));
-
-				CStr ChecksumFile = ProgramDirectory / "S3Upload.md5";
-				CStr ChecksumStr = Checksum.f_GetDigest().f_GetString();
-
-				if (CFile::fs_FileExists(ChecksumFile) && CFile::fs_ReadStringFromFile(ChecksumFile, true) == ChecksumStr)
-					return {true};
-
-				TCMap<CStr, CChecksums> FileChecksums;
-				{
-					TCMap<CStr, CChecksums> PreviousChecksums;
-					CStr PreviousChecksumFile = ProgramDirectory / "S3UploadChecksums.bin";
-
-					bool bPreviousExists = CFile::fs_FileExists(PreviousChecksumFile);
-					if (bPreviousExists)
-						PreviousChecksums = TCBinaryStreamFile<>::fs_ReadFile<TCMap<CStr, CChecksums>>(PreviousChecksumFile);
-
-					for (auto &File : DirectoryManifest.m_Files)
-					{
-						if (!File.f_IsFile())
-							continue;
-
-						auto const &FileName = File.f_GetFileName();
-
-						auto const *pPreviousChecksum = PreviousChecksums.f_FindEqual(FileName);
-						if (pPreviousChecksum && File.m_Digest == pPreviousChecksum->m_SHA256)
+					auto fAddChecksum = [&](CHashDigest_MD5 const &_Checksum)
 						{
-							FileChecksums[FileName] = {File.m_Digest, pPreviousChecksum->m_MD5};
-							continue;
+							Checksum.f_AddData(_Checksum.f_GetData(), _Checksum.fs_GetSize());
 						}
-
-						if (FileName == "robots.txt" && !File.m_SymlinkData.f_IsEmpty())
-							FileChecksums[FileName] = {File.m_Digest, CHash_MD5::fs_DigestFromData(File.m_SymlinkData.f_GetStr(), File.m_SymlinkData.f_GetLen())};
-						else
-							FileChecksums[FileName] = {File.m_Digest, CFile::fs_GetFileChecksum(RootPath / File.m_OriginalPath)};
-					}
-
-					TCBinaryStreamFile<>::fs_WriteFile(FileChecksums, PreviousChecksumFile + ".tmp");
-
-					if (bPreviousExists)
-						CFile::fs_AtomicReplaceFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
-					else
-						CFile::fs_RenameFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
-				}
-
-				CSourceCheckResults Results;
-				Results.m_ChecksumStr = ChecksumStr;
-				Results.m_ChecksumFile = ChecksumFile;
-				Results.m_DirectoryManifest = fg_Move(DirectoryManifest);
-				Results.m_FileChecksums = fg_Move(FileChecksums);
-
-				return Results;
-			}
-			> Promise / [=](CSourceCheckResults const &_SourceCheckResults) mutable
-			{
-				if (fp_CheckDestroyed(Promise))
-					return;
-
-				DMibLogWithCategory(S3Upload, Info, "Getting source checksums {fe2} s", Clock.f_GetTime());
-				Clock.f_Start();
-
-				if (_SourceCheckResults.m_bUpToDate)
-				{
-					DMibLogWithCategory(S3Upload, Info, "S3 files were already up to date");
-					Promise.f_SetResult();
-					return;
-				}
-
-				if (!mp_CurlActors.f_IsConstructed())
-					mp_CurlActors.f_Construct(fg_Construct(fg_Construct(), "S3 curl actor"));
-
-				if (!mp_S3Actors.f_IsConstructed())
-				{
-					mp_S3Actors.f_ConstructFunctor
-						(
-							[&]
-						 	{
-								return fg_Construct(*mp_CurlActors, AWSCredentials);
-							}
-						)
 					;
-				}
 
-				mp_CloudFrontActor = fg_Construct(*mp_CurlActors, AWSCredentials);
+					CDirectoryManifest PreviousDirectoryManifest;
+					CDirectoryManifest DirectoryManifest;
 
-				CStr BucketName = mp_Options.m_S3BucketPrefix + mp_Domain;
-
-				DMibLogWithCategory(S3Upload, Info, "Listing bucket");
-				(*mp_S3Actors)(&CAwsS3Actor::f_ListBucket, BucketName) > Promise / [=](CAwsS3Actor::CListBucket &&_Bucket) mutable
 					{
-						if (fp_CheckDestroyed(Promise))
-							return;
+						CStr PreviousManifestFile = ProgramDirectory / "S3UploadPreviousManifest.bin";
 
-						DMibLogWithCategory(S3Upload, Info, "Listing bucket {fe2} s", Clock.f_GetTime());
-						Clock.f_Start();
+						bool bPreviousExists = CFile::fs_FileExists(PreviousManifestFile);
 
-						TCActorResultMap<CStr, CAwsS3Actor::CObjectInfoMetaData> MetaDataResults;
+						if (bPreviousExists)
+							PreviousDirectoryManifest = TCBinaryStreamFile<>::fs_ReadFile<CDirectoryManifest>(PreviousManifestFile);
 
-						TCMap<CStr, CStr> ExistingObjects;
-						for (auto &Object : _Bucket.m_Objects)
-							ExistingObjects[Object.m_Key] = Object.m_ETag;
-
-						TCSet<CStr> FilesToUpdate;
-
-						mint nMetaDataQueries = 0;
-						for (auto &NewFile : _SourceCheckResults.m_DirectoryManifest.m_Files)
+						DirectoryManifest = CDirectoryManifest::fs_GetManifest(ManifestConfig, nullptr, nullptr, NFile::EFileOpen_None, &PreviousDirectoryManifest);
+						if (!DirectoryManifest.m_Files.f_FindEqual("robots.txt"))
 						{
-							if (!NewFile.f_IsFile())
-								continue;
-
-							auto &FileName = _SourceCheckResults.m_DirectoryManifest.m_Files.fs_GetKey(NewFile);
-
-							auto pExistingObject = ExistingObjects.f_FindEqual(FileName);
-							if (!pExistingObject)
-							{
-								FilesToUpdate[FileName];
-								continue;
-							}
-
-							auto *pNewChecksum = _SourceCheckResults.m_FileChecksums.f_FindEqual(FileName);
-							DMibCheck(pNewChecksum);
-
-							if (!pNewChecksum || pNewChecksum->m_MD5.f_GetString() != *pExistingObject)
-							{
-								FilesToUpdate[FileName];
-								continue;
-							}
-
-							++nMetaDataQueries;
-							(*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetaData, BucketName, FileName) > MetaDataResults.f_AddResult(FileName);
+							auto &ManifestFile = DirectoryManifest.m_Files["robots.txt"];
+							ManifestFile.m_SymlinkData = bAllowRobots ? "User-agent: *\nAllow: /" : "User-agent: *\nDisallow: /";
+							ManifestFile.m_Digest = CHash_SHA256::fs_DigestFromData(ManifestFile.m_SymlinkData.f_GetStr(), ManifestFile.m_SymlinkData.f_GetLen());
 						}
 
-						if (nMetaDataQueries)
-							DMibLogWithCategory(S3Upload, Info, "Querying object meta data for {} objects", nMetaDataQueries);
+						TCBinaryStreamFile<>::fs_WriteFile(DirectoryManifest, PreviousManifestFile + ".tmp");
 
-						MetaDataResults.f_GetResults()
-							> Promise % "Failed to get file meta data"
-							/ [=](TCMap<CStr, TCAsyncResult<CAwsS3Actor::CObjectInfoMetaData>> &&_MetaData) mutable
+						if (bPreviousExists)
+							CFile::fs_AtomicReplaceFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
+						else
+							CFile::fs_RenameFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
+					}
+
+					CBinaryStreamMemory<> Stream;
+					Stream << gc_UpdateVersion; // Version
+					Stream << bAllowRobots;
+					Stream << CloudFrontDistribution;
+					Stream << Options.m_ContentSecurity_ImgSrc;
+					Stream << Options.m_ContentSecurity_MediaSrc;
+					Stream << Options.m_ContentSecurity_FontSrc;
+					Stream << Domain;
+					Stream << Options.m_ContentSecurity_ScriptSrc;
+					Stream << Options.m_ContentSecurity_StyleSrc;
+					Stream << Options.m_ContentSecurity_FrameSrc;
+					Stream << Options.m_ContentSecurity_ConnectSrc;
+					Stream << Options.m_ContentSecurity_ObjectSrc;
+					Stream << Options.m_ContentSecurity_ChildSrc;
+					Stream << Options.m_ContentSecurity_FormAction;
+					Stream << Options.m_ContentSecurity_ReportURI;
+					Stream << bRawTarGz;
+					Stream << DirectoryManifest;
+
+					fAddChecksum(CHash_MD5::fs_DigestFromData(Stream.f_GetVector()));
+
+					for (auto &File : ChecksumFiles)
+						fAddChecksum(fsp_GetFileChecksum(File));
+
+					CStr ChecksumFile = ProgramDirectory / "S3Upload.md5";
+					CStr ChecksumStr = Checksum.f_GetDigest().f_GetString();
+
+					if (CFile::fs_FileExists(ChecksumFile) && CFile::fs_ReadStringFromFile(ChecksumFile, true) == ChecksumStr)
+						return {true};
+
+					TCMap<CStr, CChecksums> FileChecksums;
+					{
+						TCMap<CStr, CChecksums> PreviousChecksums;
+						CStr PreviousChecksumFile = ProgramDirectory / "S3UploadChecksums.bin";
+
+						bool bPreviousExists = CFile::fs_FileExists(PreviousChecksumFile);
+						if (bPreviousExists)
+							PreviousChecksums = TCBinaryStreamFile<>::fs_ReadFile<TCMap<CStr, CChecksums>>(PreviousChecksumFile);
+
+						for (auto &File : DirectoryManifest.m_Files)
+						{
+							if (!File.f_IsFile())
+								continue;
+
+							auto const &FileName = File.f_GetFileName();
+
+							auto const *pPreviousChecksum = PreviousChecksums.f_FindEqual(FileName);
+							if (pPreviousChecksum && File.m_Digest == pPreviousChecksum->m_SHA256)
 							{
-								if (fp_CheckDestroyed(Promise))
-									return;
-								if (nMetaDataQueries)
-									DMibLogWithCategory(S3Upload, Info, "Querying object meta data for {} objects {fe2} s", nMetaDataQueries, Clock.f_GetTime());
-								Clock.f_Start();
+								FileChecksums[FileName] = {File.m_Digest, pPreviousChecksum->m_MD5};
+								continue;
+							}
 
-								TCSet<CStr> FilesToDelete;
-								for (auto &Object : _Bucket.m_Objects)
-									FilesToDelete[Object.m_Key];
+							if (FileName == "robots.txt" && !File.m_SymlinkData.f_IsEmpty())
+								FileChecksums[FileName] = {File.m_Digest, CHash_MD5::fs_DigestFromData(File.m_SymlinkData.f_GetStr(), File.m_SymlinkData.f_GetLen())};
+							else
+								FileChecksums[FileName] = {File.m_Digest, CFile::fs_GetFileChecksum(RootPath / File.m_OriginalPath)};
+						}
 
-								TCMap<int64, TCVector<TCFunctionMutable<TCFuture<void> ()>>> ToUpload;
+						TCBinaryStreamFile<>::fs_WriteFile(FileChecksums, PreviousChecksumFile + ".tmp");
 
-								for (auto &NewFile : _SourceCheckResults.m_DirectoryManifest.m_Files)
-								{
-									if (!NewFile.f_IsFile())
-										continue;
+						if (bPreviousExists)
+							CFile::fs_AtomicReplaceFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
+						else
+							CFile::fs_RenameFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
+					}
 
-									auto FileName = _SourceCheckResults.m_DirectoryManifest.m_Files.fs_GetKey(NewFile);
+					CSourceCheckResults Results;
+					Results.m_ChecksumStr = ChecksumStr;
+					Results.m_ChecksumFile = ChecksumFile;
+					Results.m_DirectoryManifest = fg_Move(DirectoryManifest);
+					Results.m_FileChecksums = fg_Move(FileChecksums);
 
-									CAwsS3Actor::CPutObjectInfo PutInfo;
-									PutInfo.m_CacheControl = "no-cache"; // Rely on ETag for updated content
+					return Results;
+				}
+			)
+		;
 
-									auto Extension = CFile::fs_GetExtension(FileName);
-									if (!bRawTarGz)
-									{
-										if (Extension == "gz")
-										{
-											FileName = CFile::fs_GetPath(FileName) / CFile::fs_GetFileNoExt(FileName);
-											PutInfo.m_ContentEncoding = "gzip";
-										}
-										else if (_SourceCheckResults.m_DirectoryManifest.m_Files.f_FindEqual(FileName + ".gz"))
-											continue;
-										Extension = CFile::fs_GetExtension(FileName);
-									}
+		DMibLogWithCategory(S3Upload, Info, "Getting source checksums {fe2} s", Clock.f_GetTime());
+		Clock.f_Start();
 
-									FilesToDelete.f_Remove(FileName);
+		if (SourceCheckResults.m_bUpToDate)
+		{
+			DMibLogWithCategory(S3Upload, Info, "S3 files were already up to date");
+			co_return {};
+		}
 
-									CStr ContentType = fsp_GetContentTypeForExtension(Extension);
-									if (!ContentType.f_IsEmpty())
-										PutInfo.m_ContentType = ContentType;
-									else
-										PutInfo.m_ContentType = "application/octet-stream"; // Default to safe octet-stream
+		if (!mp_CurlActors.f_IsConstructed())
+			mp_CurlActors.f_Construct(fg_Construct(fg_Construct(), "S3 curl actor"));
 
-									if (!FilesToUpdate.f_FindEqual(FileName))
-									{
-										auto pMetaData = _MetaData.f_FindEqual(FileName);
-										if (pMetaData && *pMetaData)
-										{
-											auto &MetaData = **pMetaData;
-											if
-												(
-												 	MetaData.m_CacheControl.f_Get("") == PutInfo.m_CacheControl.f_Get("")
-												 	&& MetaData.m_ContentEncoding.f_Get("") == PutInfo.m_ContentEncoding.f_Get("")
-												 	&& MetaData.m_ContentType.f_Get("") == PutInfo.m_ContentType.f_Get("")
-												)
-											{
-												continue; // Already up to date
-											}
-										}
-									}
+		if (!mp_S3Actors.f_IsConstructed())
+		{
+			mp_S3Actors.f_ConstructFunctor
+				(
+					[&]
+					{
+						return fg_Construct(*mp_CurlActors, AWSCredentials);
+					}
+				)
+			;
+		}
 
-									int64 Priority = TCLimitsInt<int64>::mc_Max;
+		mp_CloudFrontActor = fg_Construct(*mp_CurlActors, AWSCredentials);
 
-									for (auto &UploadPriority : UploadPriorities)
-									{
-										auto &Pattern = UploadPriorities.fs_GetKey(UploadPriority);
-										if (NStr::fg_StrMatchWildcard(FileName.f_GetStr(), Pattern.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
-											Priority = fg_Min(Priority, UploadPriority);
-									}
+		CStr BucketName = mp_Options.m_S3BucketPrefix + mp_Domain;
 
-									if (Priority == TCLimitsInt<int64>::mc_Max)
-										Priority = 0;
+		DMibLogWithCategory(S3Upload, Info, "Listing bucket");
+		auto Bucket = co_await (*mp_S3Actors)(&CAwsS3Actor::f_ListBucket, BucketName);
 
-									// Limit the number of files held in memory to limit memory usage
-									ToUpload[Priority].f_Insert
-										(
-											[=, ExpectedChecksum = NewFile.m_Digest]() -> TCFuture<void>
-											{
-												TCPromise<void> UploadPromise;
-												if (fp_CheckDestroyed(UploadPromise))
-													return UploadPromise.f_MoveFuture();
+		DMibLogWithCategory(S3Upload, Info, "Listing bucket {fe2} s", Clock.f_GetTime());
+		Clock.f_Start();
 
-												DMibLogWithCategory(S3Upload, Info, "Uploading file with priority {}: '{}'", Priority, FileName);
+		TCActorResultMap<CStr, CAwsS3Actor::CObjectInfoMetaData> MetaDataResults;
 
-												TCPromise<CByteVector> ReadPromise;
+		TCMap<CStr, CStr> ExistingObjects;
+		for (auto &Object : Bucket.m_Objects)
+			ExistingObjects[Object.m_Key] = Object.m_ETag;
 
-												if (FileName == "robots.txt" && !NewFile.m_SymlinkData.f_IsEmpty())
-													ReadPromise.f_SetResult(CByteVector((uint8 *)NewFile.m_SymlinkData.f_GetStr(), NewFile.m_SymlinkData.f_GetLen()));
-												else
-												{
-													g_Dispatch(*mp_FileActors) / [=, FullFileName = RootPath / NewFile.m_OriginalPath]() -> CByteVector
-														{
-															auto FileData = CFile::fs_ReadFile(FullFileName);
+		TCSet<CStr> FilesToUpdate;
 
-															if (CHash_SHA256::fs_DigestFromData(FileData) != ExpectedChecksum)
-																DMibError("Aborting file upload due to changed file contents");
+		mint nMetaDataQueries = 0;
+		for (auto &NewFile : SourceCheckResults.m_DirectoryManifest.m_Files)
+		{
+			if (!NewFile.f_IsFile())
+				continue;
 
-															return FileData;
-														}
-														> ReadPromise
-													;
-												}
+			auto &FileName = SourceCheckResults.m_DirectoryManifest.m_Files.fs_GetKey(NewFile);
+			auto DestinationFileName = FileName;
 
-												ReadPromise.f_MoveFuture() > UploadPromise % ("Failed to read '{}'"_f << FileName) / [=](CByteVector &&_Data)
-													{
-														if (fp_CheckDestroyed(UploadPromise))
-															return;
+			if (!bRawTarGz)
+			{
+				if (CFile::fs_GetExtension(FileName) == "gz")
+					DestinationFileName = CFile::fs_GetPath(FileName) / CFile::fs_GetFileNoExt(FileName);
+				else if (SourceCheckResults.m_DirectoryManifest.m_Files.f_FindEqual(FileName + ".gz"))
+					continue;
+			}
 
-														(*mp_S3Actors)(&CAwsS3Actor::f_PutObject, BucketName, FileName, PutInfo, fg_Move(_Data))
-															> UploadPromise % ("Failed to upload '{}'"_f << FileName)
-														;
-													}
-												;
-												return UploadPromise.f_MoveFuture();
-											}
-										)
-									;
-								}
+			auto pExistingObject = ExistingObjects.f_FindEqual(DestinationFileName);
+			if (!pExistingObject)
+			{
+				FilesToUpdate[DestinationFileName];
+				continue;
+			}
 
-								TCActorResultVector<void> UploadResults;
+			auto *pNewChecksum = SourceCheckResults.m_FileChecksums.f_FindEqual(FileName);
+			DMibCheck(pNewChecksum);
 
-								for (auto &PriorityUploadList : ToUpload)
-								{
-									mp_S3PrioritySequencer / [=]() mutable -> TCFuture<void>
-										{
-											TCPromise<void> Promise;
+			if (!pNewChecksum || pNewChecksum->m_MD5.f_GetString() != *pExistingObject)
+			{
+				FilesToUpdate[DestinationFileName];
+				continue;
+			}
 
-											if (auto pDestroyed = fp_CheckDestroyed())
-												return Promise <<= pDestroyed;
+			++nMetaDataQueries;
+			(*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetaData, BucketName, DestinationFileName) > MetaDataResults.f_AddResult(DestinationFileName);
+		}
 
-											TCActorResultVector<void> UploadResults;
+		if (nMetaDataQueries)
+			DMibLogWithCategory(S3Upload, Info, "Querying object meta data for {} objects", nMetaDataQueries);
 
-											for (auto &fUpload : PriorityUploadList)
-												mp_S3FileReadSequencer / fg_Move(fUpload) > UploadResults.f_AddResult();
+		auto MetaData = co_await (MetaDataResults.f_GetResults() % "Failed to get file meta data");
 
-											UploadResults.f_GetResults() > Promise / [=](TCVector<TCAsyncResult<void>> &&_Results)
-												{
-													if (!fg_CombineResults(Promise, fg_Move(_Results)))
-														return;
-													Promise.f_SetResult();
-												}
-											;
-											return Promise.f_MoveFuture();
-										}
-										> UploadResults.f_AddResult()
-									;
-								}
+		if (nMetaDataQueries)
+			DMibLogWithCategory(S3Upload, Info, "Querying object meta data for {} objects {fe2} s", nMetaDataQueries, Clock.f_GetTime());
+		Clock.f_Start();
 
-								bool bUploadFiles = !UploadResults.f_IsEmpty();
-								if (bUploadFiles)
-									DMibLogWithCategory(S3Upload, Info, "Reading files and uploading");
+		TCSet<CStr> FilesToDelete;
+		for (auto &Object : Bucket.m_Objects)
+			FilesToDelete[Object.m_Key];
 
-								UploadResults.f_GetResults() > Promise / [=](TCVector<TCAsyncResult<void>> &&_UploadResults) mutable
-									{
-										if (fp_CheckDestroyed(Promise))
-											return;
+		TCMap<int64, TCVector<TCFunctionMutable<TCFuture<void> ()>>> ToUpload;
 
-										if (bUploadFiles)
-											DMibLogWithCategory(S3Upload, Info, "Reading files and uploading {fe2} s", Clock.f_GetTime());
-										Clock.f_Start();
+		for (auto &NewFile : SourceCheckResults.m_DirectoryManifest.m_Files)
+		{
+			if (!NewFile.f_IsFile())
+				continue;
 
-										if (!fg_CombineResults(Promise, fg_Move(_UploadResults)))
-											return;
+			auto FileName = SourceCheckResults.m_DirectoryManifest.m_Files.fs_GetKey(NewFile);
 
-										TCActorResultVector<void> DeleteFilesResults;
-										for (auto &File : FilesToDelete)
-											(*mp_S3Actors)(&CAwsS3Actor::f_DeleteObject, BucketName, File) > DeleteFilesResults.f_AddResult();
+			CAwsS3Actor::CPutObjectInfo PutInfo;
+			PutInfo.m_CacheControl = "no-cache"; // Rely on ETag for updated content
 
-										bool bDeleteFiles = !DeleteFilesResults.f_IsEmpty();
-										if (bDeleteFiles)
-											DMibLogWithCategory(S3Upload, Info, "Deleting files and updating Lambda@Edge");
-										else
-											DMibLogWithCategory(S3Upload, Info, "Updating Lambda@Edge");
+			auto Extension = CFile::fs_GetExtension(FileName);
+			if (!bRawTarGz)
+			{
+				if (Extension == "gz")
+				{
+					FileName = CFile::fs_GetPath(FileName) / CFile::fs_GetFileNoExt(FileName);
+					PutInfo.m_ContentEncoding = "gzip";
+				}
+				else if (SourceCheckResults.m_DirectoryManifest.m_Files.f_FindEqual(FileName + ".gz"))
+					continue;
+				Extension = CFile::fs_GetExtension(FileName);
+			}
 
-										DeleteFilesResults.f_GetResults()
-											+ fp_SetupPrerequisites_UpdateAWSLambda(AWSCredentials)
-											> Promise / [=](TCVector<TCAsyncResult<void>> &&_Results, CVoidTag) mutable
-											{
-												if (fp_CheckDestroyed(Promise))
-													return;
+			FilesToDelete.f_Remove(FileName);
 
-												if (bDeleteFiles)
-													DMibLogWithCategory(S3Upload, Info, "Deleting files and updating Lambda@Edge {fe2} s", Clock.f_GetTime());
-												else
-													DMibLogWithCategory(S3Upload, Info, "Updating Lambda@Edge {fe2} s", Clock.f_GetTime());
-												Clock.f_Start();
+			CStr ContentType = fsp_GetContentTypeForExtension(Extension);
+			if (!ContentType.f_IsEmpty())
+				PutInfo.m_ContentType = ContentType;
+			else
+				PutInfo.m_ContentType = "application/octet-stream"; // Default to safe octet-stream
 
-												if (!fg_CombineResults(Promise, fg_Move(_Results)))
-													return;
+			if (!FilesToUpdate.f_FindEqual(FileName))
+			{
+				auto pMetaData = MetaData.f_FindEqual(FileName);
+				if (pMetaData && *pMetaData)
+				{
+					auto &MetaData = **pMetaData;
+					if
+						(
+							MetaData.m_CacheControl.f_Get("") == PutInfo.m_CacheControl.f_Get("")
+							&& MetaData.m_ContentEncoding.f_Get("") == PutInfo.m_ContentEncoding.f_Get("")
+							&& MetaData.m_ContentType.f_Get("") == PutInfo.m_ContentType.f_Get("")
+						)
+					{
+						continue; // Already up to date
+					}
+				}
+			}
 
-												TCVector<CStr> PathsToInvalidate = {"/*"};
-												TCPromise<void> CloudFrontInvalidateResult;
-												if (CloudFrontDistribution.f_IsEmpty())
-													CloudFrontInvalidateResult.f_SetResult();
-												else
-												{
-													DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache");
-													mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, CloudFrontDistribution, PathsToInvalidate)
-														> CloudFrontInvalidateResult.f_ReceiveAny()
-													;
-												}
+			int64 Priority = TCLimitsInt<int64>::mc_Max;
 
-												CloudFrontInvalidateResult.f_MoveFuture() > Promise / [=]() mutable
-													{
-														if (!CloudFrontDistribution.f_IsEmpty())
-															DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
+			for (auto &UploadPriority : UploadPriorities)
+			{
+				auto &Pattern = UploadPriorities.fs_GetKey(UploadPriority);
+				if (NStr::fg_StrMatchWildcard(FileName.f_GetStr(), Pattern.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
+					Priority = fg_Min(Priority, UploadPriority);
+			}
 
-														if (fp_CheckDestroyed(Promise))
-															return;
+			if (Priority == TCLimitsInt<int64>::mc_Max)
+				Priority = 0;
 
-														fg_Timeout(10.0) > [=]() mutable
-															{
-																DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
-																Clock.f_Start();
-																mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, CloudFrontDistribution, PathsToInvalidate)
-																	> [=](TCAsyncResult<CStr> &&_Result)
-																	{
-																		if (!_Result)
-																			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache failed: {}", _Result.f_GetExceptionStr());
-																		else
-																			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again {fe2} s", Clock.f_GetTime());
-																	}
-																;
-															}
-														;
-
-														g_Dispatch(*mp_FileActors) / [=]()
-															{
-																CFile::fs_WriteStringToFile(_SourceCheckResults.m_ChecksumFile, _SourceCheckResults.m_ChecksumStr, false);
-																DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3 took {fe2} s in total", GlobalClock.f_GetTime());
-															}
-															> Promise
-														;
-													}
-												;
-											}
-										;
-									}
-								;
+			// Limit the number of files held in memory to limit memory usage
+			ToUpload[Priority].f_Insert
+				(
+					[=, ExpectedChecksum = NewFile.m_Digest]() -> TCFuture<void>
+					{
+						auto OnResume = g_OnResume / [&]
+							{
+								if (f_IsDestroyed())
+									DMibError("Shutting down");
 							}
 						;
+
+						DMibLogWithCategory(S3Upload, Info, "Uploading file with priority {}: '{}'", Priority, FileName);
+
+						CByteVector ReadData;
+
+						if (FileName == "robots.txt" && !NewFile.m_SymlinkData.f_IsEmpty())
+							ReadData = CByteVector((uint8 *)NewFile.m_SymlinkData.f_GetStr(), NewFile.m_SymlinkData.f_GetLen());
+						else
+						{
+							ReadData = co_await
+								(
+									g_Dispatch(*mp_FileActors) / [=, FullFileName = RootPath / NewFile.m_OriginalPath]() -> CByteVector
+									{
+										auto FileData = CFile::fs_ReadFile(FullFileName);
+
+										if (CHash_SHA256::fs_DigestFromData(FileData) != ExpectedChecksum)
+											DMibError("Aborting file upload due to changed file contents");
+
+										return FileData;
+									}
+									% ("Failed to read '{}'"_f << FileName)
+								)
+							;
+						}
+
+						co_await ((*mp_S3Actors)(&CAwsS3Actor::f_PutObject, BucketName, FileName, PutInfo, fg_Move(ReadData)) % ("Failed to upload '{}'"_f << FileName));
+
+						co_return {};
+					}
+				)
+			;
+		}
+
+		TCActorResultVector<void> UploadResults;
+
+		for (auto &PriorityUploadList : ToUpload)
+		{
+			mp_S3PrioritySequencer / [=]() mutable -> TCFuture<void>
+				{
+					auto OnResume = g_OnResume / [&]
+						{
+							if (f_IsDestroyed())
+								DMibError("Shutting down");
+						}
+					;
+
+					TCActorResultVector<void> UploadResults;
+
+					for (auto &fUpload : PriorityUploadList)
+						mp_S3FileReadSequencer / fg_Move(fUpload) > UploadResults.f_AddResult();
+
+					co_await UploadResults.f_GetResults() | g_Unwrap;
+
+					co_return {};
+				}
+				> UploadResults.f_AddResult()
+			;
+		}
+
+		bool bUploadFiles = !UploadResults.f_IsEmpty();
+		if (bUploadFiles)
+			DMibLogWithCategory(S3Upload, Info, "Reading files and uploading");
+
+		co_await UploadResults.f_GetResults() | g_Unwrap;
+
+		if (bUploadFiles)
+			DMibLogWithCategory(S3Upload, Info, "Reading files and uploading {fe2} s", Clock.f_GetTime());
+		Clock.f_Start();
+
+		TCActorResultVector<void> DeleteFilesResults;
+		for (auto &File : FilesToDelete)
+			(*mp_S3Actors)(&CAwsS3Actor::f_DeleteObject, BucketName, File) > DeleteFilesResults.f_AddResult();
+
+		bool bDeleteFiles = !DeleteFilesResults.f_IsEmpty();
+		if (bDeleteFiles)
+			DMibLogWithCategory(S3Upload, Info, "Deleting files and updating Lambda@Edge");
+		else
+			DMibLogWithCategory(S3Upload, Info, "Updating Lambda@Edge");
+
+		auto [Results, Dummy] = co_await
+			(
+				DeleteFilesResults.f_GetResults()
+				+ self(&CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda, AWSCredentials)
+			)
+		;
+
+		if (bDeleteFiles)
+			DMibLogWithCategory(S3Upload, Info, "Deleting files and updating Lambda@Edge {fe2} s", Clock.f_GetTime());
+		else
+			DMibLogWithCategory(S3Upload, Info, "Updating Lambda@Edge {fe2} s", Clock.f_GetTime());
+		Clock.f_Start();
+
+		fg_Move(Results) | g_Unwrap;
+
+		TCVector<CStr> PathsToInvalidate = {"/*"};
+		if (!CloudFrontDistribution.f_IsEmpty())
+		{
+			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache");
+			co_await mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, CloudFrontDistribution, PathsToInvalidate);
+			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
+		}
+
+		fg_Timeout(10.0) > [=]() mutable
+			{
+				DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
+				Clock.f_Start();
+				mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, CloudFrontDistribution, PathsToInvalidate)
+					> [=](TCAsyncResult<CStr> &&_Result)
+					{
+						if (!_Result)
+							DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache failed: {}", _Result.f_GetExceptionStr());
+						else
+							DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again {fe2} s", Clock.f_GetTime());
 					}
 				;
 			}
 		;
 
-		return Promise.f_MoveFuture();
+		co_await
+			(
+				g_Dispatch(*mp_FileActors) / [=]()
+				{
+					CFile::fs_WriteStringToFile(SourceCheckResults.m_ChecksumFile, SourceCheckResults.m_ChecksumStr, false);
+					DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3 took {fe2} s in total", GlobalClock.f_GetTime());
+				}
+			)
+		;
+
+		co_return {};
 	}
 }
