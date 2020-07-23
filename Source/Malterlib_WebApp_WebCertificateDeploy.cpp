@@ -55,23 +55,29 @@ namespace NMib::NWebApp
 			)
 		;
 
-		Internal.m_SecretsManagerSubscription.f_OnActor
+		co_await Internal.m_SecretsManagerSubscription.f_OnActor
 			(
-				[pInternal = &Internal](TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo)
+				g_ActorFunctor / [pInternal = &Internal](TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo) -> TCFuture<void>
 				{
-					pInternal->f_HandleSecretsManagerAdded(_SecretsManager, _ActorInfo);
+					co_await fg_CallSafe(*pInternal, &CInternal::f_SecretsManagerAddedWithRetry, _SecretsManager, _ActorInfo);
+
+					co_return {};
 				}
+				, "Mib/WebApp/WebCertificateDeploy"
+				, "Failed to handle secrets manager added"
 			)
 		;
 
 		Internal.m_SecretsManagerSubscription.f_OnRemoveActor
 			(
-				[pInternal = &Internal](TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo &&_ActorInfo)
+				g_ActorFunctor / [pInternal = &Internal](TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo &&_ActorInfo) -> TCFuture<void>
 				{
-					fg_CallSafe(pInternal, &CInternal::f_SecretsManagerRemoved, _SecretsManager, _ActorInfo)
-						> fg_LogError("Mib/WebApp/WebCertificateDeploy", "Failed to handle secrets manager removed")
-					;
+					co_await fg_CallSafe(pInternal, &CInternal::f_SecretsManagerRemoved, _SecretsManager, _ActorInfo);
+
+					co_return {};
 				}
+				, "Mib/WebApp/WebCertificateDeploy"
+				, "Failed to handle secrets manager removed"
 			)
 		;
 

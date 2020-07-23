@@ -5,53 +5,54 @@
 
 namespace NMib::NWebApp
 {
-	void CWebCertificateDeployActor::CInternal::f_HandleSecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info)
+	TCFuture<void> CWebCertificateDeployActor::CInternal::f_SecretsManagerAddedWithRetry(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info)
 	{
-		fg_CallSafe(this, &CInternal::f_SecretsManagerAdded, _SecretsManager, _Info) > [=](TCAsyncResult<void> &&_Result)
-			{
-				if (!_Result)
+		auto Result = co_await fg_CallSafe(this, &CInternal::f_SecretsManagerAdded, _SecretsManager, _Info).f_Wrap();
+
+		if (Result)
+		{
+			m_LastSecretsManagerError.f_Remove(_SecretsManager);
+			co_return {};
+		}
+
+		auto &LastError = m_LastSecretsManagerError[_SecretsManager];
+
+		auto Error = Result.f_GetExceptionStr();
+
+		if (Error != LastError)
+		{
+			DMibLogWithCategory
+				(
+					Mib/WebApp/WebCertificateDeploy
+					, Error
+					, "Failed to handle secrets manager added for '{}' (will retry every 10 seconds): {}"
+					, _Info.m_HostInfo
+					, Error
+				)
+			;
+			LastError = Error;
+			for (auto &Domain : m_Domains)
+				f_UpdateDomainStatus(Domain, _Info.m_HostInfo, EStatusSeverity_Error, Error);
+		}
+
+		if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
+			co_return {};
+
+		if (m_RetryingSecretsManagers(_SecretsManager).f_WasCreated())
+		{
+			fg_Timeout(10.0) > [=]
 				{
-					auto &LastError = m_LastSecretsManagerError[_SecretsManager];
-
-					auto Error = _Result.f_GetExceptionStr();
-
-					if (Error != LastError)
-					{
-						DMibLogWithCategory
-							(
-								Mib/WebApp/WebCertificateDeploy
-								, Error
-								, "Failed to handle secrets manager added for '{}' (will retry every 10 seconds): {}"
-								, _Info.m_HostInfo
-								, Error
-							)
-						;
-						LastError = Error;
-						for (auto &Domain : m_Domains)
-							f_UpdateDomainStatus(Domain, _Info.m_HostInfo, EStatusSeverity_Error, Error);
-					}
+					m_RetryingSecretsManagers.f_Remove(_SecretsManager);
 
 					if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
 						return;
 
-					if (m_RetryingSecretsManagers(_SecretsManager).f_WasCreated())
-					{
-						fg_Timeout(10.0) > [=]
-							{
-								m_RetryingSecretsManagers.f_Remove(_SecretsManager);
-
-								if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
-									return;
-
-								f_HandleSecretsManagerAdded(_SecretsManager, _Info);
-							}
-						;
-					}
+					f_SecretsManagerAddedWithRetry(_SecretsManager, _Info) > fg_LogError("Mib/WebApp/WebCertificateDeploy", "Failed to handle secret manager added (retry)");
 				}
-				else
-					m_LastSecretsManagerError.f_Remove(_SecretsManager);
-			}
-		;
+			;
+		}
+
+		co_return {};
 	}
 
 
