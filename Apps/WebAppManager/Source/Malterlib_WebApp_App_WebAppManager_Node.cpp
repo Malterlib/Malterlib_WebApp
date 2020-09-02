@@ -73,9 +73,9 @@ namespace NMib::NWebApp::NWebAppManager
 		return fg_Format("127.{}.{}.1", mp_LoopbackPrefix, 2 + _AppLaunch.f_GetKey().m_iAppSequence);
 	}
 
-	CStr CWebAppManagerActor::fp_GetAppLocalURL(CAppLaunch const &_AppLaunch) const
+	CStr CWebAppManagerActor::fp_GetAppLocalURL(CAppLaunch const &_AppLaunch, mint _iPort) const
 	{
-		return fg_Format("http://{}:{}/", fp_GetAppIPAddress(_AppLaunch), mp_LocalPort);
+		return fg_Format("http://{}:{}/", fp_GetAppIPAddress(_AppLaunch), mp_LocalPort + _iPort);
 	}
 
 	CStr CWebAppManagerActor::fp_GetPackageLocalURL(CStr const &_PackageName) const
@@ -119,7 +119,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 				AppLaunch.m_BackendIdentifier = fg_Format("{}_{}", LaunchKey.m_PackageName, fg_RandomID());
 
-				mp_PackageLocalURLs[LaunchKey.m_PackageName].f_Insert(fp_GetAppLocalURL(AppLaunch));
+				for (mint i = 0; i < Package.m_PortConcurrency; ++i)
+					mp_PackageLocalURLs[LaunchKey.m_PackageName].f_Insert(fp_GetAppLocalURL(AppLaunch, i));
 			}
 		}
 	}
@@ -583,6 +584,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CalculatedSettings["BackendIdentifier"] = _AppLaunch.m_BackendIdentifier;
 			CalculatedSettings["LocalIP"] = fp_GetAppIPAddress(_AppLaunch);
 			CalculatedSettings["LocalPort"] = CStr::fs_ToStr(mp_LocalPort);
+			CalculatedSettings["PortConcurrency"] = CStr::fs_ToStr(PackageOptions.m_PortConcurrency);
 			CalculatedSettings["WebSSLPort"] = CStr::fs_ToStr(mp_WebSSLPort);
 			CalculatedSettings["WebPort"] = CStr::fs_ToStr(mp_WebPort);
 

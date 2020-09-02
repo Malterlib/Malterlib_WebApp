@@ -667,7 +667,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						continue;
 					++nUpstream;
 					CStr IPAddress = fp_GetAppIPAddress(AppLaunch);
-					UpstreamServers += "\t\tserver {}:{} max_fails=30 fail_timeout=30s;\n"_f << IPAddress << mp_LocalPort;
+					for (mint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
+						UpstreamServers += "\t\tserver {}:{} max_fails=30 fail_timeout=30s;\n"_f << IPAddress << iPort;
 					PackageIPs[Package.f_GetName()] = IPAddress;
 				}
 
@@ -689,7 +690,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					{
 						if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 							continue;
-						UpstreamServers += "		{} {}:{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch) << mp_LocalPort;
+						for (mint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
+							UpstreamServers += "		{} {}:{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch) << iPort;
 					}
 
 					UpstreamServers += "	}\n\n";
@@ -707,7 +709,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					{
 						if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 							continue;
-						UpstreamServers += "		{} {}:{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch) << mp_LocalPort;
+						for (mint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
+							UpstreamServers += "		{} {}:{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch) << iPort;
 					}
 
 					UpstreamServers += "	}\n\n";

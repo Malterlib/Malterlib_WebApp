@@ -247,6 +247,7 @@ Property
 	WebAppManagerEnvironmment "ROOT_URL(Meteor|FastCGI|Websocket|Npm)=RootURL;@(WebAppManagerEnvironmment)"
 	WebAppManagerEnvironmment "STATIC_ROOT_URL(Meteor|FastCGI|Websocket|Npm)=StaticRootURL;@(WebAppManagerEnvironmment)"
 	WebAppManagerEnvironmment "PORT(Meteor|FastCGI|Websocket|Npm)=LocalPort|8080;@(WebAppManagerEnvironmment)"
+	WebAppManagerEnvironmment "PORT_CONCURRENCY(Meteor|FastCGI|Websocket|Npm)=PortConcurrency|1;@(WebAppManagerEnvironmment)"
 	WebAppManagerEnvironmment "BIND_IP(Meteor|FastCGI|Websocket|Npm)=LocalIP;@(WebAppManagerEnvironmment)"
 	WebAppManagerEnvironmment "HTTP_FORWARDED_COUNT(Meteor|FastCGI|Websocket|Npm)=HttpForwardedCount|1;@(WebAppManagerEnvironmment)"
 	WebAppManagerEnvironmment "MAIL_URL(!Staging)=SMTP;@(WebAppManagerEnvironmment)"
@@ -503,6 +504,12 @@ Property
 								"			\"Concurrency\": @(Concurrency_@(Explodee)),\n"
 				{
 					!Empty "@(Concurrency_@(Explodee))"
+				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"PortConcurrency\": @(PortConcurrency_@(Explodee)),\n"
+				{
+					!Empty "@(PortConcurrency_@(Explodee))"
 				}
 
 				PackageSettings	"@(PackageSettings)"\

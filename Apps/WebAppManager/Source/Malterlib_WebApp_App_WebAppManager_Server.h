@@ -116,6 +116,7 @@ namespace NMib::NWebApp::NWebAppManager
 			TCMap<CStr, int64> m_UploadS3Priority;
 			fp64 m_MemoryPerNode = 1.5;
 			mint m_Concurrency = 1;
+			mint m_PortConcurrency = 1;
 			EPackageType m_Type = EPackageType_Meteor;
 			bool m_bSeparateUser = false;
 			bool m_bOwnPackageDirectory = false;
@@ -361,7 +362,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr fp_GetPackageLocalURL(CStr const &_PackageName) const;
 		CStr fp_GetRootURL(CStr const &_Hostname, CStr const &_SubPath) const;
 		CStr fp_GetAppIPAddress(CAppLaunch const &_AppLaunch) const;
-		CStr fp_GetAppLocalURL(CAppLaunch const &_AppLaunch) const;
+		CStr fp_GetAppLocalURL(CAppLaunch const &_AppLaunch, mint _iPort) const;
 		void fp_UpdateAppLaunch(CExceptionPointer const &_pException);
 		void fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch);
 		void fp_SetupNodeArguments(TCVector<CStr> &o_Arguments, CAppLaunch const &_AppLaunch, CWebAppManagerOptions::CPackage const &_PackageOptions);

@@ -388,6 +388,9 @@ namespace NMib::NWebApp::NWebAppManager
 			if (auto *pValue = PackageSettings.f_GetMember("MemoryPerNode"))
 				Package.m_MemoryPerNode = pValue->f_AsFloat(1.5);
 
+			if (auto *pValue = PackageSettings.f_GetMember("PortConcurrency", EJSONType_Integer))
+				Package.m_PortConcurrency = pValue->f_Integer();
+
 			if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJSONType_Integer))
 				Package.m_Concurrency = pValue->f_Integer();
 			else if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJSONType_String))
