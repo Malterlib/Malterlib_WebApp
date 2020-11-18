@@ -114,9 +114,8 @@ function BuildNode()
 			npm install
 			npm install "`basename "$CipmPackagePath"`"
 		fi
-		rm -f *.tgz
 		npm pack
-		PackagePath="`ls $PWD/*.tgz`"
+		PackagePath="`ls $PWD/npm-*.tgz`"
 		popd > /dev/null
 		./npm install -g "$PackagePath"
 
