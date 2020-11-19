@@ -105,6 +105,7 @@ function BuildNode()
 			popd > /dev/null
 		fi
 		pushd "$MalterlibNpmSource" > /dev/null
+		rm -f *.tgz
 		if ! [[ -z $(git status -s) ]]; then
 			echo $PWD contains changes, please commit before building
 			exit 1
@@ -122,6 +123,7 @@ function BuildNode()
 		pushd "$MalterlibNpmSource" > /dev/null
 		git reset --hard
 		git clean -fd
+		rm -f *.tgz
 		popd > /dev/null
 	else
 		echo "Installing npm from global"
