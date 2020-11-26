@@ -46,12 +46,16 @@ tar $TarExtractOptions --no-same-owner -xf "$Package"
 
 pushd "$Name/programs/server/" > /dev/null
 
+chmod -R u+w .
+
 export NPM_CONFIG_PROGRESS=false
 
 if ! npm install &>"$TempDirectory/npmerror.log" ; then
 	cat "$TempDirectory/npmerror.log"
 	exit 1
 fi
+
+chmod -R -w .
 
 export PATH="$OldPath"
 
@@ -61,6 +65,7 @@ touch "$Name/.installed"
 tar $TarOptions -czf "$Package" "$Name"
 popd > /dev/null
 
+chmod -R u+w "$TempDirectory"
 rm -rf "$TempDirectory"
 rm -rf "$NodeDirectory"
 

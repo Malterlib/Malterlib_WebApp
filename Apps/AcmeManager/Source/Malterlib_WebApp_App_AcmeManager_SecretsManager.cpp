@@ -2,49 +2,53 @@
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Concurrency/LogError>
+
 #include "Malterlib_WebApp_App_AcmeManager.h"
 
 namespace NMib::NWebApp::NAcmeManager
 {
-	void CAcmeManagerActor::fp_HandleSecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info)
+	TCFuture<void> CAcmeManagerActor::fp_HandleSecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info)
 	{
-		self(&CAcmeManagerActor::fp_SecretsManagerAdded, _SecretsManager, _Info, "") > [=](TCAsyncResult<void> &&_Result)
-			{
-				if (!_Result)
+		auto Result = co_await self(&CAcmeManagerActor::fp_SecretsManagerAdded, _SecretsManager, _Info, "").f_Wrap();
+
+		if (Result)
+		{
+			mp_LastSecretsManagerError.f_Remove(_SecretsManager);
+
+			co_return {};
+		}
+
+		auto &LastError = mp_LastSecretsManagerError[_SecretsManager];
+
+		auto Error = Result.f_GetExceptionStr();
+
+		if (Error != LastError)
+		{
+			DLogWithCategory(Mib/WebApp/AcmeManager, Error, "Failed to handle secrets manager added for '{}' (will retry every 10 seconds): {}", _Info.m_HostInfo, Error);
+			LastError = Error;
+			for (auto &Domain : mp_Domains)
+				fp_UpdateDomainStatus(Domain, _Info.m_HostInfo, EStatusSeverity_Error, Error);
+		}
+
+		if (!mp_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
+			co_return {};
+
+		if (mp_RetryingSecretsManagers(_SecretsManager).f_WasCreated())
+		{
+			fg_Timeout(10.0) > [=]
 				{
-					auto &LastError = mp_LastSecretsManagerError[_SecretsManager];
-
-					auto Error = _Result.f_GetExceptionStr();
-
-					if (Error != LastError)
-					{
-						DLogWithCategory(Mib/WebApp/AcmeManager, Error, "Failed to handle secrets manager added for '{}' (will retry every 10 seconds): {}", _Info.m_HostInfo, Error);
-						LastError = Error;
-						for (auto &Domain : mp_Domains)
-							fp_UpdateDomainStatus(Domain, _Info.m_HostInfo, EStatusSeverity_Error, Error);
-					}
+					mp_RetryingSecretsManagers.f_Remove(_SecretsManager);
 
 					if (!mp_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
 						return;
 
-					if (mp_RetryingSecretsManagers(_SecretsManager).f_WasCreated())
-					{
-						fg_Timeout(10.0) > [=]
-							{
-								mp_RetryingSecretsManagers.f_Remove(_SecretsManager);
-
-								if (!mp_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
-									return;
-
-								fp_HandleSecretsManagerAdded(_SecretsManager, _Info);
-							}
-						;
-					}
+					fp_HandleSecretsManagerAdded(_SecretsManager, _Info) > fg_LogError("SecretsManager", "Failed to handle secrets manager added");
 				}
-				else
-					mp_LastSecretsManagerError.f_Remove(_SecretsManager);
-			}
-		;
+			;
+		}
+
+		co_return {};
 	}
 
 	TCFuture<void> CAcmeManagerActor::fp_SecretsManagerAdded

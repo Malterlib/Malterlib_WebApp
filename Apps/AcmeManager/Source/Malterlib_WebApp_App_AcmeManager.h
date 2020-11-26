@@ -100,7 +100,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		TCFuture<void> fp_UpdateAllDomains(CStr const &_CreateAccountForDomainName);
 
-		void fp_HandleSecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info);
+		TCFuture<void> fp_HandleSecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info);
 
 		TCFuture<void> fp_SecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info, NStr::CStr const &_CreatePrivateKeyForDomain);
 		TCFuture<void> fp_SecretsManagerRemoved(TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo);

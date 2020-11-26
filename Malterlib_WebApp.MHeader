@@ -55,8 +55,11 @@ Property
 
 %Group "{Test}/{Malterlib_WebApp}/WebApp/TestWebAppManager"
 {
-	!!TestingWorkspace true
-	!!MalterlibWebAppEnableWebAppManagerTestInAppsWorkspace true
+	|
+	{
+		TestingWorkspace true
+		MalterlibWebAppEnableWebAppManagerTestInAppsWorkspace true
+	}
 
 	Property
 	{
@@ -68,6 +71,8 @@ Property
 		MeteorBuilds "Meteor=Meteor"
 
 		AllowRobots_Meteor false
+
+		WebAppManagerServeAllSubdomains true
 
 		WebAppManagerLoopbackPrefix 25
 

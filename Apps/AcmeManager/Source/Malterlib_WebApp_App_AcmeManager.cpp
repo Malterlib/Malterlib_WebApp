@@ -68,19 +68,31 @@ namespace NMib::NWebApp::NAcmeManager
 			)
 		;
 
-		mp_SecretsManagerSubscription.f_OnActor
-			(
-				[this](TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo)
-				{
-					fp_HandleSecretsManagerAdded(_SecretsManager, _ActorInfo);
-				}
-			)
-		;
+		{
+			auto Result = co_await mp_SecretsManagerSubscription.f_OnActor
+				(
+					g_ActorFunctor / [this](TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo) -> TCFuture<void>
+					{
+						co_await fp_HandleSecretsManagerAdded(_SecretsManager, _ActorInfo);
+
+						co_return {};
+					}
+				)
+				.f_Wrap()
+			;
+
+			if (!Result)
+				DMibLog(Error, "Failed when subscripbing to secrets manager: {}", Result.f_GetExceptionStr());
+		}
+
+
 		mp_SecretsManagerSubscription.f_OnRemoveActor
 			(
-				[this](TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo &&_ActorInfo)
+				g_ActorFunctor / [this](TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo &&_ActorInfo) -> TCFuture<void>
 				{
 					self(&CAcmeManagerActor::fp_SecretsManagerRemoved, _SecretsManager, _ActorInfo) > fg_LogError("Mib/WebApp/AcmeManager", "Failed to handle secrets manager removed");
+
+					co_return {};
 				}
 			)
 		;
