@@ -5,7 +5,7 @@ set -e
 ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 unset TOOLCHAINS
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 unset MACOSX_DEPLOYMENT_TARGET
 unset SDKROOT
 unset PRODUCT_SPECIFIC_LDFLAGS
@@ -53,7 +53,7 @@ if [ -e "$OutputBundleTar" ] && [ -e "$DependencyFile" ]; then
 fi
 
 OldPath="$PATH"
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 if [ -n "$MeteorCheckedOutPath" ]; then
 	PATH="$MeteorCheckedOutPath:$PATH"
