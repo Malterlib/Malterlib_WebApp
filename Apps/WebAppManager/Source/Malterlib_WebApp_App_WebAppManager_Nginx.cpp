@@ -27,7 +27,7 @@ R"---(
 		{
 			gzip_static always;
 			expires max;
-			add_header Strict-Transport-Security "max-age=31536000;" always;
+{SecurityHeaders}
 			add_header Cache-Control public;
 			alias "{StaticRoot}/$1";
 			access_log logs/static_access_{PackageName}.log;
@@ -80,7 +80,7 @@ R"---(
 		{
 			gzip_static always;
 			expires max;
-			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
+{SecurityHeaders}
 			add_header Cache-Control public;
 			root "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
@@ -129,7 +129,7 @@ R"---(
 		location /{SubPath}
 		{
 			gzip_static always;
-			add_header Strict-Transport-Security "max-age=31536000;" always;
+{SecurityHeaders}
 			add_header Cache-Control no-cache;
 			root "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
@@ -165,7 +165,7 @@ R"---(
 		location /
 		{
 			gzip_static always;
-			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
+{SecurityHeaders}
 			add_header Cache-Control no-cache;
 			root "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
@@ -187,7 +187,7 @@ R"---(
 		{
 			gzip_static always;
 			expires max;
-			add_header Strict-Transport-Security "max-age=31536000;" always;
+{SecurityHeaders}
 			add_header Cache-Control public;
 			root "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
@@ -241,7 +241,7 @@ R"---(
 		{
 			gzip_static always;
 			expires max;
-			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
+{SecurityHeaders}
 			add_header Cache-Control public;
 			root "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
@@ -378,7 +378,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		client_max_body_size 10M;
 
 		add_header 'Access-Control-Allow-Origin' 'https://{ServerName}{SSLPortRewrite}';
-		add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
+{SecurityHeaders}
 		add_header Cache-Control public;
 
 		location ~* "^/[a-z0-9]{40}\.(css|js)$"
@@ -590,6 +590,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 									RedirectContents += fg_Format
 										(
 											"			if ($uri ~* ^/{}$) {{\n"
+											"{SecurityHeaders}\n"
 											"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{}\";\n"
 											"				return 302 {}?campaign={};\n"
 											"			}\n"
@@ -868,7 +869,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
 							if (Package.f_IsStatic())
 								StaticPackages += "			gzip_static always;\n";
-							StaticPackages += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload;\" always;\n";
+							StaticPackages += "{SecurityHeaders}\n";
 							StaticPackages += "			add_header Cache-Control no-cache;\n";
 							StaticPackages += "			access_log logs/static_access_{}.log;\n"_f << Package.f_GetName();
 							StaticPackages += "		}\n";
@@ -893,7 +894,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		location /
 		{
-			add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload;" always;
+{SecurityHeaders}
 			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{DomainName}";
 			return 302 https://{DomainName}{SSLPortRewrite}$request_uri;
 		}
@@ -1012,7 +1013,51 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			}
 			ConfigContents = ConfigContents.f_Replace("{ContentTypes}", ContentTypesContents);
 		}
+		{
+			CStr SecurityHeaders;
+			CStr ContentSecurityPolicy = "default-src 'none' ;";
+			ContentSecurityPolicy += " img-src 'self' data: https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ImgSrc;
+			ContentSecurityPolicy += " font-src 'self' data: https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FontSrc;
+			ContentSecurityPolicy += " media-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_MediaSrc;
+			ContentSecurityPolicy += " script-src 'self' https://*.{0} https://{0} {1};"_f << mp_Domain << mp_Options.m_ContentSecurity_ScriptSrc;
+			ContentSecurityPolicy += " style-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_StyleSrc;
+			ContentSecurityPolicy += " frame-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FrameSrc;
+			ContentSecurityPolicy += " connect-src 'self' https://*.{0} https://{0} wss://*.{0} wss://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ConnectSrc;
+			ContentSecurityPolicy += " child-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ChildSrc;
+			ContentSecurityPolicy += " form-action 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FormAction;
+			ContentSecurityPolicy += " object-src 'none' {} ;"_f << mp_Options.m_ContentSecurity_ObjectSrc;
 
+			if (mp_Options.m_ContentSecurity_ReportURI)
+			{
+				CStr ContentSecurityReportURI = mp_Options.m_ContentSecurity_ReportURI;
+				ContentSecurityReportURI = ContentSecurityReportURI.f_Replace("{DomainName}", mp_Domain);
+				ContentSecurityReportURI = ContentSecurityReportURI.f_Replace("{SSLPortRewrite}", "");
+				ContentSecurityPolicy += " report-uri {} ;"_f << ContentSecurityReportURI;
+			}
+
+			SecurityHeaders += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload;\" always;\n";
+			SecurityHeaders += "			add_header Content-Security-Policy \"{}\" always;\n"_f << ContentSecurityPolicy;
+			SecurityHeaders += "			add_header X-Content-Type-Options \"nosniff\" always;\n";
+			SecurityHeaders += "			add_header X-XSS-Protection \"1; mode=block\" always;\n";
+			SecurityHeaders += "			add_header Referrer-Policy \"same-origin\" always;\n";
+
+			if (!mp_Options.m_AccessControl_AllowMethods.f_IsEmpty())
+				SecurityHeaders += "			add_header Access-Control-Allow-Methods \"{}\" always;\n"_f << mp_Options.m_AccessControl_AllowMethods;
+			if (!mp_Options.m_AccessControl_AllowHeaders.f_IsEmpty())
+				SecurityHeaders += "			add_header Access-Control-Allow-Headers \"{}\" always;\n"_f << mp_Options.m_AccessControl_AllowHeaders;
+			if (!mp_Options.m_AccessControl_AllowOrigin.f_IsEmpty())
+			{
+				SecurityHeaders += "			add_header Access-Control-Allow-Origin \"{}\" always;\n"_f << mp_Options.m_AccessControl_AllowOrigin;
+				SecurityHeaders += "			add_header Vary \"Origin, Accept-Encoding\" always;\n";
+			}
+			if (!mp_Options.m_AccessControl_MaxAge.f_IsEmpty())
+				SecurityHeaders += "			add_header Access-Control-Max-Age \"{}\" always;\n"_f << mp_Options.m_AccessControl_MaxAge;
+
+			ConfigContents = ConfigContents.f_Replace("{SecurityHeadersNoFrameOptions}", SecurityHeaders);
+
+			SecurityHeaders += "			add_header X-Frame-Options \"DENY\" always;\n";
+			ConfigContents = ConfigContents.f_Replace("{SecurityHeaders}", SecurityHeaders);
+		}
 
 		if (mp_BindTo)
 			ConfigContents = ConfigContents.f_Replace("{BindTo}", mp_BindTo + ":");
