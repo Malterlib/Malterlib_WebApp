@@ -60,6 +60,8 @@ namespace NMib::NWebApp::NWebAppManager
 		mp_MongoReplicaName = fp_GetConfigValue("MongoReplicaName", mp_Options.m_Mongo.m_DefaultReplicaName).f_String();
 		mp_LoopbackPrefix = fp_GetConfigValue("LoopbackPrefix", mp_Options.m_LoopbackPrefix).f_Integer();
 		mp_LocalPort = fp_GetConfigValue("LocalPort", 8080).f_Integer();
+		mp_BindTo = fp_GetConfigValue("BindTo", "").f_String();
+		mp_bEnableIPV6 = fp_GetConfigValue("EnableIPV6", true).f_Boolean();
 
 		fp_ParseConfig_DDPSelf();
 	}

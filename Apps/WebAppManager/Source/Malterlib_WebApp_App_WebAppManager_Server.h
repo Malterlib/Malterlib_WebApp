@@ -460,6 +460,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr mp_MongoDatabase;
 		CStr mp_MongoReplicaName;
 		CStr mp_MongoAdminUserName;
+		CStr mp_BindTo;
 
 		uint64 mp_WebPort = 3000;
 		uint64 mp_WebSSLPort = 3443;
@@ -468,6 +469,7 @@ namespace NMib::NWebApp::NWebAppManager
 		bool mp_bIsStaging = false;
 		bool mp_bAllowRobots = true;
 		bool mp_bStartNgnix = true;
+		bool mp_bEnableIPV6 = true;
 	};
 }
 

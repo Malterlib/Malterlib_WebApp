@@ -59,8 +59,8 @@ R"---(
 , R"---(
 	server
 	{
-		listen {SSLPort};
-		listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort};
+		{DisableIPV6} listen [::]:{SSLPort};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -139,8 +139,8 @@ R"---(
 , R"---(
 	server
 	{
-		listen {SSLPort};
-		listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort};
+		{DisableIPV6} listen [::]:{SSLPort};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -220,8 +220,8 @@ R"---(
 , R"---(
 	server
 	{
-		listen {SSLPort};
-		listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort};
+		{DisableIPV6} listen [::]:{SSLPort};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -314,8 +314,8 @@ R"---(
 , R"---(
 	server
 	{
-		listen {SSLPort};
-		listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort};
+		{DisableIPV6} listen [::]:{SSLPort};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -371,8 +371,8 @@ R"---(
 ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 	server
 	{
-		listen {SSLPort};
-		listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort};
+		{DisableIPV6} listen [::]:{SSLPort};
 		server_name {ServerNameStatic} {ServerNameStaticSource};
 		access_log logs/static_access_{PackageName}.log;
 		client_max_body_size 10M;
@@ -728,7 +728,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					CStr Section = R"---(
 	server
 	{
-		listen {Port};
+		listen {BindTo}{Port};
 		server_name www.{DomainName};
 
 {HTTPDefaultServerLocations_www}
@@ -885,8 +885,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						Server += R"---(
 	server
 	{
-		listen {SSLPort};
-		listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort};
+		{DisableIPV6} listen [::]:{SSLPort};
 		server_name www.{DomainName};
 
 {HTTPSDefaultServerLocations_www}
@@ -1013,6 +1013,16 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			ConfigContents = ConfigContents.f_Replace("{ContentTypes}", ContentTypesContents);
 		}
 
+
+		if (mp_BindTo)
+			ConfigContents = ConfigContents.f_Replace("{BindTo}", mp_BindTo + ":");
+		else
+			ConfigContents = ConfigContents.f_Replace("{BindTo}", "");
+
+		if (mp_bEnableIPV6)
+			ConfigContents = ConfigContents.f_Replace("{DisableIPV6}", "");
+		else
+			ConfigContents = ConfigContents.f_Replace("{DisableIPV6}", "#");
 
 		co_await
 			(
