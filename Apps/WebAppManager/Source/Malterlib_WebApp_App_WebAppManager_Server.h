@@ -99,6 +99,19 @@ namespace NMib::NWebApp::NWebAppManager
 				return f_IsDynamicServer() || f_IsStatic();
 			}
 
+			struct CRedirect
+			{
+				template <typename tf_CStream>
+				void f_Stream(tf_CStream &_Stream)
+				{
+					_Stream % m_From;
+					_Stream % m_To;
+				}
+
+				CStr m_From;
+				CStr m_To;
+			};
+
 			TCVector<CStr> m_StartupDependencies;
 			CStr m_NpmBuildType;
 			CStr m_CustomExecutable;
@@ -112,6 +125,9 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_StaticPath;
 			CStr m_MainFile;
 			CStr m_ExternalRoot;
+			CStr m_UploadS3Prefix;
+			TCVector<CRedirect> m_RedirectsTemporary;
+			TCVector<CRedirect> m_RedirectsPermanent;
 			TCVector<CStr> m_ExcludeGzipPatterns;
 			TCMap<CStr, int64> m_UploadS3Priority;
 			fp64 m_MemoryPerNode = 1.5;
@@ -345,7 +361,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_SetupPrerequisites_UploadS3();
 		TCFuture<void> fp_SetupPrerequisites_UploadS3Perform();
 		TCFuture<void> fp_SetupPrerequisites_UploadS3FileChangeNotifications();
-		TCFuture<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials);
+		TCFuture<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials, CStr const &_Prefix);
 		TCFuture<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CWebAppManagerOptions::EPackageType _Type);
 		TCFuture<void> fp_SetupPrerequisites_OSSetup();
 

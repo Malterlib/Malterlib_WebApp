@@ -451,6 +451,18 @@ namespace NMib::NWebApp::NWebAppManager
 					Package.m_ExcludeGzipPatterns.f_Insert(Dependency.f_String());
 			}
 
+			if (auto *pValue = PackageSettings.f_GetMember("RedirectsTemporary"))
+			{
+				for (auto &Redirect : pValue->f_Array())
+					Package.m_RedirectsTemporary.f_Insert({Redirect["From"].f_String(), Redirect["To"].f_String()});
+			}
+
+			if (auto *pValue = PackageSettings.f_GetMember("RedirectsPermanent"))
+			{
+				for (auto &Redirect : pValue->f_Array())
+					Package.m_RedirectsPermanent.f_Insert({Redirect["From"].f_String(), Redirect["To"].f_String()});
+			}
+
 			if (auto *pValue = PackageSettings.f_GetMember("StaticPath"))
 				Package.m_StaticPath = pValue->f_String();
 
@@ -465,6 +477,9 @@ namespace NMib::NWebApp::NWebAppManager
 				for (auto &PriorityEntry : pValue->f_Object())
 					Package.m_UploadS3Priority[PriorityEntry.f_Name()] = PriorityEntry.f_Value().f_Integer();
 			}
+
+			if (auto *pValue = PackageSettings.f_GetMember("UploadS3Prefix"))
+				Package.m_UploadS3Prefix = pValue->f_String();
 
 			if (auto *pValue = PackageSettings.f_GetMember("ExternalRoot"))
 				Package.m_ExternalRoot = pValue->f_String();

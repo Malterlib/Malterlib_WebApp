@@ -541,6 +541,12 @@ Property
 					!Empty "@(UploadS3_@(Explodee))"
 				}
 
+				PackageSettings	"@(PackageSettings)"\
+								"			\"UploadS3Prefix\": \"@(UploadS3Prefix_@(Explodee))\",\n"
+				{
+					!Empty "@(UploadS3Prefix_@(Explodee))"
+				}
+
 				UploadS3Priority_Template_Expand "				\"@(Expand0)\": @(Expand1),\n"
 				UploadS3Priority_Template	"@(Builtin.Function->ExpandList('@(Explodee)', '>', 'UploadS3Priority_Template_Expand'))"
 				{
@@ -604,6 +610,25 @@ Property
 								"			\"ExcludeGzipPatterns\": [@(Builtin.Function->ExplodeList('@(ExcludeGzipPatterns_@(Explodee))', ';', 'ExcludeGzipPatterns_Template'))],\n"
 				{
 					!Empty "@(ExcludeGzipPatterns_@(Explodee))"
+				}
+
+				Redirects_Template_Expand	"				{\"From\": \"@(Expand0)\", \"To\": \"@(Expand1)\"},\n"
+
+				Redirects_Template	"@(Builtin.Function->ExpandList('@(Explodee)', '=', 'Redirects_Template_Expand'))"
+				{
+					!Explodee ""
+				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"RedirectsTemporary\": [\n@(Builtin.Function->ExplodeList('@(RedirectsTemporary_@(Explodee))', ';', 'Redirects_Template'))			],\n"
+				{
+					!Empty "@(RedirectsTemporary_@(Explodee))"
+				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"RedirectsPermanent\": [@(Builtin.Function->ExplodeList('@(RedirectsPermanent_@(Explodee))', ';', 'Redirects_Template'))			],\n"
+				{
+					!Empty "@(RedirectsPermanent_@(Explodee))"
 				}
 
 				PackageSettings	"@(PackageSettings)"\

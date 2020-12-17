@@ -128,12 +128,15 @@ ch8 const *g_pStaticServerTemplate[2] =
 R"---(
 		location /{SubPath}
 		{
+{PathRedirect}
 			gzip_static always;
 {SecurityHeaders}
 			add_header Cache-Control no-cache;
 			root "{StaticRoot}";
+			index index.html
 			access_log logs/static_access_{PackageName}.log;
-			try_files $uri /index.html;
+			error_page 403 = /403/index.html;
+			error_page 404 = /404/index.html;
 		}
 )---"
 , R"---(
@@ -164,12 +167,15 @@ R"---(
 
 		location /
 		{
+{PathRedirect}
 			gzip_static always;
 {SecurityHeaders}
 			add_header Cache-Control no-cache;
 			root "{StaticRoot}";
+			index index.html
 			access_log logs/static_access_{PackageName}.log;
-			try_files $uri /index.html;
+			error_page 403 = /403/index.html;
+			error_page 404 = /404/index.html;
 		}
 
 		location /robots.txt {
@@ -569,46 +575,80 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							if (!Package.f_IsServer())
 								continue;
 
-							if (Package.m_RedirectsFile.f_IsEmpty())
-								continue;
-
-							CStr RedirectPath = fg_Format("{}/{}/{}", CFile::fs_GetProgramDirectory(), Package.f_GetName(), Package.m_RedirectsFile);
-
 							CStr RedirectContents;
-							try
-							{
-								CJSON const RedirectJSON = CJSON::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath), RedirectPath);
 
-								for (auto const &Redirect : RedirectJSON["redirects"].f_Array())
+							if (!Package.m_RedirectsFile.f_IsEmpty())
+							{
+								CStr RedirectPath = fg_Format("{}/{}/{}", CFile::fs_GetProgramDirectory(), Package.f_GetName(), Package.m_RedirectsFile);
+
+								try
 								{
-									CStr Path = Redirect["path"].f_String();
-									CStr RedirectTo = Redirect["redirectTo"].f_String();
-									CStr Campaign = Redirect["campaign"].f_String();
-									CStr ReferrerCookie = Redirect["referrerCookie"].f_String();
-									CStr CampaignPercentEncoded;
-									CURL::fs_PercentEncode(CampaignPercentEncoded, Campaign);
-									RedirectContents += fg_Format
-										(
-											"			if ($uri ~* ^/{}$) {{\n"
-											"{SecurityHeaders}\n"
-											"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{}\";\n"
-											"				return 302 {}?campaign={};\n"
-											"			}\n"
-											, Path
-											, ReferrerCookie
-											, Domain
-											, RedirectTo
-											, CampaignPercentEncoded
-										)
-									;
+									CJSON const RedirectJSON = CJSON::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath), RedirectPath);
+
+									for (auto const &Redirect : RedirectJSON["redirects"].f_Array())
+									{
+										CStr Path = Redirect["path"].f_String();
+										CStr RedirectTo = Redirect["redirectTo"].f_String();
+										CStr Campaign = Redirect["campaign"].f_String();
+										CStr ReferrerCookie = Redirect["referrerCookie"].f_String();
+										CStr CampaignPercentEncoded;
+										CURL::fs_PercentEncode(CampaignPercentEncoded, Campaign);
+										RedirectContents += fg_Format
+											(
+												"			if ($uri ~* ^/{}$) {{\n"
+												"{SecurityHeaders}\n"
+												"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{}\";\n"
+												"				return 302 {}?campaign={};\n"
+												"			}\n"
+												, Path
+												, ReferrerCookie
+												, Domain
+												, RedirectTo
+												, CampaignPercentEncoded
+											)
+										;
+									}
+								}
+								catch (CException const &_Exception)
+								{
+									DMibError(fg_Format("Failed to generate redirects: {}", _Exception));
 								}
 							}
-							catch (CException const &_Exception)
+
+							for (auto &Redirect : Package.m_RedirectsTemporary)
 							{
-								DMibError(fg_Format("Failed to generate redirects: {}", _Exception));
+								CStr RedirectTo = Redirect.m_To;
+								RedirectTo = RedirectTo.f_Replace("{}", "$uri");
+
+								RedirectContents += fg_Format
+									(
+										"			if ($uri ~* ^{}) {{\n"
+										"				return 302 {}$is_args$args;\n"
+										"			}\n"
+										, Redirect.m_From
+										, RedirectTo
+									)
+								;
 							}
 
-							Results.m_Redirects[Package.f_GetName()] = fg_Move(RedirectContents);
+							for (auto &Redirect : Package.m_RedirectsPermanent)
+							{
+								CStr RedirectTo = Redirect.m_To;
+								RedirectTo = RedirectTo.f_Replace("{}", "$uri");
+
+								RedirectContents += fg_Format
+									(
+										"			if ($uri ~* ^{}) {{\n"
+										"				return 301 {}$is_args$args;\n"
+										"			}\n"
+										, Redirect.m_From
+										, RedirectTo
+									)
+								;
+							}
+
+							if (!RedirectContents.f_IsEmpty())
+								Results.m_Redirects[Package.f_GetName()] = fg_Move(RedirectContents);
 						}
 
 					}

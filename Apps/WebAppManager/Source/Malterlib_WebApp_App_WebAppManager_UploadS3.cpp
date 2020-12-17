@@ -12,10 +12,10 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 24;
+		uint32 gc_UpdateVersion = 25;
 	}
 
-	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials)
+	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials, CStr const &_Prefix)
 	{
 		auto OnResume = g_OnResume / [&]
 			{
@@ -24,12 +24,36 @@ namespace NMib::NWebApp::NWebAppManager
 			}
 		;
 
-		CStr CloudFrontDistribution = fp_GetConfigValue("AWSCloudFrontDistribution", "").f_String();
+		TCVector<CWebAppManagerOptions::CPackage::CRedirect> RedirectsTemporary;
+		TCVector<CWebAppManagerOptions::CPackage::CRedirect> RedirectsPermanent;
+
+		for (auto &Package : mp_Options.m_Packages)
+		{
+			if (!Package.m_bUploadS3)
+				continue;
+
+			if (Package.m_UploadS3Prefix != _Prefix)
+				continue;
+
+			CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
+			bool bIsMainServer = ServerName == mp_Domain;
+
+			if (!bIsMainServer && Package.m_StaticPath.f_IsEmpty() && Package.m_UploadS3Prefix.f_IsEmpty())
+				continue;
+
+			RedirectsTemporary.f_Insert(Package.m_RedirectsTemporary);
+			RedirectsPermanent.f_Insert(Package.m_RedirectsPermanent);
+		}
+
+		CStr CloudFrontDistribution;
+		CStr ConfigName = _Prefix ? CStr("AWSCloudFrontDistribution_{}"_f << _Prefix) : "AWSCloudFrontDistribution";
+		CloudFrontDistribution = fp_GetConfigValue(ConfigName, "").f_String();
+
 		CStr AWSLambdaRole = fp_GetConfigValue("AWSLambdaRole", "").f_String();
 
 		if (CloudFrontDistribution.f_IsEmpty())
 		{
-			DMibLogWithCategory(WebAppManager, Warning, "AWSCloudFrontDistribution value not specified in config, skipping Lambda creation");
+			DMibLogWithCategory(WebAppManager, Warning, "{} value not specified in config, skipping Lambda creation", ConfigName);
 			co_return {};
 		}
 
@@ -44,7 +68,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 		mp_LambdaActor = fg_Construct(*mp_CurlActors, AWSCredentials);
 
-		CStr OriginRequestFunctionName = CStr("originrequest.{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain).f_ReplaceChar('.', '_');
+		CStr PrefixLambdaSuffix = _Prefix ? CStr(".{}"_f << _Prefix) : "";
+
+		CStr OriginRequestFunctionName = CStr("originrequest.{}{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain << PrefixLambdaSuffix).f_ReplaceChar('.', '_');
 		TCMap<CStr, CStr> OriginRequestFiles;
 		CAwsLambdaActor::CFunctionConfiguration OriginRequestConfig;
 
@@ -56,7 +82,7 @@ namespace NMib::NWebApp::NWebAppManager
 			OriginRequestConfig.m_TimeoutSeconds = 3;
 			OriginRequestConfig.m_bPublish = true;
 
-			OriginRequestFiles["index.js"] = R"----(
+			CStr RequestHandler = R"----(
 'use strict';
 exports.handler = (event, context, callback) => {
 	// Version 2
@@ -77,10 +103,6 @@ exports.handler = (event, context, callback) => {
     else
         newuri = olduri.replace(/$/, '\/index.html');
 
-    // Log the URI as received by CloudFront and the new URI to be used to fetch from origin
-    //console.log("Old URI: " + olduri);
-    //console.log("New URI: " + newuri);
-
     // Replace the received URI with the URI that includes the index page
     request.uri = newuri;
 
@@ -88,9 +110,10 @@ exports.handler = (event, context, callback) => {
     return callback(null, request);
 };
 )----";
+			OriginRequestFiles["index.js"] = RequestHandler;
 		}
 
-		CStr OriginResponseFunctionName = CStr("originresponse.{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain).f_ReplaceChar('.', '_');
+		CStr OriginResponseFunctionName = CStr("originresponse.{}{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain << PrefixLambdaSuffix).f_ReplaceChar('.', '_');
 		TCMap<CStr, CStr> OriginResponseFiles;
 		CAwsLambdaActor::CFunctionConfiguration OriginResponseConfig;
 
@@ -132,11 +155,35 @@ exports.handler = (event, context, callback) => {
 			if (!mp_Options.m_AccessControl_MaxAge.f_IsEmpty())
 				AccessControl += "	headers['access-control-max-age'] = [{{key: 'Access-Control-Max-Age', value: '{}'}];\n"_f << mp_Options.m_AccessControl_MaxAge;
 
+
+			CStr RedirectContents;
+
+			for (auto &Redirect : RedirectsTemporary)
+			{
+				RedirectContents +=
+					"    if (uri.startsWith({}))\n"
+					"		return doRedirect({}, true);\n"_f
+					<< NEncoding::CJSON(Redirect.m_From).f_ToString(nullptr)
+					<< NEncoding::CJSON(Redirect.m_To.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr)
+				;
+			}
+
+			for (auto &Redirect : RedirectsPermanent)
+			{
+				RedirectContents +=
+					"    if (uri.startsWith({}))\n"
+					"		return doRedirect({}, false);\n"_f
+					<< NEncoding::CJSON(Redirect.m_From).f_ToString(nullptr)
+					<< NEncoding::CJSON(Redirect.m_To.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr)
+				;
+			}
+
 			OriginResponseFiles["index.js"] = CStr(R"----(
 'use strict';
 exports.handler = (event, context, callback) => {
 
 	// Get contents of response
+	const request = event.Records[0].cf.request;
 	const response = event.Records[0].cf.response;
 	const headers = response.headers;
 
@@ -149,11 +196,34 @@ exports.handler = (event, context, callback) => {
 	headers['referrer-policy'] = [{key: 'Referrer-Policy', value: 'same-origin'}];
 
 {AccessControl}
+	function doRedirect(redirectTo, temporary) {
+		headers['location'] = [
+			{
+				key: 'Location',
+				value: redirectTo.replace("{}", request.uri.replace(/\/index.html$/, '')),
+			},
+		];
+
+		response.body = '';
+
+		if (temporary) {
+			response.status = 302;
+			response.statusDescription = 'Found';
+		} else {
+			response.status = 301;
+			response.statusDescription = 'Moved Permanently';
+		}
+
+		return callback(null, response);
+	}
+
+	var uri = request.uri;
+{Redirects}
 
 	//Return modified response
 	callback(null, response);
 };
-)----").f_Replace("{ContentSecurityPolicy}", ContentSecurityPolicy).f_Replace("{AccessControl}", AccessControl);
+)----").f_Replace("{ContentSecurityPolicy}", ContentSecurityPolicy).f_Replace("{AccessControl}", AccessControl).f_Replace("{Redirects}", RedirectContents);
 		}
 
 		auto [OriginRequestInfo, OriginResponseInfo] = co_await
@@ -166,20 +236,52 @@ exports.handler = (event, context, callback) => {
 			)
 		;
 
-		if
-			(
-				OriginRequestInfo.m_Version.f_IsEmpty()
-				|| OriginRequestInfo.m_Version == "$LATEST"
-				|| OriginResponseInfo.m_Version.f_IsEmpty()
-				|| OriginResponseInfo.m_Version == "$LATEST"
-			)
-		{
-			co_return {};
-		}
-
 		NContainer::TCMap<CAwsCloudFrontActor::EFunctionEventType, NStr::CStr> FunctionAssociations;
 		FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginRequest] = OriginRequestInfo.m_Arn;
 		FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_OriginResponse] = OriginResponseInfo.m_Arn;
+
+		if (!RedirectsTemporary.f_IsEmpty() || !RedirectsPermanent.f_IsEmpty())
+		{
+			CStr ViewerResponseFunctionName = CStr("viewerresponse.{}{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain << PrefixLambdaSuffix).f_ReplaceChar('.', '_');
+			TCMap<CStr, CStr> ViewerResponseFiles;
+			CAwsLambdaActor::CFunctionConfiguration ViewerResponseConfig;
+
+			{
+				ViewerResponseConfig.m_Handler = "index.handler";
+				ViewerResponseConfig.m_Runtime = "nodejs12.x";
+				ViewerResponseConfig.m_Role = AWSLambdaRole;
+				ViewerResponseConfig.m_MemorySizeMB = 128;
+				ViewerResponseConfig.m_TimeoutSeconds = 3;
+				ViewerResponseConfig.m_bPublish = true;
+
+				ViewerResponseFiles["index.js"] = CStr(R"----(
+	'use strict';
+	exports.handler = (event, context, callback) => {
+
+		// Get contents of response
+		const request = event.Records[0].cf.request;
+		const response = event.Records[0].cf.response;
+		const headers = response.headers;
+
+		// Set new headers
+		if ((response.status == 302 || response.status == 301) && headers['location'] && request.querystring)
+			headers['location'][0].value = headers['location'][0].value + "?" + request.querystring;
+
+		//Return modified response
+		callback(null, response);
+	};
+)----");
+			}
+
+			auto ViewerResponseInfo = co_await
+				(
+					mp_LambdaActor(&CAwsLambdaActor::f_CreateOrUpdateFunction, ViewerResponseFunctionName, ViewerResponseFiles, ViewerResponseConfig)
+					% "Update AWS Lambda viewer response function"
+				)
+			;
+
+			FunctionAssociations[CAwsCloudFrontActor::EFunctionEventType_ViewerResponse] = ViewerResponseInfo.m_Arn;
+		}
 
 		co_await
 			(
@@ -356,6 +458,11 @@ exports.handler = (event, context, callback) => {
 		bool bAllowRobots = false;
 
 		TCMap<CStr, int64> UploadPriorities;
+		TCSet<CStr> UploadPrefixes;
+		TCSet<CStr> CloudFrontDistributions;
+
+		TCVector<CWebAppManagerOptions::CPackage::CRedirect> RedirectsTemporary;
+		TCVector<CWebAppManagerOptions::CPackage::CRedirect> RedirectsPermanent;
 
 		for (auto &Package : mp_Options.m_Packages)
 		{
@@ -365,11 +472,28 @@ exports.handler = (event, context, callback) => {
 			CStr ServerName = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 			bool bIsMainServer = ServerName == mp_Domain;
 
+			if (!bIsMainServer && Package.m_StaticPath.f_IsEmpty() && Package.m_UploadS3Prefix.f_IsEmpty())
+				continue;
+
+			RedirectsTemporary.f_Insert(Package.m_RedirectsTemporary);
+			RedirectsPermanent.f_Insert(Package.m_RedirectsPermanent);
+
 			CStr StaticPath;
+
 			if (!bIsMainServer)
 				StaticPath = Package.m_StaticPath;
-			else if (!bIsMainServer && Package.m_StaticPath.f_IsEmpty())
-				continue;
+
+			if (Package.m_UploadS3Prefix)
+				StaticPath = CFile::fs_AppendPath(Package.m_UploadS3Prefix, StaticPath);
+
+			UploadPrefixes[Package.m_UploadS3Prefix];
+
+			{
+				CStr ConfigName = Package.m_UploadS3Prefix ? CStr("AWSCloudFrontDistribution_{}"_f << Package.m_UploadS3Prefix) : "AWSCloudFrontDistribution";
+				auto Distribution = fp_GetConfigValue(ConfigName, "").f_String();
+				if (Distribution)
+					CloudFrontDistributions[Distribution];
+			}
 
 			CStr Root;
 			if (Package.m_ExternalRoot.f_IsEmpty())
@@ -402,7 +526,6 @@ exports.handler = (event, context, callback) => {
 		AWSCredentials.m_Region = fp_GetConfigValue("AWSS3Region", "").f_String();
 		AWSCredentials.m_AccessKeyID = fp_GetConfigValue("AWSAccessKeyID", "").f_String();
 		AWSCredentials.m_SecretKey = fp_GetConfigValue("AWSSecretKey", "").f_String();
-		CStr CloudFrontDistribution = fp_GetConfigValue("AWSCloudFrontDistribution", "").f_String();
 
 		if (AWSCredentials.m_Region.f_IsEmpty())
 		{
@@ -449,11 +572,16 @@ exports.handler = (event, context, callback) => {
 							PreviousDirectoryManifest = TCBinaryStreamFile<>::fs_ReadFile<CDirectoryManifest>(PreviousManifestFile);
 
 						DirectoryManifest = CDirectoryManifest::fs_GetManifest(ManifestConfig, nullptr, nullptr, NFile::EFileOpen_None, &PreviousDirectoryManifest);
-						if (!DirectoryManifest.m_Files.f_FindEqual("robots.txt"))
+
+						for (auto &Prefix : UploadPrefixes)
 						{
-							auto &ManifestFile = DirectoryManifest.m_Files["robots.txt"];
-							ManifestFile.m_SymlinkData = bAllowRobots ? "User-agent: *\nAllow: /" : "User-agent: *\nDisallow: /";
-							ManifestFile.m_Digest = CHash_SHA256::fs_DigestFromData(ManifestFile.m_SymlinkData.f_GetStr(), ManifestFile.m_SymlinkData.f_GetLen());
+							CStr RobotsPath = Prefix / "robots.txt";
+							if (!DirectoryManifest.m_Files.f_FindEqual(RobotsPath))
+							{
+								auto &ManifestFile = DirectoryManifest.m_Files[RobotsPath];
+								ManifestFile.m_SymlinkData = bAllowRobots ? "User-agent: *\nAllow: /" : "User-agent: *\nDisallow: /";
+								ManifestFile.m_Digest = CHash_SHA256::fs_DigestFromData(ManifestFile.m_SymlinkData.f_GetStr(), ManifestFile.m_SymlinkData.f_GetLen());
+							}
 						}
 
 						TCBinaryStreamFile<>::fs_WriteFile(DirectoryManifest, PreviousManifestFile + ".tmp");
@@ -467,7 +595,7 @@ exports.handler = (event, context, callback) => {
 					CBinaryStreamMemory<> Stream;
 					Stream << gc_UpdateVersion; // Version
 					Stream << bAllowRobots;
-					Stream << CloudFrontDistribution;
+					Stream << CloudFrontDistributions;
 					Stream << Options.m_ContentSecurity_ImgSrc;
 					Stream << Options.m_ContentSecurity_MediaSrc;
 					Stream << Options.m_ContentSecurity_FontSrc;
@@ -484,6 +612,8 @@ exports.handler = (event, context, callback) => {
 					Stream << Options.m_AccessControl_AllowHeaders;
 					Stream << Options.m_AccessControl_AllowOrigin;
 					Stream << Options.m_AccessControl_MaxAge;
+					Stream << RedirectsTemporary;
+					Stream << RedirectsPermanent;
 					Stream << bRawTarGz;
 					Stream << DirectoryManifest;
 
@@ -521,7 +651,7 @@ exports.handler = (event, context, callback) => {
 								continue;
 							}
 
-							if (FileName == "robots.txt" && !File.m_SymlinkData.f_IsEmpty())
+							if (CFile::fs_GetFile(FileName) == "robots.txt" && !File.m_SymlinkData.f_IsEmpty())
 								FileChecksums[FileName] = {File.m_Digest, CHash_MD5::fs_DigestFromData(File.m_SymlinkData.f_GetStr(), File.m_SymlinkData.f_GetLen())};
 							else
 								FileChecksums[FileName] = {File.m_Digest, CFile::fs_GetFileChecksum(RootPath / File.m_OriginalPath)};
@@ -717,7 +847,7 @@ exports.handler = (event, context, callback) => {
 
 						CByteVector ReadData;
 
-						if (FileName == "robots.txt" && !NewFile.m_SymlinkData.f_IsEmpty())
+						if (CFile::fs_GetFile(FileName) == "robots.txt" && !NewFile.m_SymlinkData.f_IsEmpty())
 							ReadData = CByteVector((uint8 *)NewFile.m_SymlinkData.f_GetStr(), NewFile.m_SymlinkData.f_GetLen());
 						else
 						{
@@ -791,10 +921,14 @@ exports.handler = (event, context, callback) => {
 		else
 			DMibLogWithCategory(S3Upload, Info, "Updating Lambda@Edge");
 
-		auto [Results, Dummy] = co_await
+		TCActorResultVector<void> LambdaUpdateResultsVector;
+		for (auto &UploadPrefix : UploadPrefixes)
+			self(&CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda, AWSCredentials, UploadPrefix) > LambdaUpdateResultsVector.f_AddResult();
+
+		auto [Results, LambdaUpdateResults] = co_await
 			(
 				DeleteFilesResults.f_GetResults()
-				+ self(&CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda, AWSCredentials)
+				+ LambdaUpdateResultsVector.f_GetResults()
 			)
 		;
 
@@ -805,12 +939,16 @@ exports.handler = (event, context, callback) => {
 		Clock.f_Start();
 
 		fg_Move(Results) | g_Unwrap;
+		fg_Move(LambdaUpdateResults) | g_Unwrap;
 
 		TCVector<CStr> PathsToInvalidate = {"/*"};
-		if (!CloudFrontDistribution.f_IsEmpty())
+		if (!CloudFrontDistributions.f_IsEmpty())
 		{
 			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache");
-			co_await mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, CloudFrontDistribution, PathsToInvalidate);
+			TCActorResultVector<CStr> Results;
+			for (auto &Distribution : CloudFrontDistributions)
+				mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, Distribution, PathsToInvalidate) > Results.f_AddResult();
+			co_await Results.f_GetResults() | g_Unwrap;
 			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
 		}
 
@@ -818,12 +956,29 @@ exports.handler = (event, context, callback) => {
 			{
 				DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
 				Clock.f_Start();
-				mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, CloudFrontDistribution, PathsToInvalidate)
-					> [=](TCAsyncResult<CStr> &&_Result)
+				TCActorResultVector<CStr> Results;
+				for (auto &Distribution : CloudFrontDistributions)
+					mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, Distribution, PathsToInvalidate) > Results.f_AddResult();
+
+				Results.f_GetResults() > [=](TCAsyncResult<TCVector<TCAsyncResult<CStr>>> &&_Result)
 					{
 						if (!_Result)
+						{
 							DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache failed: {}", _Result.f_GetExceptionStr());
-						else
+							return;
+						}
+
+						bool bFoundError = false;
+						for (auto &Result : *_Result)
+						{
+							if (!Result)
+							{
+								bFoundError = true;
+								DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache failed: {}", Result.f_GetExceptionStr());
+							}
+						}
+
+						if (!bFoundError)
 							DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again {fe2} s", Clock.f_GetTime());
 					}
 				;
