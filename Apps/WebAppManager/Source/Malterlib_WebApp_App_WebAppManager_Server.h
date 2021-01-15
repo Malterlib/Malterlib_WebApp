@@ -170,6 +170,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr m_DefaultDomain;
 		CStr m_HTTPRedirectReferrerCookie;
 		CStr m_S3BucketPrefix;
+		CStr m_RobotsSitemap;
 
 		CStr m_ContentSecurity_ScriptSrc;
 		CStr m_ContentSecurity_ImgSrc;

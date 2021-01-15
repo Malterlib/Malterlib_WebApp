@@ -427,6 +427,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		for (auto &Allow : mp_Options.m_RobotsAllow)
 			Text += "Allow: {}\n"_f << Allow;
 
+		if (mp_Options.m_RobotsSitemap)
+			Text += "Sitemap: {}\n"_f << mp_Options.m_RobotsSitemap.f_Replace("{DomainName}", mp_Domain);
+
 		return Text;
 	}
 

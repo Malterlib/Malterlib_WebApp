@@ -704,6 +704,12 @@ Property
 				}
 
 				Contents	"@(Contents)"\
+							"	\"AllowRobotsSitemap\": \"@(WebAppManagerAllowRobotsSitemap)\",\n"
+				{
+					!WebAppManagerAllowRobotsSitemap ""
+				}
+
+				Contents	"@(Contents)"\
 							"	\"Mongo\": {\n"
 
 				Contents	"@(Contents)"\
