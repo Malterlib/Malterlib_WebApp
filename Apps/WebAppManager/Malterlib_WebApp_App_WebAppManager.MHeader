@@ -680,6 +680,29 @@ Property
 							"@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'PackageSettings_Template'))"\
 							"	},\n"
 
+				AllowRobots_Template	"\"@(Explodee)\", "
+				{
+					!Explodee ""
+				}
+
+				Contents	"@(Contents)"\
+							"	\"AllowRobotsAllow\": ["
+
+				Contents	"@(Contents)"\
+							"@(Builtin.Function->ExplodeList('@(WebAppManagerAllowRobotsAllow)', ';', 'AllowRobots_Template'))],\n"
+
+				Contents	"@(Contents)"\
+							"	\"AllowRobotsDisallow\": ["
+
+				Contents	"@(Contents)"\
+							"@(Builtin.Function->ExplodeList('@(WebAppManagerAllowRobotsDisallow)', ';', 'AllowRobots_Template'))],\n"
+
+				Contents	"@(Contents)"\
+							"	\"AllowRobots\": @(WebAppManagerAllowRobots),\n"
+				{
+					!WebAppManagerAllowRobots ""
+				}
+
 				Contents	"@(Contents)"\
 							"	\"Mongo\": {\n"
 

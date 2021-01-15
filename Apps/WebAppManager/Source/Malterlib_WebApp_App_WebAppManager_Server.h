@@ -163,6 +163,8 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr m_ManagerDescription;
 		CStr m_UserNamePrefix;
 		TCMap<CStr, CPackage> m_Packages;
+		TCVector<CStr> m_RobotsAllow;
+		TCVector<CStr> m_RobotsDisallow;
 		TCMap<CStr, CEnvironmentVariable> m_Environment;
 		CMongo m_Mongo;
 		CStr m_DefaultDomain;
@@ -194,6 +196,7 @@ namespace NMib::NWebApp::NWebAppManager
 		bool m_bSaveUserPasswords = false;
 		bool m_bServeAllSubdomains = false;
 		bool m_bStartNginx = true;
+		bool m_bAllowRobots = false;
 	};
 
 	struct ICWebAppManagerCustomization
@@ -364,6 +367,8 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials, CStr const &_Prefix);
 		TCFuture<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CWebAppManagerOptions::EPackageType _Type);
 		TCFuture<void> fp_SetupPrerequisites_OSSetup();
+
+		CStr fp_GetAllowRobots(bool _bAllow);
 
 		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
 		CStr fp_GetMongoSSLDirectory() const;

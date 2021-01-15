@@ -410,6 +410,26 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 	}
 )---";
 
+	CStr CWebAppManagerActor::fp_GetAllowRobots(bool _bAllow)
+	{
+		if (!_bAllow)
+		{
+			return 	"User-agent: *\n"
+					"Disallow: /"
+			;
+		}
+
+		CStr Text = "User-agent: *\n";
+
+		for (auto &Disallow : mp_Options.m_RobotsDisallow)
+			Text += "Disallow: {}\n"_f << Disallow;
+
+		for (auto &Allow : mp_Options.m_RobotsAllow)
+			Text += "Allow: {}\n"_f << Allow;
+
+		return Text;
+	}
+
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_Nginx()
 	{
 		struct CResults
@@ -832,7 +852,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 					bool bIsMainServer = ServerName == mp_Domain && Package.m_SubPath.f_IsEmpty();
 
-					Server = Server.f_Replace("{AllowRobots}", Package.m_bAllowRobots && mp_bAllowRobots ? "User-agent: *\\nAllow: /" : "User-agent: *\\nDisallow: /");
+					Server = Server.f_Replace("{AllowRobots}", fp_GetAllowRobots((Package.m_bAllowRobots || mp_Options.m_bAllowRobots) && mp_bAllowRobots).f_Replace("\n", "\\n"));
 
 					if (bIsMainServer)
 					{
@@ -1023,16 +1043,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				ConfigContents = ConfigContents.f_Replace("{ssl_dhparam}", "");
 		}
 
-		{
-			CStr RobotsTxtContents;
-
-			if (fp_GetConfigValue("AllowRobots", false).f_Boolean())
-				RobotsTxtContents = "User-agent: *\\nAllow: /";
-			else
-				RobotsTxtContents = "User-agent: *\\nDisallow: /";
-
-			ConfigContents = ConfigContents.f_Replace("{AllowRobots}", RobotsTxtContents);
-		}
+		ConfigContents = ConfigContents.f_Replace("{AllowRobots}", fp_GetAllowRobots(mp_Options.m_bAllowRobots && mp_bAllowRobots).f_Replace("\n", "\\n"));
 
 		{
 			CStr ContentTypesContents;

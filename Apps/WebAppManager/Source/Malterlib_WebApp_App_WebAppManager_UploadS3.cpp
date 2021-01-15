@@ -511,9 +511,11 @@ exports.handler = (event, context, callback) => {
 			CStr ChecksumFile = ProgramDirectory / ("{}.tar.gz"_f << Package.f_GetName());
 			ChecksumFiles[ChecksumFile];
 
-			if (bIsMainServer && Package.m_bAllowRobots && mp_bAllowRobots)
+			if (bIsMainServer && Package.m_bAllowRobots)
 				bAllowRobots = true;
 		}
+
+		CStr AllowRobotsText = fp_GetAllowRobots((mp_Options.m_bAllowRobots || bAllowRobots) && mp_bAllowRobots);
 
 		if (ManifestConfig.m_IncludeWildcards.f_IsEmpty())
 			co_return {};
@@ -579,7 +581,7 @@ exports.handler = (event, context, callback) => {
 							if (!DirectoryManifest.m_Files.f_FindEqual(RobotsPath))
 							{
 								auto &ManifestFile = DirectoryManifest.m_Files[RobotsPath];
-								ManifestFile.m_SymlinkData = bAllowRobots ? "User-agent: *\nAllow: /" : "User-agent: *\nDisallow: /";
+								ManifestFile.m_SymlinkData = AllowRobotsText;
 								ManifestFile.m_Digest = CHash_SHA256::fs_DigestFromData(ManifestFile.m_SymlinkData.f_GetStr(), ManifestFile.m_SymlinkData.f_GetLen());
 							}
 						}

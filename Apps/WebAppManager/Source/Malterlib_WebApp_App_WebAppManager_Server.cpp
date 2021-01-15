@@ -485,6 +485,11 @@ namespace NMib::NWebApp::NWebAppManager
 				Package.m_ExternalRoot = pValue->f_String();
 		}
 
+		if (auto pValue = Settings.f_GetMember("AllowRobots"))
+			m_bAllowRobots = pValue->f_Boolean();
+		m_RobotsAllow = Settings["AllowRobotsAllow"].f_StringArray();
+		m_RobotsDisallow = Settings["AllowRobotsDisallow"].f_StringArray();
+
 		m_FullManagerName = Settings["FullManagerName"].f_String();
 		m_DefaultDomain = Settings["DefaultDomain"].f_String();
 		m_UserNamePrefix = Settings["UserNamePrefix"].f_String();
