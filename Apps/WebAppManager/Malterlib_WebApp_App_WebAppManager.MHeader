@@ -626,9 +626,22 @@ Property
 				}
 
 				PackageSettings	"@(PackageSettings)"\
-								"			\"RedirectsPermanent\": [@(Builtin.Function->ExplodeList('@(RedirectsPermanent_@(Explodee))', ';', 'Redirects_Template'))			],\n"
+								"			\"RedirectsPermanent\": [\n@(Builtin.Function->ExplodeList('@(RedirectsPermanent_@(Explodee))', ';', 'Redirects_Template'))			],\n"
 				{
 					!Empty "@(RedirectsPermanent_@(Explodee))"
+				}
+
+				AlternateSources_Template_Expand	"				{\"Pattern\": \"@(Expand0)\", \"Destination\": \"@(Expand1)\"},\n"
+
+				AlternateSources_Template	"@(Builtin.Function->ExpandList('@(Explodee)', '=', 'AlternateSources_Template_Expand'))"
+				{
+					!Explodee ""
+				}
+
+				PackageSettings	"@(PackageSettings)"\
+								"			\"AlternateSources\": [\n@(Builtin.Function->ExplodeList('@(AlternateSources_@(Explodee))', ';', 'AlternateSources_Template'))			],\n"
+				{
+					!Empty "@(AlternateSources_@(Explodee))"
 				}
 
 				PackageSettings	"@(PackageSettings)"\

@@ -463,6 +463,12 @@ namespace NMib::NWebApp::NWebAppManager
 					Package.m_RedirectsPermanent.f_Insert({Redirect["From"].f_String(), Redirect["To"].f_String()});
 			}
 
+			if (auto *pValue = PackageSettings.f_GetMember("AlternateSources"))
+			{
+				for (auto &Redirect : pValue->f_Array())
+					Package.m_AlternateSources.f_Insert({Redirect["Pattern"].f_String(), Redirect["Destination"].f_String()});
+			}
+
 			if (auto *pValue = PackageSettings.f_GetMember("StaticPath"))
 				Package.m_StaticPath = pValue->f_String();
 

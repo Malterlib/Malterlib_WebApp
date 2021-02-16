@@ -12,7 +12,32 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 25;
+		uint32 gc_UpdateVersion = 31;
+	}
+
+	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
+	{
+		for (auto &AlternateSource : _AlternateSources)
+		{
+			CStr Destination = AlternateSource.m_Destination;
+			if (Destination != "Default")
+			{
+				CStr AlternateSourceConfigName = "AlternateSource_{}"_f << Destination;
+				Destination = fp_GetConfigValue(AlternateSourceConfigName, "").f_String();
+				if (Destination.f_IsEmpty())
+				{
+					DMibLogWithCategory(WebAppManager, Error, "Missing alternate source in config file: {}", AlternateSourceConfigName);
+					return false;
+				}
+			}
+			o_Str += "	{{ pattern: new RegExp({}), destination: {}, isDefault: {} },\n"_f
+				<< CJSON("^" + AlternateSource.m_Pattern).f_ToString(nullptr)
+				<< CJSON(Destination).f_ToString(nullptr)
+				<< CJSON(Destination == "Default").f_ToString(nullptr)
+			;
+		}
+
+		return true;
 	}
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials, CStr const &_Prefix)
@@ -26,6 +51,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		TCVector<CWebAppManagerOptions::CPackage::CRedirect> RedirectsTemporary;
 		TCVector<CWebAppManagerOptions::CPackage::CRedirect> RedirectsPermanent;
+		TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> AlternateSources;
 
 		for (auto &Package : mp_Options.m_Packages)
 		{
@@ -40,6 +66,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 			if (!bIsMainServer && Package.m_StaticPath.f_IsEmpty() && Package.m_UploadS3Prefix.f_IsEmpty())
 				continue;
+
+			AlternateSources.f_Insert(Package.m_AlternateSources);
 
 			RedirectsTemporary.f_Insert(Package.m_RedirectsTemporary);
 			RedirectsPermanent.f_Insert(Package.m_RedirectsPermanent);
@@ -82,34 +110,73 @@ namespace NMib::NWebApp::NWebAppManager
 			OriginRequestConfig.m_TimeoutSeconds = 3;
 			OriginRequestConfig.m_bPublish = true;
 
-			CStr RequestHandler = R"----(
+			CStr AlternateSourcesString;
+			if (!fp_FormatAlternateSources(AlternateSourcesString, AlternateSources))
+				co_return {};
+
+			CStr RequestHandler = CStr(R"----(
 'use strict';
+const alternateSources = [
+{AlternateSources}];
+const dotRegex = /\/(.*\/)*.*\..*/;
+const slashEndRegex = /\/$/;
+const startRegex = /$/;
+const requestPrefix = {RequestPrefix};
+
 exports.handler = (event, context, callback) => {
-	// Version 2
+	let request = event.Records[0].cf.request;
 
-    // Extract the request from the CloudFront event that is sent to Lambda@Edge
-    var request = event.Records[0].cf.request;
+	let uriWithoutPrefix = request.uri;
+	if (uriWithoutPrefix.startsWith(requestPrefix))
+		uriWithoutPrefix = uriWithoutPrefix.substr(requestPrefix.length);
 
-    // Extract the URI from the request
-    var olduri = request.uri;
+	for (let alternate of alternateSources) {
+		if (alternate.pattern.test(uriWithoutPrefix)) {
+			if (!alternate.isDefault) {
+				request.origin = {
+					custom: {
+						domainName: alternate.destination,
+						port: 443,
+						protocol: "https",
+						path: "",
+						sslProtocols: ["TLSv1.2"],
+						readTimeout: 5,
+						keepaliveTimeout: 5,
+						customHeaders: {}
+					}
+				};
+				request.headers["host"] = [{ key: "host", value: alternate.destination }];
+				request.uri = uriWithoutPrefix;
 
-    if (/\/(.*\/)*.*\..*/.test(olduri))
-        return callback(null, request); // Something with . in name
+				return callback(null, request);
+			}
+			break;
+		}
+	}
 
-    // Match any '/' that occurs at the end of a URI. Replace it with a default index
-    var newuri;
-    if (/\/$/.test(olduri))
-        newuri = olduri.replace(/\/$/, '\/index.html');
-    else
-        newuri = olduri.replace(/$/, '\/index.html');
+	let olduri = request.uri;
 
-    // Replace the received URI with the URI that includes the index page
-    request.uri = newuri;
+	if (dotRegex.test(olduri))
+		return callback(null, request); // Something with . in name
 
-    // Return to CloudFront
-    return callback(null, request);
+	// Match any '/' that occurs at the end of a URI. Replace it with a default index
+	let newuri;
+	if (slashEndRegex.test(olduri))
+		newuri = olduri.replace(slashEndRegex, "\/index.html");
+	else
+		newuri = olduri.replace(startRegex, "\/index.html");
+
+	// Replace the received URI with the URI that includes the index page
+	request.uri = newuri;
+
+	// Return to CloudFront
+	return callback(null, request);
 };
-)----";
+)----")
+				.f_Replace("{AlternateSources}", AlternateSourcesString)
+				.f_Replace("{RequestPrefix}", CJSON(CStr("/{}"_f << _Prefix)).f_ToString(nullptr));
+			;
+
 			OriginRequestFiles["index.js"] = RequestHandler;
 		}
 
@@ -463,6 +530,7 @@ exports.handler = (event, context, callback) => {
 
 		TCVector<CWebAppManagerOptions::CPackage::CRedirect> RedirectsTemporary;
 		TCVector<CWebAppManagerOptions::CPackage::CRedirect> RedirectsPermanent;
+		TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> AlternateSources;
 
 		for (auto &Package : mp_Options.m_Packages)
 		{
@@ -474,6 +542,8 @@ exports.handler = (event, context, callback) => {
 
 			if (!bIsMainServer && Package.m_StaticPath.f_IsEmpty() && Package.m_UploadS3Prefix.f_IsEmpty())
 				continue;
+
+			AlternateSources.f_Insert(Package.m_AlternateSources);
 
 			RedirectsTemporary.f_Insert(Package.m_RedirectsTemporary);
 			RedirectsPermanent.f_Insert(Package.m_RedirectsPermanent);
@@ -550,6 +620,10 @@ exports.handler = (event, context, callback) => {
 		DMibLogWithCategory(S3Upload, Info, "Getting source checksums");
 		NTime::CClock Clock{true};
 
+		CStr AlternateSourcesString;
+		if (!fp_FormatAlternateSources(AlternateSourcesString, AlternateSources))
+			co_return {};
+
 		CSourceCheckResults SourceCheckResults = co_await
 			(
 				g_Dispatch(*mp_FileActors) / [=, Options = mp_Options, Domain = mp_Domain]() mutable -> CSourceCheckResults
@@ -614,6 +688,8 @@ exports.handler = (event, context, callback) => {
 					Stream << Options.m_AccessControl_AllowHeaders;
 					Stream << Options.m_AccessControl_AllowOrigin;
 					Stream << Options.m_AccessControl_MaxAge;
+					Stream << AlternateSources;
+					Stream << AlternateSourcesString;
 					Stream << RedirectsTemporary;
 					Stream << RedirectsPermanent;
 					Stream << bRawTarGz;
@@ -954,7 +1030,7 @@ exports.handler = (event, context, callback) => {
 			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
 		}
 
-		fg_Timeout(10.0) > [=]() mutable
+		fg_Timeout(60.0) > [=]() mutable
 			{
 				DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
 				Clock.f_Start();

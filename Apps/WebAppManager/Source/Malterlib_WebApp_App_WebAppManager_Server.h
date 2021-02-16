@@ -112,6 +112,19 @@ namespace NMib::NWebApp::NWebAppManager
 				CStr m_To;
 			};
 
+			struct CAlternateSource
+			{
+				template <typename tf_CStream>
+				void f_Stream(tf_CStream &_Stream)
+				{
+					_Stream % m_Pattern;
+					_Stream % m_Destination;
+				}
+
+				CStr m_Pattern;
+				CStr m_Destination;
+			};
+
 			TCVector<CStr> m_StartupDependencies;
 			CStr m_NpmBuildType;
 			CStr m_CustomExecutable;
@@ -128,6 +141,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_UploadS3Prefix;
 			TCVector<CRedirect> m_RedirectsTemporary;
 			TCVector<CRedirect> m_RedirectsPermanent;
+			TCVector<CAlternateSource> m_AlternateSources;
 			TCVector<CStr> m_ExcludeGzipPatterns;
 			TCMap<CStr, int64> m_UploadS3Priority;
 			fp64 m_MemoryPerNode = 1.5;
@@ -368,6 +382,8 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials, CStr const &_Prefix);
 		TCFuture<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CWebAppManagerOptions::EPackageType _Type);
 		TCFuture<void> fp_SetupPrerequisites_OSSetup();
+
+		bool fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources);
 
 		CStr fp_GetAllowRobots(bool _bAllow);
 

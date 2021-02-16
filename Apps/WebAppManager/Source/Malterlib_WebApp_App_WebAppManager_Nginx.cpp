@@ -23,6 +23,8 @@ namespace NMib::NWebApp::NWebAppManager
 ch8 const *g_pServerTemplate[2] =
 	{
 R"---(
+{AlternateSources}
+
 		location ~* "^/{SubPath}/([a-z0-9]{40}\.(css|js))$"
 		{
 			gzip_static always;
@@ -34,12 +36,12 @@ R"---(
 		}
 
 		# pass all other requests to upstream
-		location /{SubPath}/
+		location ~ ^/{SubPath}({DefaultLocation})
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
-			error_page 502 = @{PackageName}_Fallback;
-			proxy_pass http://{UpstreamSticky};
+			error_page 502 = @{PackageName}_Fallback$1;
+			proxy_pass http://{UpstreamSticky}$1;
 			proxy_http_version 1.1;
 			proxy_set_header Host $host;
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
@@ -76,6 +78,12 @@ R"---(
 			return 303 https://browser-update.org/update.html;
 		}
 
+{ServerRedirect_{PackageName}}
+{CustomizationInServer_{PackageName}}
+
+{StaticPackages}
+{SubPackages}
+
 		location ~* "^/[a-z0-9]{40}\.(css|js)$"
 		{
 			gzip_static always;
@@ -86,19 +94,17 @@ R"---(
 			access_log logs/static_access_{PackageName}.log;
 		}
 
-{ServerRedirect_{PackageName}}
-{CustomizationInServer_{PackageName}}
-
-{StaticPackages}
-{SubPackages}
+		location ~ ^/robots.txt$ {
+			return 200 "{AllowRobots}";
+		}
 
 		# pass all other requests to upstream
-		location /
+		location ~ (^{DefaultLocation})
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
-			error_page 502 = @{PackageName}_Fallback;
-			proxy_pass http://{UpstreamSticky};
+			error_page 502 = @{PackageName}_Fallback$1;
+			proxy_pass http://{UpstreamSticky}$1;
 			proxy_http_version 1.1;
 			proxy_set_header Host $host;
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
@@ -114,10 +120,7 @@ R"---(
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
 		}
-
-		location /robots.txt {
-			return 200 "{AllowRobots}";
-		}
+{AlternateSources}
 	}
 )---"
 	}
@@ -126,18 +129,20 @@ R"---(
 ch8 const *g_pStaticServerTemplate[2] =
 	{
 R"---(
-		location /{SubPath}
+		location ~ ^/{SubPath}({DefaultLocation})
 		{
 {PathRedirect}
 			gzip_static always;
 {SecurityHeaders}
 			add_header Cache-Control no-cache;
-			root "{StaticRoot}";
+			alias "{StaticRoot}$1";
 			index index.html
 			access_log logs/static_access_{PackageName}.log;
 			error_page 403 = /403/index.html;
 			error_page 404 = /404/index.html;
 		}
+
+{AlternateSources}
 )---"
 , R"---(
 	server
@@ -165,22 +170,24 @@ R"---(
 {StaticPackages}
 {SubPackages}
 
-		location /
+		location ~ ^/robots.txt$ {
+			return 200 "{AllowRobots}";
+		}
+
+		location ~ ^({DefaultLocation})
 		{
 {PathRedirect}
 			gzip_static always;
 {SecurityHeaders}
 			add_header Cache-Control no-cache;
-			root "{StaticRoot}";
+			alias "{StaticRoot}$1";
 			index index.html
 			access_log logs/static_access_{PackageName}.log;
 			error_page 403 = /403/index.html;
 			error_page 404 = /404/index.html;
 		}
 
-		location /robots.txt {
-			return 200 "{AllowRobots}";
-		}
+{AlternateSources}
 	}
 )---"
 	}
@@ -189,18 +196,18 @@ R"---(
 ch8 const *g_pFastCGIServerTemplate[2] =
 	{
 R"---(
-		location ~* "^/{SubPath}/[a-z0-9]{40}\.(css|js)$"
+		location ~* "^/{SubPath}(/[a-z0-9]{40}\.(css|js))$"
 		{
 			gzip_static always;
 			expires max;
 {SecurityHeaders}
 			add_header Cache-Control public;
-			root "{StaticRoot}";
+			alias "{StaticRoot}$1";
 			access_log logs/static_access_{PackageName}.log;
 		}
 
 		# pass all requests to FastCGI
-		location /{SubPath}
+		location ~ ^/{SubPath}({DefaultLocation})
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -222,6 +229,8 @@ R"---(
 
 			gzip off;
 		}
+
+{AlternateSources}
 )---"
 , R"---(
 	server
@@ -242,6 +251,12 @@ R"---(
 		{
 			return 303 https://browser-update.org/update.html;
 		}
+
+{ServerRedirect_{PackageName}}
+{CustomizationInServer_{PackageName}}
+
+{StaticPackages}
+{SubPackages}
 
 		location ~* "^/[a-z0-9]{40}\.(css|js)$"
 		{
@@ -253,14 +268,12 @@ R"---(
 			access_log logs/static_access_{PackageName}.log;
 		}
 
-{ServerRedirect_{PackageName}}
-{CustomizationInServer_{PackageName}}
-
-{StaticPackages}
-{SubPackages}
+		location ~ ^/robots.txt$ {
+			return 200 "{AllowRobots}";
+		}
 
 		# pass all requests to FastCGI
-		location /
+		location ~ ^({DefaultLocation})
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -283,9 +296,7 @@ R"---(
 			gzip off;
 		}
 
-		location /robots.txt {
-			return 200 "{AllowRobots}";
-		}
+{AlternateSources}
 	}
 )---"
 	}
@@ -295,7 +306,7 @@ ch8 const *g_pWebsocketServerTemplate[2] =
 	{
 R"---(
 		# pass all requests to Websocket
-		location /{SubPath}
+		location ^/{SubPath}({DefaultLocationEnd})
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -316,6 +327,8 @@ R"---(
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
 		}
+
+{AlternateSources}
 )---"
 , R"---(
 	server
@@ -343,8 +356,12 @@ R"---(
 {StaticPackages}
 {SubPackages}
 
+		location ~ ^/robots.txt$ {
+			return 200 "{AllowRobots}";
+		}
+
 		# pass all requests to Websocket
-		location /
+		location ~ ^({DefaultLocation})
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -366,9 +383,7 @@ R"---(
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
 		}
 
-		location /robots.txt {
-			return 200 "{AllowRobots}";
-		}
+{AlternateSources}
 	}
 )---"
 	}
@@ -387,6 +402,10 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 {SecurityHeaders}
 		add_header Cache-Control public;
 
+		location ~ ^/robots.txt$ {
+			return 200 "User-agent: *\\nDisallow: /";
+		}
+
 		location ~* "^/[a-z0-9]{40}\.(css|js)$"
 		{
 			gzip_static always;
@@ -404,9 +423,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			root "{StaticRoot}/app";
 		}
 
-		location /robots.txt {
-			return 200 "User-agent: *\\nDisallow: /";
-		}
+{AlternateSources}
 	}
 )---";
 
@@ -448,6 +465,12 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			bool m_bHasDHParamFile = false;
 		};
 
+		struct CAlternateSource
+		{
+			CStr m_Locations;
+			CStr m_DefaultLocation;
+		};
+
 		CStr NginxDirectory = fp_GetDataPath("nginx");
 		CStr DhParamFile = NginxDirectory + "/certificates/dhparam.pem";
 		CStr ConfigFile = NginxDirectory + "/nginx.conf";
@@ -458,6 +481,53 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		CStr CertificateCountry = fp_GetConfigValue("CertificateCountry", DProductCountry).f_String();
 		CStr CertificateLocality = fp_GetConfigValue("CertificateLocality", DProductLocality).f_String();
 		CStr CertificateOrganizationalUnit = fp_GetConfigValue("CertificateOrganizationalUnit", DProductOrganizationalUnit).f_String();
+
+		TCMap<CStr, CAlternateSource> AlternateSources;
+
+		for (auto &Package : mp_Options.m_Packages)
+		{
+			CStr AlternateSourcesContents;
+			TCVector<CStr> DefaultLocations;
+			for (auto &AlternateSource : Package.m_AlternateSources)
+			{
+				CStr Destination = AlternateSource.m_Destination;
+				if (Destination != "Default")
+				{
+					CStr AlternateSourceConfigName = "AlternateSource_{}"_f << Destination;
+					Destination = fp_GetConfigValue(AlternateSourceConfigName, "").f_String();
+					if (Destination.f_IsEmpty())
+					{
+						DMibLogWithCategory(WebAppManager, Error, "Missing alternate source in config file: {}", AlternateSourceConfigName);
+						co_return {};
+					}
+				}
+
+				if (Destination == "Default")
+				{
+					DefaultLocations.f_Insert(AlternateSource.m_Pattern);
+					continue;
+				}
+
+				AlternateSourcesContents += fg_Format
+					(
+						"		location ~ ({})\n"
+						"		{{\n"
+						"{{SecurityHeaders}\n"
+						"			resolver 8.8.8.8;\n"
+						"			proxy_ssl_server_name on;\n"
+						"			proxy_pass https://{}$1;\n"
+						"		}\n"
+						, AlternateSource.m_Pattern
+						, Destination
+					)
+				;
+			}
+
+			auto &AlternateSource = AlternateSources[Package.f_GetName()];
+			AlternateSource.m_Locations = fg_Move(AlternateSourcesContents);
+			if (!DefaultLocations.f_IsEmpty())
+				AlternateSource.m_DefaultLocation = "{}"_f << CStr::fs_Join(DefaultLocations, "|");
+		}
 
 		auto SetupResults = co_await
 			(
@@ -619,7 +689,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 										RedirectContents += fg_Format
 											(
 												"			if ($uri ~* ^/{}$) {{\n"
-												"{SecurityHeaders}\n"
+												"{{SecurityHeaders}\n"
 												"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{}\";\n"
 												"				return 302 {}?campaign={};\n"
 												"			}\n"
@@ -943,6 +1013,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					if (!bIsSubPackage)
 						Server = Server.f_Replace("{SubPackages}", SubPathServers[ServerName]);
 					Server = Server.f_Replace("{PathRedirect}",  SetupResults.m_Redirects[Package.f_GetName()]);
+					auto &AlternateSource = AlternateSources[Package.f_GetName()];
+					Server = Server.f_Replace("{AlternateSources}", AlternateSource.m_Locations);
+					Server = Server.f_Replace("{DefaultLocation}", AlternateSource.m_DefaultLocation ? AlternateSource.m_DefaultLocation : "/.*$");
 
 					if (bIsMainServer && mp_Options.m_bRedirectWWW)
 					{
