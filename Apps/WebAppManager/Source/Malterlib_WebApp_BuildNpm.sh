@@ -80,8 +80,10 @@ export NPM_CONFIG_PROGRESS=false
 if [[ "$NpmBuildType" == "Start" ]]; then
 	SourceDir=.
 	rm -rf node_modules
-	npm ci --production
+	npm ci
 	npm run prestart
+	rm -rf node_modules
+	npm ci --production
 elif [[ "$NpmBuildType" == "Compile" ]]; then
 	SourceDir=build
 	rm -rf build
