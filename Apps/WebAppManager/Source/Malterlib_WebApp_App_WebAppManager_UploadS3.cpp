@@ -757,14 +757,17 @@ exports.handler = (event, context, callback) => {
 		DMibLogWithCategory(S3Upload, Info, "Getting source checksums {fe2} s", Clock.f_GetTime());
 		Clock.f_Start();
 
+		if (!mp_CurlActors.f_IsConstructed())
+			mp_CurlActors.f_Construct(fg_Construct(fg_Construct(), "S3/CloudFront curl actor"));
+
+		mp_LastCloudFrontDistributions = CloudFrontDistributions;
+		mp_CloudFrontActor = fg_Construct(*mp_CurlActors, AWSCredentials);
+
 		if (SourceCheckResults.m_bUpToDate)
 		{
 			DMibLogWithCategory(S3Upload, Info, "S3 files were already up to date");
 			co_return {};
 		}
-
-		if (!mp_CurlActors.f_IsConstructed())
-			mp_CurlActors.f_Construct(fg_Construct(fg_Construct(), "S3 curl actor"));
 
 		if (!mp_S3Actors.f_IsConstructed())
 		{
@@ -777,8 +780,6 @@ exports.handler = (event, context, callback) => {
 				)
 			;
 		}
-
-		mp_CloudFrontActor = fg_Construct(*mp_CurlActors, AWSCredentials);
 
 		CStr BucketName = mp_Options.m_S3BucketPrefix + mp_Domain;
 
@@ -1069,6 +1070,44 @@ exports.handler = (event, context, callback) => {
 				{
 					CFile::fs_WriteStringToFile(SourceCheckResults.m_ChecksumFile, SourceCheckResults.m_ChecksumStr, false);
 					DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3 took {fe2} s in total", GlobalClock.f_GetTime());
+				}
+			)
+		;
+
+		co_return {};
+	}
+
+	TCFuture<void> CWebAppManagerActor::f_InvalidateCloudFrontCaches()
+	{
+		co_await fp_InvalidateCloudfrontDistributions();
+
+		co_return {};
+	}
+
+	TCFuture<void> CWebAppManagerActor::fp_InvalidateCloudfrontDistributions()
+	{
+		if (mp_LastCloudFrontDistributions.f_IsEmpty())
+			co_return {};
+
+		if (!mp_bInitialS3UploadDone)
+			co_return {};
+
+		co_await
+			(
+				mp_S3UploadSequencer / [=]() -> TCFuture<void>
+				{
+					NTime::CClock Clock{true};
+
+					TCVector<CStr> PathsToInvalidate = {"/*"};
+
+					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache out of band");
+					TCActorResultVector<CStr> Results;
+					for (auto &Distribution : mp_LastCloudFrontDistributions)
+						mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, Distribution, PathsToInvalidate) > Results.f_AddResult();
+					co_await Results.f_GetResults() | g_Unwrap;
+					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
+
+					co_return {};
 				}
 			)
 		;

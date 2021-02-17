@@ -19,6 +19,26 @@ namespace NMib::NWebApp::NWebAppManager
 			)
 		;
 
-		//auto DefaultSection = o_CommandLine.f_GetDefaultSection();
+		auto DefaultSection = o_CommandLine.f_GetDefaultSection();
+
+		DefaultSection.f_RegisterCommand
+			(
+				{
+					"Names"_= {"--invalidate-cloud-front-caches"}
+					, "Description"_= "Invalidate all CloudFront caches.\n"
+				}
+				, [this] (NEncoding::CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine) -> TCFuture<uint32>
+				{
+					*_pCommandLine %= "Invalidating\n";
+
+					co_await mp_pManager(&CWebAppManagerActor::f_InvalidateCloudFrontCaches);
+
+					*_pCommandLine %= "Done\n";
+
+					co_return 0;
+				}
+				, EDistributedAppCommandFlag_WaitForRemotes
+			)
+		;
 	}
 }

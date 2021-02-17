@@ -288,6 +288,8 @@ namespace NMib::NWebApp::NWebAppManager
 		;
 		TCFuture<CStr> f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir);
 
+		TCFuture<void> f_InvalidateCloudFrontCaches();
+
 	private:
 		enum EHostnamePrefix
 		{
@@ -396,6 +398,8 @@ namespace NMib::NWebApp::NWebAppManager
 		static CStr fsp_GetVersionString();
 		TCFuture<void> fp_UpdateVersionHistory();
 
+		TCFuture<void> fp_InvalidateCloudfrontDistributions();
+
 		CStr fp_GetPackageHostname(CStr const &_PackageName, EHostnamePrefix _Prefix) const;
 		CStr fp_GetPackageLocalURL(CStr const &_PackageName) const;
 		CStr fp_GetRootURL(CStr const &_Hostname, CStr const &_SubPath) const;
@@ -472,6 +476,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 		TCRoundRobinActors<CCurlActor> mp_CurlActors{2 + 32};
 		TCRoundRobinActors<CAwsS3Actor> mp_S3Actors{32};
+
+		TCSet<CStr> mp_LastCloudFrontDistributions;
 
 		TCActor<CAwsCloudFrontActor> mp_CloudFrontActor;
 		TCActor<CAwsLambdaActor> mp_LambdaActor;

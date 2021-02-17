@@ -485,6 +485,14 @@ namespace NMib::NWebApp::NWebAppManager
 		{
 			Launch.m_Params.m_fOnOutput = [this, pAppLaunch](EProcessLaunchOutputType _OutputType, NMib::NStr::CStr const &_Output)
 				{
+					if (_OutputType == EProcessLaunchOutputType_StdOut)
+					{
+						for (auto &Line : _Output.f_SplitLine<true>())
+						{
+							if (Line == "MalterlibInvalidateCloudFrontCaches")
+								fp_InvalidateCloudfrontDistributions() > fg_LogError("Cloud Front", "Failed to invalidate CloudFront distributions in response to application request");
+						}
+					}
 					if (_OutputType != EProcessLaunchOutputType_StdErr)
 						return;
 					fp_HandleNodeDebuggerOutput(*pAppLaunch, _Output);
