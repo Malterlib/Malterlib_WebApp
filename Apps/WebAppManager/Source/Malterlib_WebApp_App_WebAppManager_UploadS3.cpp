@@ -12,7 +12,7 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 31;
+		uint32 gc_UpdateVersion = 32;
 	}
 
 	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
@@ -76,6 +76,10 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr CloudFrontDistribution;
 		CStr ConfigName = _Prefix ? CStr("AWSCloudFrontDistribution_{}"_f << _Prefix) : "AWSCloudFrontDistribution";
 		CloudFrontDistribution = fp_GetConfigValue(ConfigName, "").f_String();
+
+		CStr FullDomainName = mp_Domain;
+		if (_Prefix)
+			FullDomainName = "{}.{}"_f << _Prefix << mp_Domain;
 
 		CStr AWSLambdaRole = fp_GetConfigValue("AWSLambdaRole", "").f_String();
 
@@ -174,7 +178,7 @@ exports.handler = (event, context, callback) => {
 };
 )----")
 				.f_Replace("{AlternateSources}", AlternateSourcesString)
-				.f_Replace("{RequestPrefix}", CJSON(CStr("/{}"_f << _Prefix)).f_ToString(nullptr));
+				.f_Replace("{RequestPrefix}", CJSON(CStr("/{}"_f << _Prefix)).f_ToString(nullptr))
 			;
 
 			OriginRequestFiles["index.js"] = RequestHandler;
@@ -247,6 +251,7 @@ exports.handler = (event, context, callback) => {
 
 			OriginResponseFiles["index.js"] = CStr(R"----(
 'use strict';
+const domainRegex = /(http(s)?:\/\/)(([a-zA-Z\d-]+\.?)+)(\/.*)/;
 exports.handler = (event, context, callback) => {
 
 	// Get contents of response
@@ -261,6 +266,13 @@ exports.handler = (event, context, callback) => {
 	headers['x-frame-options'] = [{key: 'X-Frame-Options', value: 'DENY'}];
 	headers['x-xss-protection'] = [{key: 'X-XSS-Protection', value: '1; mode=block'}];
 	headers['referrer-policy'] = [{key: 'Referrer-Policy', value: 'same-origin'}];
+
+	if (!{AllowRedirectsOutsideOfDomain} && response.status == 301 && headers['location'] && headers['location'][0] && headers['location'][0].value) {
+		let matchResult = headers['location'][0].value.match(domainRegex);
+		if (matchResult && matchResult[3] && matchResult[3] != {DomainName}) {
+			headers['location'][0].value = matchResult[1] + {DomainName} + matchResult[5];
+		}
+	}
 
 {AccessControl}
 	function doRedirect(redirectTo, temporary) {
@@ -290,7 +302,13 @@ exports.handler = (event, context, callback) => {
 	//Return modified response
 	callback(null, response);
 };
-)----").f_Replace("{ContentSecurityPolicy}", ContentSecurityPolicy).f_Replace("{AccessControl}", AccessControl).f_Replace("{Redirects}", RedirectContents);
+)----")
+	.f_Replace("{ContentSecurityPolicy}", ContentSecurityPolicy)
+	.f_Replace("{AccessControl}", AccessControl)
+	.f_Replace("{Redirects}", RedirectContents)
+	.f_Replace("{AllowRedirectsOutsideOfDomain}", mp_Options.m_bAllowRedirectsOutsideOfDomain ? "true" : "false")
+	.f_Replace("{DomainName}", NEncoding::CJSON(FullDomainName).f_ToString(nullptr))
+;
 		}
 
 		auto [OriginRequestInfo, OriginResponseInfo] = co_await

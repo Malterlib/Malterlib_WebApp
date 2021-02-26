@@ -212,6 +212,7 @@ namespace NMib::NWebApp::NWebAppManager
 		bool m_bServeAllSubdomains = false;
 		bool m_bStartNginx = true;
 		bool m_bAllowRobots = false;
+		bool m_bAllowRedirectsOutsideOfDomain = true;
 	};
 
 	struct ICWebAppManagerCustomization

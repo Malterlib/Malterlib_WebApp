@@ -853,6 +853,12 @@ Property
 				}
 
 				Contents	"@(Contents)"\
+							"	\"AllowRedirectsOutsideOfDomain\": @(WebAppManagerAllowRedirectsOutsideOfDomain),\n"
+				{
+					!WebAppManagerAllowRedirectsOutsideOfDomain ""
+				}
+
+				Contents	"@(Contents)"\
 							"	\"ContentSecurity\": {\n"
 
 				Contents	"@(Contents)"\

@@ -524,6 +524,9 @@ namespace NMib::NWebApp::NWebAppManager
 		if (auto *pValue = Settings.f_GetMember("S3BucketPrefix"))
 			m_S3BucketPrefix = pValue->f_String();
 
+		if (auto *pValue = Settings.f_GetMember("AllowRedirectsOutsideOfDomain"))
+			m_bAllowRedirectsOutsideOfDomain = pValue->f_Boolean();
+
 		if (auto *pContentSecurity = Settings.f_GetMember("ContentSecurity"))
 		{
 			if (auto *pValue = pContentSecurity->f_GetMember("ScriptSrc"))
