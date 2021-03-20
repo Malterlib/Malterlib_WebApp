@@ -86,6 +86,13 @@ namespace NMib::NWebApp::NAcmeManager
 				, "Description"_= "Wait for DNS challenge to be manually released before continuing."
 			}
 		;
+		auto SettingsOption_AlternateChain = "AlternateChain?"_=
+			{
+				"Names"_= {"--alternate-chain"}
+				, "Type"_= ""
+				, "Description"_= "Common name of root for alternate chain to use."
+			}
+		;
 
 		auto fStripDefault = [](auto &&_Template)
 			{
@@ -122,6 +129,7 @@ namespace NMib::NWebApp::NAcmeManager
 						, SettingsOption_RSAKeyLength
 						, SettingsOption_AccountKeySettings
 						, SettingsOption_ManualDNSChallenge
+						, SettingsOption_AlternateChain
 					}
 				}
 				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
@@ -193,6 +201,7 @@ namespace NMib::NWebApp::NAcmeManager
 						, fStripDefault(SettingsOption_RSAKeyLength)
 						, fStripDefault(SettingsOption_AccountKeySettings)
 						, fStripDefault(SettingsOption_ManualDNSChallenge)
+						, fStripDefault(SettingsOption_AlternateChain)
 					}
 				}
 				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)

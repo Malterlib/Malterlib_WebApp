@@ -34,6 +34,7 @@ namespace NMib::NWebApp::NAcmeManager
 			bool m_bGenerateEC = true;
 			bool m_bIncludeWildcard = true;
 			bool m_bManualDNSChallenge = false;
+			CStr m_AlternateChain;
 			CAcmeClientActor::EDefaultDirectory m_AcmeDirectory = CAcmeClientActor::EDefaultDirectory_LetsEncryptStaging;
 			CStr m_AcmeCustomDirectory;
 			CPublicKeySetting m_AccountKeySettings = CPublicKeySettings_EC_secp521r1{};

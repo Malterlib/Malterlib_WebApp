@@ -73,7 +73,7 @@ namespace NMib::NWebApp::NAcmeManager
 				(
 					g_ActorFunctor / [this](TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo) -> TCFuture<void>
 					{
-						co_await fp_HandleSecretsManagerAdded(_SecretsManager, _ActorInfo);
+						co_await self(&CAcmeManagerActor::fp_HandleSecretsManagerAdded, _SecretsManager, _ActorInfo);
 
 						co_return {};
 					}
@@ -166,6 +166,7 @@ namespace NMib::NWebApp::NAcmeManager
 				, m_bGenerateEC
 				, m_bIncludeWildcard
 				, m_bManualDNSChallenge
+				, m_AlternateChain
 				, m_AcmeDirectory
 				, m_AcmeCustomDirectory
 				, m_AccountKeySettings

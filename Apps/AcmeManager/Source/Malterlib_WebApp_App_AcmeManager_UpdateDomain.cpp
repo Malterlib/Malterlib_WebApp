@@ -238,7 +238,38 @@ namespace NMib::NWebApp::NAcmeManager
 			}
 		;
 
-		auto Certificates = co_await _AcmeClient(&CAcmeClientActor::f_RequestCertificate, fg_Move(CertificateRequest));
+		auto CertificatesResults = co_await _AcmeClient(&CAcmeClientActor::f_RequestCertificate, fg_Move(CertificateRequest));
+		auto Certificates = CertificatesResults.m_DefaultChain;
+
+		if (_DomainSettings.m_AlternateChain)
+		{
+			bool bFoundCert = false;
+			TCVector<CStr> AlternateNames;
+			for (auto &AlternateChain : CertificatesResults.m_AlternateChains)
+			{
+				try
+				{
+					NContainer::CByteVector Root;
+					Root.f_Insert((uint8 const *)AlternateChain.m_Root.f_GetStr(), AlternateChain.m_Root.f_GetLen());
+					auto CommonName = CCertificate::fs_GetCertificateName(Root);
+					AlternateNames.f_Insert(CommonName);
+
+					if (CommonName == _DomainSettings.m_AlternateChain)
+					{
+						Certificates = AlternateChain;
+						bFoundCert = true;
+						break;
+					}
+				}
+				catch (CException const &_Exception)
+				{
+					co_return _Exception.f_ExceptionPointer();
+				}
+			}
+
+			if (!bFoundCert)
+				co_return DMibErrorInstance("Could not find alternate root '{}' in list of alternate chains: {vs}"_f << _DomainSettings.m_AlternateChain << AlternateNames);
+		}
 
 		CStr CertificateDescription;
 		{
@@ -274,11 +305,12 @@ namespace NMib::NWebApp::NAcmeManager
 			}
 		;
 
-		fStoreSecret("PrivateKey", Certificates.m_PrivateKey);
+		fStoreSecret("PrivateKey", CertificatesResults.m_PrivateKey);
 		fStoreSecret("FullChain", Certificates.m_FullChain);
 		fStoreSecret("EndEntity", Certificates.m_EndEntity);
 		fStoreSecret("Issuer", Certificates.m_Issuer);
-		fStoreSecret("Other", Certificates.m_Other);
+		fStoreSecret("Root", Certificates.m_Root);
+		fStoreSecret("Other", CStr::fs_Join(Certificates.m_Other, "\n"));
 
 		co_await StoreResults.f_GetResults() | g_Unwrap;
 

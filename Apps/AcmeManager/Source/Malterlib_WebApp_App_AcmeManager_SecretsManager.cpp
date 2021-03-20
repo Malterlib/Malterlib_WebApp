@@ -43,7 +43,7 @@ namespace NMib::NWebApp::NAcmeManager
 					if (!mp_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
 						return;
 
-					fp_HandleSecretsManagerAdded(_SecretsManager, _Info) > fg_LogError("SecretsManager", "Failed to handle secrets manager added");
+					self(&CAcmeManagerActor::fp_HandleSecretsManagerAdded, _SecretsManager, _Info) > fg_LogError("SecretsManager", "Failed to handle secrets manager added");
 				}
 			;
 		}

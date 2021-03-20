@@ -44,6 +44,9 @@ namespace NMib::NWebApp::NAcmeManager
 		if (auto pValue = _Params.f_GetMember("ManualDNSChallenge", EJSONType_Boolean))
 			o_Settings.m_bManualDNSChallenge = pValue->f_Boolean();
 
+		if (auto pValue = _Params.f_GetMember("AlternateChain", EJSONType_String))
+			o_Settings.m_AlternateChain = pValue->f_String();
+
 		if (auto pValue = _Params.f_GetMember("IncludeWildcard", EJSONType_Boolean))
 			o_Settings.m_bIncludeWildcard = pValue->f_Boolean();
 
@@ -101,6 +104,7 @@ namespace NMib::NWebApp::NAcmeManager
 		Domain["GenerateEC"] = _Settings.m_bGenerateEC;
 		Domain["IncludeWildcard"] = _Settings.m_bIncludeWildcard;
 		Domain["ManualDNSChallenge"] = _Settings.m_bManualDNSChallenge;
+		Domain["AlternateChain"] = _Settings.m_AlternateChain;
 		Domain["EllipticCurveType"] = fsp_EllipticCurveTypeToStr(_Settings.m_EllipticCurveType);
 		Domain["RSAKeyLength"] = _Settings.m_RSASettings.m_KeyLength;
 		switch (_Settings.m_AcmeDirectory)

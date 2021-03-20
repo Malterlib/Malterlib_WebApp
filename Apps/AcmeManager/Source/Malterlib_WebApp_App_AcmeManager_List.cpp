@@ -36,6 +36,7 @@ namespace NMib::NWebApp::NAcmeManager
 		fAddHeading("RSA Key Length");
 		fAddHeading("Include Wildcard");
 		fAddHeading("Manual DNS Challenge");
+		fAddHeading("Alternate Chain");
 		fAddHeading("ACME Directory");
 		fAddHeading("Account Key Type");
 		fAddHeading("Status", false);
@@ -102,6 +103,7 @@ namespace NMib::NWebApp::NAcmeManager
 				 	, "{}"_f << Domain.m_Settings.m_RSASettings.m_KeyLength
 				 	, Domain.m_Settings.m_bIncludeWildcard ? "true" : "false"
 				 	, Domain.m_Settings.m_bManualDNSChallenge ? "true" : "false"
+				 	, Domain.m_Settings.m_AlternateChain
 					, AcmeDirectory
 					, AccountKeyType
 				 	, Status
