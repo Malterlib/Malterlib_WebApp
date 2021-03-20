@@ -40,7 +40,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		Auditor.f_Info("Added domain '{}'"_f << Name);
 
-		co_await self(&CAcmeManagerActor::fp_UpdateAllDomains, bCreateAccountKey ? Name : "");
+		co_await self(&CAcmeManagerActor::fp_UpdateAllDomains, bCreateAccountKey ? Name : CStr());
 
 		co_return 0;
 	}
