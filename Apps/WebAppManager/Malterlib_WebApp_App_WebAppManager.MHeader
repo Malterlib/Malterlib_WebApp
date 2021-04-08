@@ -631,7 +631,7 @@ Property
 					!Empty "@(RedirectsPermanent_@(Explodee))"
 				}
 
-				AlternateSources_Template_Expand	"				{\"Pattern\": \"@(Expand0)\", \"Destination\": \"@(Expand1)\"},\n"
+				AlternateSources_Template_Expand	"				{\"Pattern\": \"@(Expand0)\", \"Destination\": \"@(Expand1)\", \"Search\": \"@(Expand2)\", \"Replace\": \"@(Expand3)\"},\n"
 
 				AlternateSources_Template	"@(Builtin.Function->ExpandList('@(Explodee)', '=', 'AlternateSources_Template_Expand'))"
 				{

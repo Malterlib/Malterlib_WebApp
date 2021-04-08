@@ -484,7 +484,14 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		TCMap<CStr, CAlternateSource> AlternateSources;
 
+		TCMap<CStr, CWebAppManagerOptions::CPackage> FilteredPackages;
 		for (auto &Package : mp_Options.m_Packages)
+		{
+			if (!Package.m_bUploadS3)
+				FilteredPackages[mp_Options.m_Packages.fs_GetKey(Package)] = Package;
+		}
+
+		for (auto &Package : FilteredPackages)
 		{
 			CStr AlternateSourcesContents;
 			TCVector<CStr> DefaultLocations;
@@ -508,6 +515,21 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					continue;
 				}
 
+				CStr SubFilters;
+
+				if (AlternateSource.m_Search)
+				{
+					SubFilters = fg_Format
+						(
+							"			sub_filter '{}' '{}';\n"
+							"			sub_filter_once off;\n"
+							"			sub_filter_types *;\n"
+							"			proxy_set_header Accept-Encoding \"\";\n"
+							, AlternateSource.m_Search.f_Replace("{DomainName}", mp_Domain)
+							, AlternateSource.m_Replace.f_Replace("{DomainName}", mp_Domain)
+						)
+					;
+				}
 				AlternateSourcesContents += fg_Format
 					(
 						"		location ~ ({})\n"
@@ -516,9 +538,11 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						"			resolver 8.8.8.8;\n"
 						"			proxy_ssl_server_name on;\n"
 						"			proxy_pass https://{}$1;\n"
+						"{}"
 						"		}\n"
 						, AlternateSource.m_Pattern
 						, Destination
+						, SubFilters
 					)
 				;
 			}
@@ -537,7 +561,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					, NginxDirectory
 					, bIsStaging = mp_bIsStaging
 					, Domain = mp_Domain
-					, Packages = mp_Options.m_Packages
+					, Packages = FilteredPackages
 					, DhParamFile
 					, ConfigFile
 					, User = mp_NginxUser
@@ -743,7 +767,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							if (!RedirectContents.f_IsEmpty())
 								Results.m_Redirects[Package.f_GetName()] = fg_Move(RedirectContents);
 						}
-
 					}
 
 					return Results;
@@ -776,7 +799,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		CStr UpstreamServers;
 		TCMap<CStr, CStr> Upstreams;
 		{
-			for (auto &Package : mp_Options.m_Packages)
+			for (auto &Package : FilteredPackages)
 			{
 				if (!Package.f_IsServer() || Package.f_IsStatic())
 					continue;
@@ -887,7 +910,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			{
 				bool bIsSubPackage = i == 0;
 
-				for (auto &Package : mp_Options.m_Packages)
+				for (auto &Package : FilteredPackages)
 				{
 					if (!Package.f_IsServer())
 						continue;
@@ -992,7 +1015,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 					if (bIsMainServer)
 					{
-						for (auto &Package : mp_Options.m_Packages)
+						for (auto &Package : FilteredPackages)
 						{
 							if (Package.f_IsDynamicServer() || Package.m_StaticPath.f_IsEmpty())
 								continue;

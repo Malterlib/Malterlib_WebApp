@@ -119,10 +119,14 @@ namespace NMib::NWebApp::NWebAppManager
 				{
 					_Stream % m_Pattern;
 					_Stream % m_Destination;
+					_Stream % m_Search;
+					_Stream % m_Replace;
 				}
 
 				CStr m_Pattern;
 				CStr m_Destination;
+				CStr m_Search;
+				CStr m_Replace;
 			};
 
 			TCVector<CStr> m_StartupDependencies;
@@ -387,6 +391,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_SetupPrerequisites_OSSetup();
 
 		bool fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources);
+		bool fp_FormatAlternateSourcesSearchReplace(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources);
 
 		CStr fp_GetAllowRobots(bool _bAllow);
 

@@ -12,7 +12,7 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 32;
+		uint32 gc_UpdateVersion = 33;
 	}
 
 	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
@@ -34,6 +34,32 @@ namespace NMib::NWebApp::NWebAppManager
 				<< CJSON("^" + AlternateSource.m_Pattern).f_ToString(nullptr)
 				<< CJSON(Destination).f_ToString(nullptr)
 				<< CJSON(Destination == "Default").f_ToString(nullptr)
+			;
+		}
+
+		return true;
+	}
+
+	bool CWebAppManagerActor::fp_FormatAlternateSourcesSearchReplace(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
+	{
+		for (auto &AlternateSource : _AlternateSources)
+		{
+			if (AlternateSource.m_Search.f_IsEmpty() || AlternateSource.m_Destination == "Default")
+				continue;
+
+			CStr AlternateSourceConfigName = "AlternateSource_{}"_f << AlternateSource.m_Destination;
+			CStr Destination = fp_GetConfigValue(AlternateSourceConfigName, "").f_String();
+			if (Destination.f_IsEmpty())
+			{
+				DMibLogWithCategory(WebAppManager, Error, "Missing alternate source in config file: {}", AlternateSourceConfigName);
+				return false;
+			}
+
+			o_Str += "	{{ pattern: new RegExp({}), destination: {}, search: new RegExp(escapeRegExp({}), \"g\"), replace: {} },\n"_f
+				<< CJSON("^" + AlternateSource.m_Pattern).f_ToString(nullptr)
+				<< CJSON(Destination).f_ToString(nullptr)
+				<< CJSON(AlternateSource.m_Search.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr)
+				<< CJSON(AlternateSource.m_Replace.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr)
 			;
 		}
 
@@ -196,6 +222,10 @@ exports.handler = (event, context, callback) => {
 			OriginResponseConfig.m_TimeoutSeconds = 3;
 			OriginResponseConfig.m_bPublish = true;
 
+			CStr AlternateSourcesString;
+			if (!fp_FormatAlternateSourcesSearchReplace(AlternateSourcesString, AlternateSources))
+				co_return {};
+
 			CStr ContentSecurityPolicy = "default-src 'none' ;";
 			ContentSecurityPolicy += " img-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ImgSrc;
 			ContentSecurityPolicy += " font-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FontSrc;
@@ -251,8 +281,31 @@ exports.handler = (event, context, callback) => {
 
 			OriginResponseFiles["index.js"] = CStr(R"----(
 'use strict';
+function escapeRegExp(string) {
+	return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+let alternateSources = [
+{AlternateSources}];
+
 const domainRegex = /(http(s)?:\/\/)(([a-zA-Z\d-]+\.?)+)(\/.*)/;
-exports.handler = (event, context, callback) => {
+
+const getContent = function(url) {
+	return new Promise((resolve, reject) => {
+		const lib = url.startsWith('https') ? require('https') : require('http');
+		const request = lib.get(url, (response) => {
+			if (response.statusCode < 200 || response.statusCode > 299) {
+				reject(new Error('Failed to load page, status code: ' + response.statusCode));
+			}
+			const body = [];
+			response.on('data', (chunk) => body.push(chunk));
+			response.on('end', () => resolve(body.join('')));
+		});
+		request.on('error', (err) => reject(err))
+	})
+};
+
+exports.handler = async (event) => {
 
 	// Get contents of response
 	const request = event.Records[0].cf.request;
@@ -293,17 +346,28 @@ exports.handler = (event, context, callback) => {
 			response.statusDescription = 'Moved Permanently';
 		}
 
-		return callback(null, response);
+		return response;
 	}
 
 	var uri = request.uri;
 {Redirects}
 
+	if (response.status == 200) {
+		for (let alternate of alternateSources) {
+			if (alternate.pattern.test(request.uri)) {
+				let originalBody = await getContent("https://" + alternate.destination + request.uri);
+				response.body = originalBody.replace(alternate.search, alternate.replace);
+				break;
+			}
+		}
+	}
+
 	//Return modified response
-	callback(null, response);
+	return response;
 };
 )----")
 	.f_Replace("{ContentSecurityPolicy}", ContentSecurityPolicy)
+	.f_Replace("{AlternateSources}", AlternateSourcesString)
 	.f_Replace("{AccessControl}", AccessControl)
 	.f_Replace("{Redirects}", RedirectContents)
 	.f_Replace("{AllowRedirectsOutsideOfDomain}", mp_Options.m_bAllowRedirectsOutsideOfDomain ? "true" : "false")
