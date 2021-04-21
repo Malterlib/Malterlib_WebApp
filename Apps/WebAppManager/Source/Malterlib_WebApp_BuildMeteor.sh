@@ -76,15 +76,15 @@ fi
 export NPM_CONFIG_PROGRESS=false
 
 rm -rf node_modules
-arch -x86_64 $MeteorCommand npm ci --production
+$MeteorCommand npm ci --production
 
 mkdir -p "${OutputDir}bundle"
 
 if [ "$MeteorDebugPackage" == "true" ]; then
 	echo Building meteor bundle with debug
-	arch -x86_64 $MeteorCommand build "$OutputDir" --server-only --debug --architecture "$METEOR_ARCH" --directory
+	$MeteorCommand build "$OutputDir" --server-only --debug --architecture "$METEOR_ARCH" --directory
 else
-	arch -x86_64 $MeteorCommand build "$OutputDir" --server-only --architecture "$METEOR_ARCH" --directory
+	$MeteorCommand build "$OutputDir" --server-only --architecture "$METEOR_ARCH" --directory
 fi
 
 export PATH="$OldPath"

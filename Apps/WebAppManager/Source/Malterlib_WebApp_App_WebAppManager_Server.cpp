@@ -642,56 +642,83 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 		if (auto *pValue = Settings.f_GetMember("Environment"))
 		{
-			for (auto &EnvVarJSON : fg_Const(pValue->f_Object()))
+			for (auto &EnvVarJSON : fg_Const(pValue->f_Array()))
 			{
-				auto &EnvVar = m_Environment[EnvVarJSON.f_Name()];
-				EnvVar.m_Setting = EnvVarJSON.f_Value()["Setting"].f_String();
-				if (auto *pValue = EnvVarJSON.f_Value().f_GetMember("Default"))
+				auto &EnvVar = m_Environment[EnvVarJSON["EnvVar"].f_String()];
+				EnvVar.m_Setting = EnvVarJSON["ConfigVar"].f_String();
+				if (auto *pValue = EnvVarJSON.f_GetMember("Default"))
 					EnvVar.m_Default = pValue->f_String();
 
 				EnvVar.m_RequiredTags = DefaultReqiredTags;
 				EnvVar.m_ForbiddenTags = DefaultForbiddenTags;
 
-				if (auto *pValue = EnvVarJSON.f_Value().f_GetMember("Tags"))
+				if (auto *pValue = EnvVarJSON.f_GetMember("Tags"))
 				{
 					for (auto &TagJSON : pValue->f_Array())
 					{
-						CStr Tag = TagJSON.f_String();
-
-						bool bAdd = true;
-						if (Tag.f_StartsWith("-"))
+						if (TagJSON.f_IsString())
 						{
-							bAdd = false;
-							Tag = Tag.f_Extract(1);
-						}
+							CStr Tag = TagJSON.f_String();
 
-						bool bReqired = true;
-						if (Tag.f_StartsWith("!"))
-						{
-							bReqired = false;
-							Tag = Tag.f_Extract(1);
-						}
+							bool bAdd = true;
+							if (Tag.f_StartsWith("-"))
+							{
+								bAdd = false;
+								Tag = Tag.f_Extract(1);
+							}
 
-						TCSet<CStr> TagSet;
-						if (bReqired)
-						{
-							while (!Tag.f_IsEmpty())
-								TagSet[fg_GetStrSep(Tag, "|")];
-						}
+							bool bReqired = true;
+							if (Tag.f_StartsWith("!"))
+							{
+								bReqired = false;
+								Tag = Tag.f_Extract(1);
+							}
 
-						if (bAdd)
-						{
 							if (bReqired)
-								EnvVar.m_RequiredTags[TagSet];
+							{
+								if (bAdd)
+									EnvVar.m_RequiredTags[TCSet<CStr>{Tag}];
+								else
+									EnvVar.m_RequiredTags.f_Remove(TCSet<CStr>{Tag});
+							}
 							else
-								EnvVar.m_ForbiddenTags[Tag];
+							{
+								if (bAdd)
+									EnvVar.m_ForbiddenTags[Tag];
+								else
+									EnvVar.m_ForbiddenTags.f_Remove(Tag);
+							}
 						}
 						else
 						{
-							if (bReqired)
-								EnvVar.m_RequiredTags.f_Remove(TagSet);
+							auto Tags = TagJSON.f_StringArray();
+							TCSet<CStr> TagSet;
+							bool bAdd = true;
+							for (auto Tag : Tags)
+							{
+								if (Tag.f_StartsWith("-"))
+								{
+									bAdd = false;
+									Tag = Tag.f_Extract(1);
+								}
+
+								if (Tag.f_StartsWith("!"))
+								{
+									DMibError
+										(
+											"You cannot specify forbidden tags `{}` in a tag set"_f
+										 	<< Tag
+										)
+									;
+								}
+
+								TagSet[Tag];
+							}
+
+							if (bAdd)
+								EnvVar.m_RequiredTags[TagSet];
 							else
-								EnvVar.m_ForbiddenTags.f_Remove(Tag);
+								EnvVar.m_RequiredTags.f_Remove(TagSet);
 						}
 					}
 				}

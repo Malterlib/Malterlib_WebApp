@@ -33,24 +33,19 @@ Import "Tool/*/*.MHeader"
 
 Property
 {
-	MalterlibLibrary_WebApp true
-	{
-		&
-		{
-			MalterlibLibrary_WebApp ""
-			MalterlibLibrary_All true
-		}
-	}
-	MalterlibSubLibraries "WebApp;@(MalterlibSubLibraries)"
+	MalterlibLibrary_WebApp define bool = MalterlibLibrary_All
+	MalterlibSubLibraries =+ "WebApp"
 	{
 		!!MalterlibLibrary_WebApp true
 	}
-	MalterlibLibrarySeparate_Lib_Malterlib_WebApp true
-//	MalterlibSubLibrarySeparate_Lib_Malterlib_WebApp true
-	MalterlibIncludeRoots "@('Include'->MakeAbsolute());@(MalterlibIncludeRoots)"
+	MalterlibLibrarySeparate_Lib_Malterlib_WebApp define bool = true
+//	MalterlibSubLibrarySeparate_Lib_Malterlib_WebApp define bool = true
+	MalterlibIncludeRoots =+ "Include"->MakeAbsolute()
 	{
 		!!MalterlibLibrary_WebApp true
 	}
+
+	MalterlibWebAppEnableWebAppManagerTestInAppsWorkspace define bool = false
 }
 
 %Group "{Test}/{Malterlib_WebApp}/WebApp/TestWebAppManager"
@@ -63,66 +58,63 @@ Property
 
 	Property
 	{
-		MalterlibWebAppManagerName TestWebAppManager
-		MalterlibWebAppManagerPrefix Empty
+		MalterlibWebAppManagerName "TestWebAppManager"
+		MalterlibWebAppManagerPrefix "Empty"
 
-		MalterlibWebAppSourceRoot "@('Test/TestApps'->MakeAbsolute())"
-
-		MeteorBuilds "Meteor=Meteor"
-
-		AllowRobots_Meteor false
+		MalterlibWebAppSourceRoot "Test/TestApps"->MakeAbsolute()
 
 		WebAppManagerServeAllSubdomains true
 
 		WebAppManagerLoopbackPrefix 25
 
 		WebAppManagerMongoHost "localhost"
-		WebAppManagerMongoPort "25017"
+		WebAppManagerMongoPort 25017
 		WebAppManagerMongoDefaultDatabase "MeteorTestApp"
 
 		WebAppManagerDefaultDomain "webappmanagertest.malterlib.org"
-		WebAppManagerDefaultWebPort "5000"
-		WebAppManagerDefaultWebSSLPort "5443"
+		WebAppManagerDefaultWebPort 5000
+		WebAppManagerDefaultWebSSLPort 5443
 
-		TempTestNameWorkaround_Test_Malterlib_WebApp_WebAppManagerTestApps Malterlib_WebApp_WebAppManager
+		MeteorBuilds [{Name: "Meteor", BuildDir: "Meteor"}]
+
+		AllowRobots_Meteor define bool = false
 	}
-	%Target @(TempTestNameWorkaround_Test_Malterlib_WebApp_WebAppManagerTestApps)
+
+	Group.HideTargets true
+
+	%Target "Malterlib_WebApp_WebAppManager"
 }
 
 %Group "{Test}/{Malterlib_WebApp}"
 {
-	Property
-	{
-		MalterlibLinkWithOpenSSL true
-	}
 	Compile
 	{
 		!!CompileDialect "C"
-		PrefixHeader "@('Test/PCH.h'->MakeAbsolute())"
+		PrefixHeader "Test/PCH.h"->MakeAbsolute()
 	}
 }
 
 Property
 {
-	MalterlibWebAppEnableWebAppManagerTest false // User(Tests)=true: Enable building of web app manager. Requires meteor to be installed on system
-	{
-		!!MalterlibWebAppEnableWebAppManagerTest ""
-	}
+	MalterlibWebAppEnableWebAppManagerTest define bool = false // User(Tests)=true: Enable building of web app manager. Requires meteor to be installed on system
 }
 
 Property
 {
 	!!MalterlibEnableInternalTests true
 
-	MalterlibTests "Malterlib_WebApp;@(MalterlibTests)"
-	MalterlibTestFiles_Malterlib_WebApp "@('Test/*'->MakeAbsolute())"
-	MalterlibTestDependencies_Malterlib_WebApp "Lib_Malterlib_WebApp"
-	MalterlibTestExtraGroups_Malterlib_WebApp "{Test}/{Malterlib_WebApp}"
-	MalterlibTestWorkspaceExtraGroups_Malterlib_WebApp "{Test}/{Malterlib_WebApp}/WebApp/TestWebAppManager"
+	MalterlibTests =+ "Malterlib_WebApp"
+	MalterlibTestFiles_Malterlib_WebApp define [type(CEntity)] = ["Test/*"->MakeAbsolute()]
+	MalterlibTestDependencies_Malterlib_WebApp define [type(CEntity)] = ["Lib_Malterlib_WebApp"]
+	MalterlibTestExtraGroups_Malterlib_WebApp define [string] = ["{Test}/{Malterlib_WebApp}"]
+	MalterlibTestWorkspaceExtraGroups_Malterlib_WebApp define [type(CEntity)] = []
+	MalterlibTestWorkspaceExtraGroups_Malterlib_WebApp ["{Test}/{Malterlib_WebApp}/WebApp/TestWebAppManager", "{Malterlib}/{WebApp}/{WebAppManagerVariables}"]
 	{
 		!!MalterlibWebAppEnableWebAppManagerTest true
 	}
 }
+
+Property.Malterlib_WebApp_App_Targets define [type(CEntity)] = []
 
 %Workspace "Apps_Malterlib_WebApp"
 {
@@ -139,16 +131,16 @@ Property
 		{
 			!!TargetIsExecutable true
 		}
-		
-		MalterlibLog_Severities "Error;Critical;Warning;Info"
+
+		MalterlibLog_Severities ["Error", "Critical", "Warning", "Info"]
 		{
 			!!MalterlibLog_EnableVerboseDebugLog false
 		}
 	}
 
-	%Target "@(Malterlib_WebApp_App_Targets)"
+	%Target Malterlib_WebApp_App_Targets
 
-	Workspace.ExtraGroups "{Test}/{Malterlib_WebApp}/WebApp/TestWebAppManager;@(Workspace.ExtraGroups)"
+	Workspace.ExtraGroups =+ ["{Test}/{Malterlib_WebApp}/WebApp/TestWebAppManager", "{Malterlib}/{WebApp}/{WebAppManagerVariables}"]
 	{
 		!!MalterlibWebAppEnableWebAppManagerTest true
 	}

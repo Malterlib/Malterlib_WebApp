@@ -49,15 +49,14 @@
 		MalterlibTestApp true
 		MalterlibPostCopyProject "Malterlib_WebApp_WebCertificateManager"
 		{
-			!!MalterlibPostCopyProject ""
+			!!MalterlibPostCopyProject undefined
 		}
-		MalterlibLinkWithOpenSSL true
 		MalterlibConcurrency_DistributedActors true
 		MalterlibTargetNameType "Normal"
 	}
 	Target
 	{
-		DebuggerCommandArguments "--daemon-run-debug"
+		DebuggerCommandArguments ["--daemon-run-debug"]
 		BaseFileName "WebCertificateManager"
 		Group "Apps"
 	}
@@ -68,4 +67,4 @@
 	%Dependency "Lib_Malterlib_WebApp_WebCertificateManager"
 }
 
-Property.Malterlib_WebApp_App_Targets "Malterlib_WebApp_WebCertificateManager;@(Malterlib_WebApp_App_Targets)"
+Property.Malterlib_WebApp_App_Targets =+ "Malterlib_WebApp_WebCertificateManager"

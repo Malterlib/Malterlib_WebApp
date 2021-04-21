@@ -3,10 +3,7 @@
 
 Property
 {
-	MalterlibWebAppBuildNode false // User(Node)=true: Support building mongo and mongo-tools binaries
-	{
-		!!MalterlibWebAppBuildNode ""
-	}
+ 	MalterlibWebAppBuildNode define bool = false // User(Node)=true: Support building mongo and mongo-tools binaries
 }
 
 %Repository "node"
@@ -16,6 +13,6 @@ Property
 	Repository
 	{
 		Type "External"
-		Remotes "upstream=https://github.com/nodejs/node.git;@(Repository.Remotes)"
+		Remotes =+ {Name: "upstream", URL: "https://github.com/nodejs/node.git"}
 	}
 }

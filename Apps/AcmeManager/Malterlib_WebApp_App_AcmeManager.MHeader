@@ -8,12 +8,12 @@
 		MalterlibConcurrency_DistributedActors true
 		MalterlibCloudTargetLibrary true
 	}
-	Compile.PrefixHeader ""
+	Compile.PrefixHeader undefined
 	{
 		&
 		{
-			PlatformFamily Windows
-			CompileDialect C
+			PlatformFamily "Windows"
+			CompileDialect "C"
 		}
 	}
 	Target
@@ -57,9 +57,8 @@
 		MalterlibTestApp true
 		MalterlibPostCopyProject "Malterlib_WebApp_AcmeManager"
 		{
-			!!MalterlibPostCopyProject ""
+			!!MalterlibPostCopyProject undefined
 		}
-		MalterlibLinkWithOpenSSL true
 		MalterlibConcurrency_DistributedActors true
 		MalterlibTargetNameType "Normal"
 		MalterlibCloudVersionInfo_RunAsUser "MalterlibWebAppAcmeManager"
@@ -67,7 +66,7 @@
 	}
 	Target
 	{
-		DebuggerCommandArguments "--daemon-run-debug"
+		DebuggerCommandArguments ["--daemon-run-debug"]
 		BaseFileName "AcmeManager"
 		Group "Apps"
 	}
@@ -78,4 +77,4 @@
 	%Dependency "Lib_Malterlib_WebApp_AcmeManager"
 }
 
-Property.Malterlib_WebApp_App_Targets "Malterlib_WebApp_AcmeManager;@(Malterlib_WebApp_App_Targets)"
+Property.Malterlib_WebApp_App_Targets =+ "Malterlib_WebApp_AcmeManager"

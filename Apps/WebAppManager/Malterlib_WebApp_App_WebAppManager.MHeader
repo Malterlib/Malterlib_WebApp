@@ -1,35 +1,146 @@
 // Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
+Type
+{
+	CWebAppManagerBuild define {
+		Name: string
+		, BuildDir: string
+	}
+	CWebAppManagerUploadS3Priority define {
+		...: int
+	}
+	CWebAppManagerRedirect define {
+		From: string
+		, To: string
+	}
+	CWebAppManagerAlternateSource define {
+		Pattern: string
+		, Destination: string
+		, Search?: string
+		, Replace?: string
+	}
+}
+
+%Group "{Malterlib}/{WebApp}/{WebAppManagerVariables}"
+{
+	Property
+	{
+		MalterlibWebAppManagerName define string
+		MalterlibWebAppSourceRoot define string
+		WebAppManagerEnvironmentDefaultTags define [one_of(string, [string])]?
+		WebAppManagerAllowRobotsAllow define [string]?
+		WebAppManagerAllowRobotsDisallow define [string]?
+		WebAppManagerAllowRobots define bool?
+		WebAppManagerAllowRobotsSitemap define string?
+
+		WebAppManagerMongoDirectory define string?
+		WebAppManagerMongoHost define string?
+		WebAppManagerMongoPort define int?
+		WebAppManagerMongoToolsUser define string?
+		WebAppManagerMongoToolsGroup define string?
+		WebAppManagerMongoSSLDirectory define string?
+		WebAppManagerMongoDatabaseSetupScript define string?
+		WebAppManagerMongoDefaultReplicaName define string?
+		WebAppManagerMongoDefaultDatabase define string?
+
+		WebAppManagerLoopbackPrefix define int?
+		WebAppManagerSaveUserPasswords define bool?
+		WebAppManagerDefaultDomain define string?
+		WebAppManagerStartNginx define bool?
+
+		MalterlibWebAppManagerUserNamePrefix define string = "mib_"
+
+		WebAppManagerDefaultWebPort define int?
+		WebAppManagerDefaultWebSSLPort define int?
+		WebAppManagerHTTPRedirectReferrerCookie define string?
+		WebAppManagerRedirectWWW define bool?
+		WebAppManagerServeAllSubdomains define bool?
+		WebAppManagerS3BucketPrefix define string?
+		WebAppManagerAllowRedirectsOutsideOfDomain define bool?
+
+		FastCGIBuilds define [type(CWebAppManagerBuild)]?
+		WebsocketBuilds define [type(CWebAppManagerBuild)]?
+		MeteorBuilds define [type(CWebAppManagerBuild)]?
+		NpmBuilds define [type(CWebAppManagerBuild)]?
+		StaticBuilds define [type(CWebAppManagerBuild)]?
+		CustomBuilds define [type(CWebAppManagerBuild)]?
+
+		NpmBuildType define string?
+
+		ContentSecurity_ScriptSrc define string?
+		ContentSecurity_ImgSrc define string?
+		ContentSecurity_MediaSrc define string?
+		ContentSecurity_FontSrc define string?
+		ContentSecurity_StyleSrc define string?
+		ContentSecurity_FrameSrc define string?
+		ContentSecurity_ConnectSrc define string?
+		ContentSecurity_FormAction define string?
+		ContentSecurity_ReportURI define string?
+		ContentSecurity_ChildSrc define string?
+		ContentSecurity_ObjectSrc define string?
+
+		AccessControl_AllowMethods define string?
+		AccessControl_AllowHeaders define string?
+		AccessControl_AllowOrigin define string?
+		AccessControl_MaxAge define string?
+		MalterlibWebAppManagerPrefix define string?
+
+		NodeBinariesPath define string?
+		NodeHostBinariesPath define string?
+
+		WebAppManagerCustomizationFile define string?
+		WebAppManagerExtraSources define [type(CEntity)]?
+
+		MalterlibWebAppMeteorSharedPackages define string?
+		MalterlibWebAppMeteorCheckedOutPath define string?
+		MalterlibWebAppMeteorDebugBundle define bool?
+		MalterlibWebAppNodePackagePath define string?
+		MalterlibWebAppHostNodePackagePath define string?
+
+		FirstDependencyExecutable define string?
+	}
+}
+
 %Target "Tool_Malterlib_BuildWebApp"
 {
 	Property
 	{
+		MalterlibWebAppCustomBuildScript define string
+		MalterlibWebAppToolBuildName define string
+		MalterlibWebAppToolType define string
+		MalterlibWebAppToolDependencies define [type(CEntity)] = []
+		MalterlibWebAppToolExcludePatterns define [string] = []
+		MalterlibWebAppToolBuildDirectory define string
+	}
+
+	Property
+	{
 		MalterlibPostCopyProject "Malterlib_WebApp_WebAppManager"
 		{
-			!!MalterlibPostCopyProject ""
+			!!MalterlibPostCopyProject undefined
 		}
 
-		MalterlibPostCopySources "@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.*;@(MalterlibPostCopySources)"
-		MalterlibBuildServerPutSources "@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.*;@(MalterlibBuildServerPutSources)"
-		WebAppBuildDirectory "@(MalterlibWebAppToolBuildDirectory->MakeAbsolute('@(MalterlibWebAppSourceRoot)'))"
+		MalterlibPostCopySources =+ {Pattern: `@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.*`}
+		MalterlibBuildServerPutSources =+ {Pattern: `@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.*`}
+		WebAppBuildDirectory define string = MalterlibWebAppToolBuildDirectory->MakeAbsolute(MalterlibWebAppSourceRoot)
 	}
 	Property
 	{
-		BuildScript ""
-		BuildScript "@('Source/Malterlib_WebApp_BuildMeteor.sh'->MakeAbsolute())"
+		BuildScript define string
+		BuildScript "Source/Malterlib_WebApp_BuildMeteor.sh"->MakeAbsolute()
 		{
 			&
 			{
-				BuildScript ""
+				BuildScript undefined
 				MalterlibWebAppToolType "Meteor"
 			}
 		}
-		BuildScript "@('Source/Malterlib_WebApp_BuildExecutable.sh'->MakeAbsolute())"
+		BuildScript "Source/Malterlib_WebApp_BuildExecutable.sh"->MakeAbsolute()
 		{
 			&
 			{
-				BuildScript ""
+				BuildScript undefined
 				|
 				{
 					MalterlibWebAppToolType "FastCGI"
@@ -37,117 +148,143 @@
 				}
 			}
 		}
-		BuildScript "@('Source/Malterlib_WebApp_BuildNpm.sh'->MakeAbsolute())"
+		BuildScript "Source/Malterlib_WebApp_BuildNpm.sh"->MakeAbsolute()
 		{
 			&
 			{
-				BuildScript ""
+				BuildScript undefined
 				MalterlibWebAppToolType "Npm"
 			}
 		}
-		BuildScript "@('Source/Malterlib_WebApp_BuildStatic.sh'->MakeAbsolute())"
+		BuildScript "Source/Malterlib_WebApp_BuildStatic.sh"->MakeAbsolute()
 		{
 			&
 			{
-				BuildScript ""
+				BuildScript undefined
 				MalterlibWebAppToolType "Static"
 			}
 		}
-		BuildScript "@(MalterlibWebAppCustomBuildScript)"
+		BuildScript MalterlibWebAppCustomBuildScript
 		{
 			&
 			{
-				BuildScript ""
+				BuildScript undefined
+				!MalterlibWebAppCustomBuildScript undefined
 				MalterlibWebAppToolType "Custom"
 			}
 		}
-		BuildScript "@(Error('Missing build script. For custom builds specify with CustomBuildScript_@(MalterlibWebAppToolBuildName)'))"
+		BuildScript Error(`Missing build script. For custom builds specify with CustomBuildScript_@(MalterlibWebAppToolBuildName)`)
 		{
-			!!BuildScript ""
+			!!BuildScript undefined
 		}
 
-		ExcludeFiles "*/.DS_Store;*/.build.*;*/.gitignore;*/.git;*/node_modules;*/.npm;*/build;@(ExcludeFiles)"
-		MalterlibWebAppToolExcludePatterns "@(MalterlibWebAppToolExcludePatterns->Replace('`','*'))"
-		MalterlibWebAppToolExcludePatterns "@(MalterlibWebAppToolExcludePatterns->Replace('´',';'))"
+		ExcludeFiles =+ ["*/.DS_Store", "*/.build.*", "*/.gitignore", "*/.git", "*/node_modules", "*/.npm", "*/build"]
+		ExcludeFiles =+ MalterlibWebAppToolExcludePatterns
 
-		MalterlibWebAppToolDependencies "@(MalterlibWebAppToolDependencies->Replace('´',';'))"
+		OutputDirectory define string = Target.OutputDirectory
 
-		ExcludeFiles "@(MalterlibWebAppToolExcludePatterns);@(ExcludeFiles)"
-		OutputDirectory "@(Target.OutputDirectory)"
-		MeteorCommand "meteor"
+		MeteorCommand define string = "meteor"
+		MeteorCommand "arch -x86_64 meteor"
+		{
+			!!HostPlatformFamily "OSX"
+		}
+
 		MeteorCommand "meteor.bat"
 		{
-			!!PlatformFamily "Windows"
+			!!HostPlatformFamily "Windows"
 		}
+
 		MalterlibExportEnvironmentMinGW true
 
-		Explodee_TargetIdentity "@(GetProperty('Property', 'TargetIdentity', '@(Explodee)'))"
-		Explodee_MatchesDependencies true
-		{
-			|
-			{
-				MalterlibWebAppToolDependencies "@(Explodee_TargetIdentity)"
-				MalterlibWebAppToolDependencies "~*;@(Explodee_TargetIdentity);*"
-				MalterlibWebAppToolDependencies "~*;@(Explodee_TargetIdentity)"
-				MalterlibWebAppToolDependencies "~@(Explodee_TargetIdentity);*"
-				MalterlibWebAppToolDependencies "~*;@(Explodee_TargetIdentity)=*"
-				MalterlibWebAppToolDependencies "~@(Explodee_TargetIdentity)=*"
-			}
-		}
 
-		MalterlibWebAppToolDependenciesFiles_TargetFiles "@(GetProperty('Property', 'MalterlibCloud_VersionUploadSources', '@(Explodee)'))"
+		Target_MatchesDependenciesMatchTargetToMatch define string
 
-		MalterlibWebAppToolDependenciesFiles_Template "@(MalterlibWebAppToolDependenciesFiles_TargetFiles)"
+		Target_MatchesDependenciesMatchTarget function(type(CEntity) _Target) bool = false
+		Target_MatchesDependenciesMatchTarget true
 		{
 			&
 			{
-				!Explodee ""
-				Explodee_MatchesDependencies true
+				Target_MatchesDependenciesMatchTarget undefined
+				true _Target->IsString()
+				Target_MatchesDependenciesMatchTargetToMatch _Target
 			}
 		}
-
-		MalterlibWebAppToolDependenciesFiles "@(ExplodeList('@(Target.Dependencies)', ';', 'MalterlibWebAppToolDependenciesFiles_Template'))"
-
-		FirstDependencyExecutable_TargetExecutable "@(GetProperty('Property', 'TargetExecutable', '@(Explodee)'))"
-		FirstDependencyExecutable_TargetIsLaunchableExecutable "@(GetProperty('Property', 'TargetIsLaunchableExecutable', '@(Explodee)'))"
-
-		FirstDependencyExecutable_Template "@(FirstDependencyExecutable_TargetExecutable)"
+		Target_MatchesDependenciesMatchTarget true
 		{
 			&
 			{
-				!Explodee ""
-				ExplodedValue ""
-				Explodee_MatchesDependencies true
-				FirstDependencyExecutable_TargetIsLaunchableExecutable true
+				Target_MatchesDependenciesMatchTarget undefined
+				true _Target->IsObject()
+				true _Target->HasMember("Properties")
+				true _Target<Properties>->HasMember("Dependency.Target")
+				Target_MatchesDependenciesMatchTargetToMatch _Target<Properties.Dependency\.Target>
+			}
+		}
+		Target_MatchesDependenciesMatchTarget true
+		{
+			&
+			{
+				Target_MatchesDependenciesMatchTarget undefined
+				true _Target->IsObject()
+				true _Target->HasMember("Name")
+				Target_MatchesDependenciesMatchTargetToMatch _Target<Name>
 			}
 		}
 
-		FirstDependencyExecutable "@(Explode('@(Target.Dependencies)', ';', 'FirstDependencyExecutable_Template'))"
+		Target_MatchesDependencies function(string _Target) bool = MalterlibWebAppToolDependencies->ForEach("Target_MatchesDependenciesMatchTarget", {Target_MatchesDependenciesMatchTargetToMatch: GetProperty("Property", "TargetIdentity", _Target)})
+
+		MalterlibWebAppToolDependenciesFiles_Template function(string _Dependency) [type(CFileCopyOptions)] = []
+		MalterlibWebAppToolDependenciesFiles_Template =+ GetProperty("Property", "MalterlibCloud_VersionUploadSources", _Dependency)
+		{
+			&
+			{
+				true Target_MatchesDependencies(_Dependency)
+			}
+		}
+
+		MalterlibWebAppToolDependenciesFilesGetPattern function(type(CFileCopyOptions) _CopyOptions) [string] = []
+		MalterlibWebAppToolDependenciesFilesGetPattern =+ _CopyOptions<Pattern>
+
+		MalterlibWebAppToolDependenciesFiles define string
+		MalterlibWebAppToolDependenciesFiles Target.Dependencies->ForEach("MalterlibWebAppToolDependenciesFiles_Template")->fg_ExpandCopyOptions()->ForEach("MalterlibWebAppToolDependenciesFilesGetPattern")->Join(";")
+
+		FirstDependencyExecutable_Template function(string _Dependency) string?
+		FirstDependencyExecutable_Template GetProperty("Property", "TargetExecutable", _Dependency)
+		{
+			&
+			{
+				FirstDependencyExecutable_Template undefined
+				true Target_MatchesDependencies(_Dependency)
+				true GetProperty("Property", "TargetIsLaunchableExecutable", _Dependency)
+			}
+		}
+
+		FirstDependencyExecutable Target.Dependencies->ForEach("FirstDependencyExecutable_Template")
 	}
 	Target
 	{
 		Type "Tool"
-		BaseName "BuildWebApp_@(MalterlibWebAppManagerName)_@(MalterlibWebAppToolBuildName)"
-		CommandLine_Build "@(BashScriptPrefix)@(BuildScript) Build"
-		CommandLine_ReBuild "@(BashScriptPrefix)@(BuildScript) Rebuild"
-		CommandLine_Clean "@(BashScriptPrefix)@(BuildScript) Clean"
+		BaseName `BuildWebApp_@(MalterlibWebAppManagerName)_@(MalterlibWebAppToolBuildName)`
+		CommandLine_Build `@(BashScriptPrefix)@(BuildScript) Build`
+		CommandLine_ReBuild `@(BashScriptPrefix)@(BuildScript) Rebuild`
+		CommandLine_Clean `@(BashScriptPrefix)@(BuildScript) Clean`
 
-		ExportScriptEnvironment "MeteorCommand;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "OutputDirectory;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "MalterlibWebAppToolBuildName;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "WebAppBuildDirectory;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "MalterlibWebAppMeteorSharedPackages;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "PlatformFamily;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "MalterlibWebAppMeteorCheckedOutPath;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "MalterlibWebAppMeteorDebugBundle;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "MalterlibWebAppNodePackagePath;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "MalterlibWebAppHostNodePackagePath;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "MalterlibWebAppToolDependencies;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "MalterlibWebAppToolDependenciesFiles;@(Target.ExportScriptEnvironment)"
-		ExportScriptEnvironment "NpmBuildType;@(Target.ExportScriptEnvironment)"
+		ExportScriptEnvironment =+ "MeteorCommand"
+		ExportScriptEnvironment =+ "OutputDirectory"
+		ExportScriptEnvironment =+ "MalterlibWebAppToolBuildName"
+		ExportScriptEnvironment =+ "WebAppBuildDirectory"
+		ExportScriptEnvironment =+ "MalterlibWebAppMeteorSharedPackages"
+		ExportScriptEnvironment =+ "PlatformFamily"
+		ExportScriptEnvironment =+ "MalterlibWebAppMeteorCheckedOutPath"
+		ExportScriptEnvironment =+ "MalterlibWebAppMeteorDebugBundle"
+		ExportScriptEnvironment =+ "MalterlibWebAppNodePackagePath"
+		ExportScriptEnvironment =+ "MalterlibWebAppHostNodePackagePath"
+		ExportScriptEnvironment =+ "MalterlibWebAppToolDependencies"
+		ExportScriptEnvironment =+ "MalterlibWebAppToolDependenciesFiles"
+		ExportScriptEnvironment =+ "NpmBuildType"
 
-		Output "@(Builtin.GeneratorStateFile)"
-		Group "WebApp/@(MalterlibWebAppManagerName)/@(MalterlibWebAppToolBuildName)"
+		Output Builtin.GeneratorStateFile
+		Group `WebApp/@(MalterlibWebAppManagerName)/@(MalterlibWebAppToolBuildName)`
 	}
 	%Group "Build"
 	{
@@ -158,18 +295,19 @@
 		&
 		{
 			MalterlibWebAppToolType "Meteor"
-			!MalterlibWebAppMeteorSharedPackages ""
+			!MalterlibWebAppMeteorSharedPackages undefined
 		}
 
-		%File "@(MalterlibWebAppMeteorSharedPackages)/^*"
+		%File `@(MalterlibWebAppMeteorSharedPackages)/^*`
 		{
 		}
 	}
 	%Group "Source"
 	{
 		Compile.AllowNonExisting true
-		Property.ExcludeFiles "*/.meteor/local;@(ExcludeFiles)"
-		%File "@(WebAppBuildDirectory)/^*"
+		Property.ExcludeFiles =+ "*/.meteor/local"
+
+		%File `@(WebAppBuildDirectory)/^*`
 
 		%Group "packages"
 		{
@@ -180,11 +318,11 @@
 				TabWidth 2
 				UsesTabs false
 			}
-			Property.ExcludeFiles "*/tests-proxy;@(ExcludeFiles)"
-			%File "@(WebAppBuildDirectory)/packages/^*"
+			Property.ExcludeFiles =+ "*/tests-proxy"
+			%File WebAppBuildDirectory / "packages/^*"
 		}
 	}
-	%Dependency "@(MalterlibWebAppToolDependencies)"
+	%Dependency MalterlibWebAppToolDependencies
 }
 
 %Target "Lib_Malterlib_WebAppManager"
@@ -192,7 +330,7 @@
 	Property
 	{
 		MalterlibConcurrency_DistributedActors true
-		MalterlibPostCopyProject ""
+		MalterlibPostCopyProject undefined
 		MalterlibTargetNameType "Normal"
 	}
 	Target
@@ -204,8 +342,6 @@
 	Compile
 	{
 		!!CompileDialect "C"
-
-		PreprocessorDefines "@(Compile.PreprocessorDefines)"
 	}
 	%Group "Source"
 	{
@@ -242,35 +378,154 @@
 	}
 }
 
+Type
+{
+	CWebAppManagerEnvironment define {
+		EnvVar: string
+		, ConfigVar: string
+		, Tags?: [one_of(string, [string])]
+		, Default?: string
+	}
+}
+
 Property
 {
-	WebAppManagerEnvironmment "ROOT_URL(Meteor|FastCGI|Websocket|Npm)=RootURL;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "STATIC_ROOT_URL(Meteor|FastCGI|Websocket|Npm)=StaticRootURL;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "PORT(Meteor|FastCGI|Websocket|Npm)=LocalPort|8080;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "PORT_CONCURRENCY(Meteor|FastCGI|Websocket|Npm)=PortConcurrency|1;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "BIND_IP(Meteor|FastCGI|Websocket|Npm)=LocalIP;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "HTTP_FORWARDED_COUNT(Meteor|FastCGI|Websocket|Npm)=HttpForwardedCount|1;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "MAIL_URL(!Staging)=SMTP;@(WebAppManagerEnvironmment)"
+	WebAppManagerEnvironment define [type(CWebAppManagerEnvironment)] = []
 
-	WebAppManagerEnvironmment "BUNDLE_PATH=PackageDirectory;@(WebAppManagerEnvironmment)"
+	WebAppManagerEnvironment =+ {
+		EnvVar: "ROOT_URL"
+		, ConfigVar: "RootURL"
+		, Tags: [["Meteor", "FastCGI", "Websocket", "Npm"]]
+	}
 
-	WebAppManagerEnvironmment "MONGO_URL=MongoURL;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "MONGO_OPLOG_URL=MongoOplogURL;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "MONGO_SSL_CA_FILE=MongoSSLCaFile;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "MONGO_SSL_CLIENT_CERT_FILE=MongoSSLClientCertFile;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "MONGO_SELF_ID=MongoSelfID;@(WebAppManagerEnvironmment)"
+	WebAppManagerEnvironment =+ {
+		EnvVar: "STATIC_ROOT_URL"
+		, ConfigVar: "StaticRootURL"
+		, Tags: [["Meteor", "FastCGI", "Websocket", "Npm"]]
+	}
 
-	WebAppManagerEnvironmment "METEOR_DDP_SELF(Meteor)=DDPSelf;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "METEOR_MANAGER_INSTANCE_ID(Meteor)=ManagerInstanceID;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "METEOR_MANAGER_NODE_INSTANCE_ID(Meteor)=LaunchInstanceID;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "METEOR_MANAGER_NODE_SEQUENCE(Meteor)=LaunchSequence;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "METEOR_MANAGER_BACKEND_IDENTIFIER(Meteor)=BackendIdentifier;@(WebAppManagerEnvironmment)"
+	WebAppManagerEnvironment =+ {
+		EnvVar: "PORT"
+		, ConfigVar: "LocalPort"
+		, Default: "8080"
+		, Tags: [["Meteor", "FastCGI", "Websocket", "Npm"]]
+	}
 
-	WebAppManagerEnvironmment "WEB_APP_MANAGER_DNS_SELF(!Meteor)=DDPSelf;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "WEB_APP_MANAGER_INSTANCE_ID(!Meteor)=ManagerInstanceID;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "WEB_APP_MANAGER_LAUNCH_INSTANCE_ID(!Meteor)=LaunchInstanceID;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "WEB_APP_MANAGER_LAUNCH_SEQUENCE(!Meteor)=LaunchSequence;@(WebAppManagerEnvironmment)"
-	WebAppManagerEnvironmment "WEB_APP_MANAGER_BACKEND_IDENTIFIER(!Meteor)=BackendIdentifier;@(WebAppManagerEnvironmment)"
+	WebAppManagerEnvironment =+ {
+		EnvVar: "PORT_CONCURRENCY"
+		, ConfigVar: "PortConcurrency"
+		, Default: "1"
+		, Tags: [["Meteor", "FastCGI", "Websocket", "Npm"]]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "BIND_IP"
+		, ConfigVar: "LocalIP"
+		, Tags: [["Meteor", "FastCGI", "Websocket", "Npm"]]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "HTTP_FORWARDED_COUNT"
+		, ConfigVar: "HttpForwardedCount"
+		, Default: "1"
+		, Tags: [["Meteor", "FastCGI", "Websocket", "Npm"]]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "MAIL_URL"
+		, ConfigVar: "SMTP"
+		, Tags: ["!Staging"]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "BUNDLE_PATH"
+		, ConfigVar: "PackageDirectory"
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "MONGO_URL"
+		, ConfigVar: "MongoURL"
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "MONGO_OPLOG_URL="
+		, ConfigVar: "MongoOplogURL"
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "MONGO_SSL_CA_FILE="
+		, ConfigVar: "MongoSSLCaFile"
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "MONGO_SSL_CLIENT_CERT_FILE"
+		, ConfigVar: "MongoSSLClientCertFile"
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "MONGO_SELF_ID="
+		, ConfigVar: "MongoSelfID"
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "METEOR_DDP_SELF"
+		, ConfigVar: "DDPSelf"
+		, Tags: ["Meteor"]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "METEOR_MANAGER_INSTANCE_ID"
+		, ConfigVar: "ManagerInstanceID"
+		, Tags: ["Meteor"]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "METEOR_MANAGER_NODE_INSTANCE_ID"
+		, ConfigVar: "LaunchInstanceID"
+		, Tags: ["Meteor"]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "METEOR_MANAGER_NODE_SEQUENCE"
+		, ConfigVar: "LaunchSequence"
+		, Tags: ["Meteor"]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "METEOR_MANAGER_BACKEND_IDENTIFIER"
+		, ConfigVar: "BackendIdentifier"
+		, Tags: ["Meteor"]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "WEB_APP_MANAGER_DNS_SELF"
+		, ConfigVar: "DDPSelf"
+		, Tags: ["!Meteor"]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "WEB_APP_MANAGER_INSTANCE_ID"
+		, ConfigVar: "ManagerInstanceID"
+		, Tags: ["!Meteor"]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "WEB_APP_MANAGER_LAUNCH_INSTANCE_ID"
+		, ConfigVar: "LaunchInstanceID"
+		, Tags: ["!Meteor"]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "WEB_APP_MANAGER_LAUNCH_SEQUENCE"
+		, ConfigVar: "LaunchSequence"
+		, Tags: ["!Meteor"]
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "WEB_APP_MANAGER_BACKEND_IDENTIFIER"
+		, ConfigVar: "BackendIdentifier"
+		, Tags: ["!Meteor"]
+	}
 }
 
 %Target "Malterlib_WebApp_WebAppManager"
@@ -278,29 +533,23 @@ Property
 	Property
 	{
 		ProductName "Malterlib WebApp Manager"
-		ProductName "@(MalterlibWebAppManagerProductName)"
+		ProductName MalterlibWebAppManagerProductName
 		{
-			!MalterlibWebAppManagerProductName ""
+			!MalterlibWebAppManagerProductName undefined
 		}
 		MalterlibTestApp true
 		MalterlibPostCopyProject "Malterlib_WebApp_WebAppManager"
 		{
-			!!MalterlibPostCopyProject ""
+			!!MalterlibPostCopyProject undefined
 		}
-		MalterlibLinkWithOpenSSL true
 		MalterlibConcurrency_DistributedActors true
 		MalterlibTargetNameType "Normal"
-
-		MalterlibWebAppManagerUserNamePrefix "mib_"
-		{
-			!!MalterlibWebAppManagerUserNamePrefix ""
-		}
 
 		MalterlibWebAppManagerPrefix "WebAppManager_"
 		{
 			&
 			{
-				MalterlibWebAppManagerPrefix ""
+				MalterlibWebAppManagerPrefix undefined
 				!MalterlibWebAppManagerPrefix "Empty"
 			}
 		}
@@ -309,96 +558,90 @@ Property
 			!!MalterlibWebAppManagerPrefix "Empty"
 		}
 
-		MalterlibWebAppManagerDaemonName "@(Error('Use MalterlibWebAppManagerDaemonName instead'))"
-		{
-			!MalterlibWebAppManagerServiceName ""
-		}
-
-		MalterlibWebAppManagerDaemonName "MalterlibWebAppManager_@(MalterlibWebAppManagerName)"
+		MalterlibWebAppManagerDaemonName define string
+		MalterlibWebAppManagerDaemonName `MalterlibWebAppManager_@(MalterlibWebAppManagerName)`
 		{
 			&
 			{
-				MalterlibWebAppManagerDaemonName ""
+				MalterlibWebAppManagerDaemonName undefined
 				MalterlibWebAppManagerPrefix "WebAppManager_"
 			}
 		}
-		MalterlibWebAppManagerDaemonName "@(MalterlibWebAppManagerPrefix)@(MalterlibWebAppManagerName)"
+		MalterlibWebAppManagerDaemonName `@(MalterlibWebAppManagerPrefix)@(MalterlibWebAppManagerName)`
 		{
-			!!MalterlibWebAppManagerDaemonName ""
+			!!MalterlibWebAppManagerDaemonName undefined
 		}
 
-		MalterlibWebAppManagerDescription "Malterlib Web App Manager (@(MalterlibWebAppManagerName))"
-		{
-			!!MalterlibWebAppManagerDescription ""
-		}
+		MalterlibWebAppManagerDescription define string = `Malterlib Web App Manager (@(MalterlibWebAppManagerName))`
 
-		MalterlibCloudVersionInfo_Application "@(MalterlibWebAppManagerPrefix->Replace('_','-'))@(MalterlibWebAppManagerName)"
-		MalterlibCloudVersionInfo_Executable "@(MalterlibWebAppManagerPrefix)@(MalterlibWebAppManagerName)"
+		MalterlibCloudVersionInfo_Application `@(MalterlibWebAppManagerPrefix->Replace("_", "-"))@(MalterlibWebAppManagerName)`
+		MalterlibCloudVersionInfo_Executable `@(MalterlibWebAppManagerPrefix)@(MalterlibWebAppManagerName)`
 		MalterlibCloud_EnableVersionUpload true
 
 		MalterlibDoExeFS true
 
-		WebAppManagerCopySources "@('Source/Malterlib_WebApp_App_WebAppManager_OSSetup.sh'->MakeAbsolute())|Source;@(WebAppManagerCopySources)"
-		WebAppManagerCopySources "@('Source/Malterlib_WebApp_App_WebAppManager_Nginx.conf'->MakeAbsolute())|Source;@(WebAppManagerCopySources)"
-		WebAppManagerCopySources "@('Source/Malterlib_WebApp_App_WebAppManager_FastCGI.conf'->MakeAbsolute())|Source;@(WebAppManagerCopySources)"
-		WebAppManagerCopySources "@(WebAppManagerMongoDatabaseSetupScript)|Source;@(WebAppManagerCopySources)"
+		WebAppManagerCopySources define [type(CFileCopyOptions)] = []
+		WebAppManagerCopySources =+ {Pattern: "Source/Malterlib_WebApp_App_WebAppManager_OSSetup.sh"->MakeAbsolute(), Destination: "Source"}
+		WebAppManagerCopySources =+ {Pattern: "Source/Malterlib_WebApp_App_WebAppManager_Nginx.conf"->MakeAbsolute(), Destination: "Source"}
+		WebAppManagerCopySources =+ {Pattern: "Source/Malterlib_WebApp_App_WebAppManager_FastCGI.conf"->MakeAbsolute(), Destination: "Source"}
+		WebAppManagerCopySources =+ {Pattern: WebAppManagerMongoDatabaseSetupScript, Destination: "Source"}
 		{
-			!WebAppManagerMongoDatabaseSetupScript ""
+			!WebAppManagerMongoDatabaseSetupScript undefined
 		}
 
-		MalterlibExeFSExtraFiles "@(WebAppManagerCopySources);@(MalterlibExeFSExtraFiles)"
+		MalterlibExeFSExtraFiles =+ WebAppManagerCopySources
 		{
-			!WebAppManagerCopySources ""
+			!WebAppManagerCopySources undefined
 		}
-		MalterlibExeFSExtraFiles "@(NodeBinariesPath)/*;@(MalterlibExeFSExtraFiles)"
+		MalterlibExeFSExtraFiles =+ {Pattern: `@(NodeBinariesPath)/*`}
 		{
 			&
 			{
-				!NodeBinariesPath ""
-				!BuildNeedNodeBinaries ""
+				!NodeBinariesPath undefined
+				BuildNeedNodeBinaries true
 			}
 		}
 
-		MalterlibWebAppNodePackagePath "@(NodeBinariesPath->FindFilesIn('*.tar.gz'))"
+		MalterlibWebAppNodePackagePath NodeBinariesPath->FindFilesIn("*.tar.gz")
 		{
 			&
 			{
-				MalterlibWebAppNodePackagePath ""
-				!NodeBinariesPath ""
+				MalterlibWebAppNodePackagePath undefined
+				!NodeBinariesPath undefined
 			}
 		}
-		MalterlibWebAppHostNodePackagePath "@(NodeHostBinariesPath->FindFilesIn('*.tar.gz'))"
+		MalterlibWebAppHostNodePackagePath NodeHostBinariesPath->FindFilesIn("*.tar.gz")
 		{
 			&
 			{
-				MalterlibWebAppHostNodePackagePath ""
-				!NodeHostBinariesPath ""
+				MalterlibWebAppHostNodePackagePath undefined
+				!NodeHostBinariesPath undefined
 			}
 		}
 
-		MalterlibWebAppSettingsPath "@(GeneratedDirectory)WebAppSettings.json"
+		MalterlibWebAppSettingsPath define string = GeneratedDirectory / "WebAppSettings.json"
 	}
 	Target
 	{
-		BaseName "@(MalterlibWebAppManagerPrefix)@(MalterlibWebAppManagerName)"
-		DebuggerCommandArguments "--daemon-run-debug"
-		BaseFileName "@(MalterlibWebAppManagerPrefix)@(MalterlibWebAppManagerName)"
-		Group "WebApp/@(MalterlibWebAppManagerName)"
-		ExtraGroups "{Malterlib}/{CloudTarBinaries};@(Target.ExtraGroups)"
+		BaseName `@(MalterlibWebAppManagerPrefix)@(MalterlibWebAppManagerName)`
+		DebuggerCommandArguments ["--daemon-run-debug"]
+		BaseFileName `@(MalterlibWebAppManagerPrefix)@(MalterlibWebAppManagerName)`
+		Group "WebApp" / MalterlibWebAppManagerName
+		ExtraGroups =+ "{Malterlib}/{CloudTarBinaries}"
 	}
 	Compile
 	{
 		!!CompileDialect "C"
 
-		PrefixHeader "@('Source/Malterlib_WebApp_App_WebAppManager_Server.h'->MakeAbsolute())"
+		PrefixHeader "Source/Malterlib_WebApp_App_WebAppManager_Server.h"->MakeAbsolute()
 
-		PreprocessorDefines "DMibWebAppManager_ManagerName=\"@(MalterlibWebAppManagerName)\";@(Compile.PreprocessorDefines)"
-		PreprocessorDefines "DMibWebAppManager_ManagerDescription=\"@(MalterlibWebAppManagerDescription)\";@(Compile.PreprocessorDefines)"
-		PreprocessorDefines "DMibWebAppManager_SettingsPath=\"@(MalterlibWebAppSettingsPath)\";@(Compile.PreprocessorDefines)"
-		PreprocessorDefines "DMibWebAppManager_ManagerDaemonName=\"@(MalterlibWebAppManagerDaemonName)\";@(Compile.PreprocessorDefines)"
-		PreprocessorDefines "DMibWebAppManager_UseInternalNode;@(Compile.PreprocessorDefines)"
+		PreprocessorDefines += `DMibWebAppManager_ManagerName="@(MalterlibWebAppManagerName)"`
+		PreprocessorDefines += `DMibWebAppManager_ManagerDescription="@(MalterlibWebAppManagerDescription)"`
+		PreprocessorDefines += `DMibWebAppManager_SettingsPath="@(MalterlibWebAppSettingsPath)"`
+		PreprocessorDefines += `DMibWebAppManager_ManagerDaemonName="@(MalterlibWebAppManagerDaemonName)"`
+		PreprocessorDefines += "DMibWebAppManager_UseInternalNode"
 		{
-			!NodeBinariesPath ""
+			!NodeBinariesPath undefined
 		}
 	}
 	%Group "Source"
@@ -406,13 +649,16 @@ Property
 		%File "Source/Main.cpp"
 		%File "Source/Malterlib_WebApp_App_WebAppManager_Server_DefaultCustomize.cpp"
 		{
-			!!WebAppManagerCustomizationFile ""
+			!!WebAppManagerCustomizationFile undefined
 		}
-		%File "@(WebAppManagerCustomizationFile)"
+		%File WebAppManagerCustomizationFile
 		{
-			!WebAppManagerCustomizationFile ""
+			!WebAppManagerCustomizationFile undefined
 		}
-		%File "@(WebAppManagerExtraSources)"
+		%File WebAppManagerExtraSources
+		{
+			!WebAppManagerExtraSources undefined
+		}
 	}
 	%Group "Settings"
 	{
@@ -420,598 +666,408 @@ Property
 		{
 			Property
 			{
-				Empty ""
-
 				WebAppManagerMongoDefaultReplicaName "DefaultReplica"
 				{
-					!!WebAppManagerMongoDefaultReplicaName ""
+					!!WebAppManagerMongoDefaultReplicaName undefined
 				}
 
-				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~*;@(Explodee);*" }
-				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~*;@(Explodee);*" }
-				BuildPackageType "Static" { !!BuildPackageNames_Static "~*;@(Explodee);*" }
-				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~*;@(Explodee);*" }
-				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "~*;@(Explodee);*" }
-				BuildPackageType "Websocket" { !!BuildPackageNames_Websocket "~*;@(Explodee);*" }
-
-				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~@(Explodee);*" }
-				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~@(Explodee);*" }
-				BuildPackageType "Static" { !!BuildPackageNames_Static "~@(Explodee);*" }
-				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~@(Explodee);*" }
-				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "~@(Explodee);*" }
-				BuildPackageType "Websocket" { !!BuildPackageNames_Websocket "~@(Explodee);*" }
-
-				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "~*;@(Explodee)" }
-				BuildPackageType "Npm" { !!BuildPackageNames_Npm "~*;@(Explodee)" }
-				BuildPackageType "Static" { !!BuildPackageNames_Static "~*;@(Explodee)" }
-				BuildPackageType "Custom" { !!BuildPackageNames_Custom "~*;@(Explodee)" }
-				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "~*;@(Explodee)" }
-				BuildPackageType "Websocket" { !!BuildPackageNames_Websocket "~*;@(Explodee)" }
-
-				BuildPackageType "Meteor" { !!BuildPackageNames_Meteor "@(Explodee)" }
-				BuildPackageType "Npm" { !!BuildPackageNames_Npm "@(Explodee)" }
-				BuildPackageType "Static" { !!BuildPackageNames_Static "@(Explodee)" }
-				BuildPackageType "Custom" { !!BuildPackageNames_Custom "@(Explodee)" }
-				BuildPackageType "FastCGI" { !!BuildPackageNames_FastCGI "@(Explodee)" }
-				BuildPackageType "Websocket" { !!BuildPackageNames_Websocket "@(Explodee)" }
-
-				BuildPackageType "@(Error('Package type could not be deduced for: @(Explodee)'))"
+				BuildPackageType function(string _PackageName) string
+				BuildPackageType "Meteor"
 				{
-					!!BuildPackageType ""
+					!!BuildPackageNames_Meteor->ContainsListElement(_PackageName) true
+				}
+				BuildPackageType "Npm"
+				{
+					!!BuildPackageNames_Npm->ContainsListElement(_PackageName) true
+				}
+				BuildPackageType "Static"
+				{
+					!!BuildPackageNames_Static->ContainsListElement(_PackageName) true
+				}
+				BuildPackageType "Custom"
+				{
+					!!BuildPackageNames_Custom->ContainsListElement(_PackageName) true
+				}
+				BuildPackageType "FastCGI"
+				{
+					!!BuildPackageNames_FastCGI->ContainsListElement(_PackageName) true
+				}
+				BuildPackageType "Websocket"
+				{
+					!!BuildPackageNames_Websocket->ContainsListElement(_PackageName) true
 				}
 
-				ToolTargetIdentifier "Group:WebApp.Group:@(MalterlibWebAppManagerName).Group:@(Explodee).Target:Tool_Malterlib_BuildWebApp.Target:Tool_Malterlib_BuildWebApp"
+				BuildPackageType Error(`Package type could not be deduced for: @(_PackageName)`)
+				{
+					!!BuildPackageType undefined
+				}
 
-				CustomExecutable "@(Executable_@(Explodee))"
-				CustomExecutable "@(GetProperty('Property', 'FirstDependencyExecutable', '@(ToolTargetIdentifier)'))"
+				CustomExecutable function(string _PackageName) string?
+				CustomExecutable IsDefined(`Executable_@(_PackageName)`) ? Executable_@(_PackageName) : undefined
+				CustomExecutable GetProperty("Property", "FirstDependencyExecutable", `Group:WebApp.Group:@(MalterlibWebAppManagerName).Group:@(_PackageName).Target:Tool_Malterlib_BuildWebApp.Target:Tool_Malterlib_BuildWebApp`)
 				{
 					&
 					{
-						CustomExecutable ""
+						CustomExecutable undefined
 						|
 						{
-							BuildPackageType "FastCGI"
-							BuildPackageType "Websocket"
+							BuildPackageType(_PackageName) "FastCGI"
+							BuildPackageType(_PackageName) "Websocket"
 						}
 					}
 				}
 
-				CustomParams "@(Params_@(Explodee))"
-				CustomParams "--daemon-run-standalone"
+				CustomParams function(string _PackageName) [string]?
+				CustomParams IsDefined(`Params_@(_PackageName)`) ? Params_@(_PackageName) : undefined
+				CustomParams ["--daemon-run-standalone"]
 				{
 					&
 					{
-						CustomParams ""
+						CustomParams undefined
 						|
 						{
-							BuildPackageType "FastCGI"
-							BuildPackageType "Websocket"
+							BuildPackageType(_PackageName) "FastCGI"
+							BuildPackageType(_PackageName) "Websocket"
 						}
 					}
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"Type\": \"@(BuildPackageType)\",\n"
-
-
-				PackageSettings	"@(PackageSettings)"\
-								"			\"MemoryPerNode\": @(MemoryPerNode_@(Explodee)),\n"
-				{
-					!Empty "@(MemoryPerNode_@(Explodee))"
+				PackageSettings function(string _PackageName) {...: any} = {
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"Concurrency\": @(Concurrency_@(Explodee)),\n"
+				PackageSettings	=+ {Type: BuildPackageType(_PackageName)}
+				PackageSettings	=+ {MemoryPerNode: MemoryPerNode_@(_PackageName)}
 				{
-					!Empty "@(Concurrency_@(Explodee))"
+					!!true IsDefined(`MemoryPerNode_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"PortConcurrency\": @(PortConcurrency_@(Explodee)),\n"
+				PackageSettings	=+ {Concurrency: Concurrency_@(_PackageName)}
 				{
-					!Empty "@(PortConcurrency_@(Explodee))"
+					!!true IsDefined(`Concurrency_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"CustomExecutable\": \"@(CustomExecutable)\",\n"
+				PackageSettings	=+ {PortConcurrency: PortConcurrency_@(_PackageName)}
 				{
-					!Empty "@(CustomExecutable)"
+					!!true IsDefined(`PortConcurrency_@(_PackageName)`)
 				}
 
-				Params_Template	"\"@(Explodee)\", "
+				PackageSettings	=+ {CustomExecutable: CustomExecutable(_PackageName)}
 				{
-					!Explodee ""
+					!CustomExecutable(_PackageName) undefined
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"CustomParams\": [@(Builtin.Function->ExplodeList('@(CustomParams)', ';', 'Params_Template'))],\n"
+				PackageSettings	=+ {CustomParams: CustomParams(_PackageName)}
 				{
-					!Empty "@(CustomParams)"
+					!CustomParams(_PackageName) undefined
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"StaticPath\": \"@(StaticPath_@(Explodee))\",\n"
+				PackageSettings	=+ {StaticPath: StaticPath_@(_PackageName)}
 				{
-					!Empty "@(StaticPath_@(Explodee))"
+					!!true IsDefined(`StaticPath_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"UploadS3\": @(UploadS3_@(Explodee)),\n"
+				PackageSettings	=+ {UploadS3: UploadS3_@(_PackageName)}
 				{
-					!Empty "@(UploadS3_@(Explodee))"
+					!!true IsDefined(`UploadS3_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"UploadS3Prefix\": \"@(UploadS3Prefix_@(Explodee))\",\n"
+				PackageSettings	=+ {UploadS3Prefix: UploadS3Prefix_@(_PackageName)}
 				{
-					!Empty "@(UploadS3Prefix_@(Explodee))"
+					!!true IsDefined(`UploadS3Prefix_@(_PackageName)`)
 				}
 
-				UploadS3Priority_Template_Expand "				\"@(Expand0)\": @(Expand1),\n"
-				UploadS3Priority_Template	"@(Builtin.Function->ExpandList('@(Explodee)', '>', 'UploadS3Priority_Template_Expand'))"
+				CheckWebAppManagerUploadS3Priority function(type(CWebAppManagerUploadS3Priority) _Priorities) type(CWebAppManagerUploadS3Priority) = _Priorities
+
+				PackageSettings	=+ {UploadS3Priority: CheckWebAppManagerUploadS3Priority(UploadS3Priority_@(_PackageName))}
 				{
-					!Explodee ""
-				}
-				PackageSettings	"@(PackageSettings)"\
-								"			\"UploadS3Priority\": {\n"\
-								"@(Builtin.Function->ExplodeList('@(UploadS3Priority_@(Explodee))', ';', 'UploadS3Priority_Template'))"\
-								"			},\n"
-				{
-					!Empty "@(UploadS3Priority_@(Explodee))"
+					!!true IsDefined(`UploadS3Priority_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"ExternalRoot\": \"@(ExternalRoot_@(Explodee))\",\n"
+				PackageSettings	=+ {ExternalRoot: ExternalRoot_@(_PackageName)}
 				{
-					!Empty "@(ExternalRoot_@(Explodee))"
+					!!true IsDefined(`ExternalRoot_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"SeparateUser\": @(SeparateUser_@(Explodee)),\n"
+				PackageSettings	=+ {SeparateUser: SeparateUser_@(_PackageName)}
 				{
-					!Empty "@(SeparateUser_@(Explodee))"
+					!!true IsDefined(`SeparateUser_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"OwnPackageDirectory\": @(OwnPackageDirectory_@(Explodee)),\n"
+				PackageSettings	=+ {OwnPackageDirectory: OwnPackageDirectory_@(_PackageName)}
 				{
-					!Empty "@(OwnPackageDirectory_@(Explodee))"
+					!!true IsDefined(`OwnPackageDirectory_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"AllowRobots\": @(AllowRobots_@(Explodee)),\n"
+				PackageSettings	=+ {AllowRobots: AllowRobots_@(_PackageName)}
 				{
-					!Empty "@(AllowRobots_@(Explodee))"
+					!!true IsDefined(`AllowRobots_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"NpmBuildType\": \"@(NpmBuildType_@(Explodee))\",\n"
+				PackageSettings	=+ {NpmBuildType: NpmBuildType_@(_PackageName)}
 				{
-					!Empty "@(NpmBuildType_@(Explodee))"
+					!!true IsDefined(`NpmBuildType_@(_PackageName)`)
 				}
 
-				StartupDependencies_Template	"\"@(Explodee)\", "
+				CheckIsStringArray function([string] _Dependencies) [string] = _Dependencies
+
+				PackageSettings	=+ {StartupDependencies: CheckIsStringArray(StartDependencies_@(_PackageName))}
 				{
-					!Explodee ""
+					!!true IsDefined(`StartDependencies_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"StartupDependencies\": [@(Builtin.Function->ExplodeList('@(StartDependencies_@(Explodee))', ';', 'StartupDependencies_Template'))],\n"
+				PackageSettings	=+ {ExcludeGzipPatterns: CheckIsStringArray(ExcludeGzipPatterns_@(_PackageName))}
 				{
-					!Empty "@(StartDependencies_@(Explodee))"
+					!!true IsDefined(`ExcludeGzipPatterns_@(_PackageName)`)
 				}
 
-				ExcludeGzipPatterns_Template	"\"@(Explodee)\", "
+				CheckWebAppManagerRedirects function([type(CWebAppManagerRedirect)] _Redirects) [type(CWebAppManagerRedirect)] = _Redirects
+
+				PackageSettings	=+ {RedirectsTemporary: CheckWebAppManagerRedirects(RedirectsTemporary_@(_PackageName))}
 				{
-					!Explodee ""
+					!!true IsDefined(`RedirectsTemporary_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"ExcludeGzipPatterns\": [@(Builtin.Function->ExplodeList('@(ExcludeGzipPatterns_@(Explodee))', ';', 'ExcludeGzipPatterns_Template'))],\n"
+				PackageSettings	=+ {RedirectsPermanent: CheckWebAppManagerRedirects(RedirectsPermanent_@(_PackageName))}
 				{
-					!Empty "@(ExcludeGzipPatterns_@(Explodee))"
+					!!true IsDefined(`RedirectsPermanent_@(_PackageName)`)
 				}
 
-				Redirects_Template_Expand	"				{\"From\": \"@(Expand0)\", \"To\": \"@(Expand1)\"},\n"
+				CheckWebAppManagerAlternateSources function([type(CWebAppManagerAlternateSource)] _Sources) [type(CWebAppManagerAlternateSource)] = _Sources
 
-				Redirects_Template	"@(Builtin.Function->ExpandList('@(Explodee)', '=', 'Redirects_Template_Expand'))"
+				PackageSettings	=+ {AlternateSources: CheckWebAppManagerAlternateSources(AlternateSources_@(_PackageName))}
 				{
-					!Explodee ""
+					!!true IsDefined(`AlternateSources_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"RedirectsTemporary\": [\n@(Builtin.Function->ExplodeList('@(RedirectsTemporary_@(Explodee))', ';', 'Redirects_Template'))			],\n"
+				PackageSettings	=+ {DomainPrefix: DomainPrefix_@(_PackageName)}
 				{
-					!Empty "@(RedirectsTemporary_@(Explodee))"
+					!!true IsDefined(`DomainPrefix_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"RedirectsPermanent\": [\n@(Builtin.Function->ExplodeList('@(RedirectsPermanent_@(Explodee))', ';', 'Redirects_Template'))			],\n"
+				PackageSettings	=+ {SubPath: SubPath_@(_PackageName)}
 				{
-					!Empty "@(RedirectsPermanent_@(Explodee))"
+					!!true IsDefined(`SubPath_@(_PackageName)`)
 				}
 
-				AlternateSources_Template_Expand	"				{\"Pattern\": \"@(Expand0)\", \"Destination\": \"@(Expand1)\", \"Search\": \"@(Expand2)\", \"Replace\": \"@(Expand3)\"},\n"
-
-				AlternateSources_Template	"@(Builtin.Function->ExpandList('@(Explodee)', '=', 'AlternateSources_Template_Expand'))"
+				PackageSettings	=+ {RedirectsFile: RedirectsFile_@(_PackageName)}
 				{
-					!Explodee ""
+					!!true IsDefined(`RedirectsFile_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"AlternateSources\": [\n@(Builtin.Function->ExplodeList('@(AlternateSources_@(Explodee))', ';', 'AlternateSources_Template'))			],\n"
+				PackageSettings	=+ {StickyCookie: StickyCookie_@(_PackageName)}
 				{
-					!Empty "@(AlternateSources_@(Explodee))"
+					!!true IsDefined(`StickyCookie_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"DomainPrefix\": \"@(DomainPrefix_@(Explodee))\",\n"
+				PackageSettings	=+ {StickyHeader: StickyHeader_@(_PackageName)}
 				{
-					!Empty "@(DomainPrefix_@(Explodee))"
+					!!true IsDefined(`StickyHeader_@(_PackageName)`)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"SubPath\": \"@(SubPath_@(Explodee))\",\n"
-				{
-					!Empty "@(SubPath_@(Explodee))"
+				PackageSettings_Template function(string _PackageName) {...: any}
+				PackageSettings_Template =+ {
+					`@(_PackageName)`: PackageSettings(_PackageName)
 				}
 
-				PackageSettings	"@(PackageSettings)"\
-								"			\"RedirectsFile\": \"@(RedirectsFile_@(Explodee))\",\n"
+				WebAppSettingsMongo define {...: any} = {}
+
+				WebAppSettingsMongo =+ {Directory: WebAppManagerMongoDirectory}
 				{
-					!Empty "@(RedirectsFile_@(Explodee))"
+					!WebAppManagerMongoDirectory undefined
 				}
-
-				PackageSettings	"@(PackageSettings)"\
-								"			\"StickyCookie\": \"@(StickyCookie_@(Explodee))\",\n"
+				WebAppSettingsMongo =+ {Host: WebAppManagerMongoHost}
 				{
-					!Empty "@(StickyCookie_@(Explodee))"
+					!WebAppManagerMongoHost undefined
 				}
-
-				PackageSettings	"@(PackageSettings)"\
-								"			\"StickyHeader\": \"@(StickyHeader_@(Explodee))\",\n"
+				WebAppSettingsMongo =+ {Port: WebAppManagerMongoPort}
 				{
-					!Empty "@(StickyHeader_@(Explodee))"
+					!WebAppManagerMongoPort undefined
 				}
-
-
-				PackageSettings_Template	"		\"@(Explodee)\": {\n"\
-											"@(PackageSettings)"\
-											"		},\n"
+				WebAppSettingsMongo =+ {ToolsUser: WebAppManagerMongoToolsUser}
 				{
-					!Explodee ""
+					!WebAppManagerMongoToolsUser undefined
 				}
-
-				Name "@(MalterlibWebAppSettingsPath)"
-
-
-				Contents	"R\"-----(\n"\
-							"{\n"\
-							"	\"Packages\": {\n"
-
-				Contents	"@(Contents)"\
-							"@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'PackageSettings_Template'))"\
-							"	},\n"
-
-				AllowRobots_Template	"\"@(Explodee)\", "
+				WebAppSettingsMongo =+ {ToolsGroup: WebAppManagerMongoToolsGroup}
 				{
-					!Explodee ""
+					!WebAppManagerMongoToolsGroup undefined
 				}
-
-				Contents	"@(Contents)"\
-							"	\"AllowRobotsAllow\": ["
-
-				Contents	"@(Contents)"\
-							"@(Builtin.Function->ExplodeList('@(WebAppManagerAllowRobotsAllow)', ';', 'AllowRobots_Template'))],\n"
-
-				Contents	"@(Contents)"\
-							"	\"AllowRobotsDisallow\": ["
-
-				Contents	"@(Contents)"\
-							"@(Builtin.Function->ExplodeList('@(WebAppManagerAllowRobotsDisallow)', ';', 'AllowRobots_Template'))],\n"
-
-				Contents	"@(Contents)"\
-							"	\"AllowRobots\": @(WebAppManagerAllowRobots),\n"
+				WebAppSettingsMongo =+ {SSLDirectory: WebAppManagerMongoSSLDirectory}
 				{
-					!WebAppManagerAllowRobots ""
+					!WebAppManagerMongoSSLDirectory undefined
 				}
-
-				Contents	"@(Contents)"\
-							"	\"AllowRobotsSitemap\": \"@(WebAppManagerAllowRobotsSitemap)\",\n"
+				WebAppSettingsMongo =+ {DatabaseSetupScript: WebAppManagerMongoDatabaseSetupScript->GetFile()}
 				{
-					!WebAppManagerAllowRobotsSitemap ""
+					!WebAppManagerMongoDatabaseSetupScript undefined
 				}
-
-				Contents	"@(Contents)"\
-							"	\"Mongo\": {\n"
-
-				Contents	"@(Contents)"\
-							"		\"Directory\": \"@(WebAppManagerMongoDirectory)\",\n"
+				WebAppSettingsMongo =+ {DefaultReplicaName: WebAppManagerMongoDefaultReplicaName}
 				{
-					!WebAppManagerMongoDirectory ""
+					!WebAppManagerMongoDefaultReplicaName undefined
 				}
-				Contents	"@(Contents)"\
-							"		\"Host\": \"@(WebAppManagerMongoHost)\",\n"
+				WebAppSettingsMongo =+ {DefaultDatabase: WebAppManagerMongoDefaultDatabase}
 				{
-					!WebAppManagerMongoHost ""
+					!WebAppManagerMongoDefaultDatabase undefined
 				}
-				Contents	"@(Contents)"\
-							"		\"Port\": @(WebAppManagerMongoPort),\n"
-				{
-					!WebAppManagerMongoHost ""
-				}
-				Contents	"@(Contents)"\
-							"		\"ToolsUser\": \"@(WebAppManagerMongoToolsUser)\",\n"
-				{
-					!WebAppManagerMongoToolsUser ""
-				}
-				Contents	"@(Contents)"\
-							"		\"ToolsGroup\": \"@(WebAppManagerMongoToolsGroup)\",\n"
-				{
-					!WebAppManagerMongoToolsGroup ""
-				}
-				Contents	"@(Contents)"\
-							"		\"SSLDirectory\": \"@(WebAppManagerMongoSSLDirectory)\",\n"
-				{
-					!WebAppManagerMongoSSLDirectory ""
-				}
-				Contents	"@(Contents)"\
-							"		\"DatabaseSetupScript\": \"@(WebAppManagerMongoDatabaseSetupScript->GetFile())\",\n"
-				{
-					!WebAppManagerMongoDatabaseSetupScript ""
-				}
-				Contents	"@(Contents)"\
-							"		\"DefaultReplicaName\": \"@(WebAppManagerMongoDefaultReplicaName)\",\n"
-				{
-					!WebAppManagerMongoDefaultReplicaName ""
-				}
-				Contents	"@(Contents)"\
-							"		\"DefaultDatabase\": \"@(WebAppManagerMongoDefaultDatabase)\",\n"
-				{
-					!WebAppManagerMongoDefaultDatabase ""
-				}
-				Contents	"@(Error('You need to specify WebAppManagerMongoDefaultDatabase'))"
+				WebAppSettingsMongo =+ Error("You need to specify WebAppManagerMongoDefaultDatabase when MeteorBuilds are defined")
 				{
 					&
 					{
-						WebAppManagerMongoDefaultDatabase ""
-						!MeteorBuilds ""
+						WebAppManagerMongoDefaultDatabase undefined
+						!MeteorBuilds undefined
 					}
 				}
+				WebAppSettingsContentSecurity define {...:any} = {}
 
-				Contents	"@(Contents)"\
-							"	},\n"
-
-				Contents	"@(Contents)"\
-							"	\"LoopbackPrefix\": @(WebAppManagerLoopbackPrefix),\n"
+				WebAppSettingsContentSecurity =+ {ScriptSrc: ContentSecurity_ScriptSrc}
 				{
-					!WebAppManagerLoopbackPrefix ""
+					!ContentSecurity_ScriptSrc undefined
 				}
-				Contents	"@(Contents)"\
-							"	\"SaveUserPasswords\": @(WebAppManagerSaveUserPasswords),\n"
+
+				WebAppSettingsContentSecurity =+ {ImgSrc: ContentSecurity_ImgSrc}
+				{
+					!ContentSecurity_ImgSrc undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {MediaSrc: ContentSecurity_MediaSrc}
+				{
+					!ContentSecurity_MediaSrc undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {FontSrc: ContentSecurity_FontSrc}
+				{
+					!ContentSecurity_FontSrc undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {StyleSrc: ContentSecurity_StyleSrc}
+				{
+					!ContentSecurity_StyleSrc undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {FrameSrc: ContentSecurity_FrameSrc}
+				{
+					!ContentSecurity_FrameSrc undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {ConnectSrc: ContentSecurity_ConnectSrc}
+				{
+					!ContentSecurity_ConnectSrc undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {FormAction: ContentSecurity_FormAction}
+				{
+					!ContentSecurity_FormAction undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {ReportURI: ContentSecurity_ReportURI}
+				{
+					!ContentSecurity_ReportURI undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {ChildSrc: ContentSecurity_ChildSrc}
+				{
+					!ContentSecurity_ChildSrc undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {ObjectSrc: ContentSecurity_ObjectSrc}
+				{
+					!ContentSecurity_ObjectSrc undefined
+				}
+
+				WebAppSettingsAccessControl define {...: any} = {}
+
+				WebAppSettingsAccessControl =+ {AllowMethods: AccessControl_AllowMethods}
+				{
+					!AccessControl_AllowMethods undefined
+				}
+				WebAppSettingsAccessControl =+ {AllowMethods: AccessControl_AllowHeaders}
+				{
+					!AccessControl_AllowHeaders undefined
+				}
+				WebAppSettingsAccessControl =+ {AllowOrigin: AccessControl_AllowOrigin}
+				{
+					!AccessControl_AllowOrigin undefined
+				}
+				WebAppSettingsAccessControl =+ {MaxAge: AccessControl_MaxAge}
+				{
+					!AccessControl_MaxAge undefined
+				}
+
+				WebAppSettings define {...: any}
+
+				WebAppSettings {
+					DefaultDomain: WebAppManagerDefaultDomain || Error("You need to specify WebAppManagerDefaultDomain")
+					, Packages: BuildPackageNames->ForEach("PackageSettings_Template")
+					, Mongo: WebAppSettingsMongo
+					, Environment: WebAppManagerEnvironment
+					, AllowRobotsAllow: (WebAppManagerAllowRobotsAllow != undefined) ? WebAppManagerAllowRobotsAllow : []
+					, AllowRobotsDisallow: (WebAppManagerAllowRobotsDisallow != undefined) ? WebAppManagerAllowRobotsDisallow : []
+					, FullManagerName: MalterlibCloudVersionInfo_Executable
+					, UserNamePrefix: MalterlibWebAppManagerUserNamePrefix
+					, ContentSecurity: WebAppSettingsContentSecurity
+					, AccessControl: WebAppSettingsAccessControl
+				}
+
+				WebAppSettings =+ {EnvironmentDefaultTags: WebAppManagerEnvironmentDefaultTags}
+				{
+					!WebAppManagerEnvironmentDefaultTags undefined
+				}
+				WebAppSettings =+ {AllowRobots: WebAppManagerAllowRobots}
+				{
+					!WebAppManagerAllowRobots undefined
+				}
+				WebAppSettings =+ {AllowRobotsSitemap: WebAppManagerAllowRobotsSitemap}
+				{
+					!WebAppManagerAllowRobotsSitemap undefined
+				}
+				WebAppSettings =+ {LoopbackPrefix: WebAppManagerLoopbackPrefix}
+				{
+					!WebAppManagerLoopbackPrefix undefined
+				}
+				WebAppSettings =+ {SaveUserPasswords: WebAppManagerSaveUserPasswords}
 				{
 					&
 					{
-						!WebAppManagerSaveUserPasswords ""
+						!WebAppManagerSaveUserPasswords undefined
 						PlatformFamily "Windows"
 					}
 				}
-				Contents	"@(Contents)"\
-							"	\"DefaultDomain\": \"@(WebAppManagerDefaultDomain)\",\n"
+				WebAppSettings =+ {StartNginx: WebAppManagerStartNginx}
 				{
-					!WebAppManagerDefaultDomain ""
+					!WebAppManagerStartNginx undefined
 				}
-				Contents	"@(Contents)"\
-							"	\"StartNginx\": @(WebAppManagerStartNginx),\n"
+				WebAppSettings =+ {DefaultWebPort: WebAppManagerDefaultWebPort}
 				{
-					!WebAppManagerStartNginx ""
+					!WebAppManagerDefaultWebPort undefined
 				}
-				Contents	"@(Contents)"\
-							"	\"FullManagerName\": \"@(MalterlibCloudVersionInfo_Executable)\",\n"
-
-				Contents	"@(Contents)"\
-							"	\"UserNamePrefix\": \"@(MalterlibWebAppManagerUserNamePrefix)\",\n"
-
-				Contents	"@(Error('You need to specify WebAppManagerDefaultDomain'))"
+				WebAppSettings =+ {DefaultWebSSLPort: WebAppManagerDefaultWebSSLPort}
 				{
-					!!WebAppManagerDefaultDomain ""
+					!WebAppManagerDefaultWebSSLPort undefined
 				}
-
-				Contents	"@(Contents)"\
-							"	\"DefaultWebPort\": @(WebAppManagerDefaultWebPort),\n"
+				WebAppSettings =+ {HTTPRedirectReferrerCookie: WebAppManagerHTTPRedirectReferrerCookie}
 				{
-					!WebAppManagerDefaultWebPort ""
+					!WebAppManagerHTTPRedirectReferrerCookie undefined
 				}
-				Contents	"@(Contents)"\
-							"	\"DefaultWebSSLPort\": @(WebAppManagerDefaultWebSSLPort),\n"
+				WebAppSettings =+ {RedirectWWW: WebAppManagerRedirectWWW}
 				{
-					!WebAppManagerDefaultWebSSLPort ""
+					!WebAppManagerRedirectWWW undefined
 				}
-
-				Contents	"@(Contents)"\
-							"	\"HTTPRedirectReferrerCookie\": \"@(WebAppManagerHTTPRedirectReferrerCookie)\",\n"
+				WebAppSettings =+ {ServeAllSubdomains: WebAppManagerServeAllSubdomains}
 				{
-					!WebAppManagerHTTPRedirectReferrerCookie ""
+					!WebAppManagerServeAllSubdomains undefined
 				}
-
-				Contents	"@(Contents)"\
-							"	\"RedirectWWW\": @(WebAppManagerRedirectWWW),\n"
+				WebAppSettings =+ {S3BucketPrefix: WebAppManagerS3BucketPrefix}
 				{
-					!WebAppManagerRedirectWWW ""
+					!WebAppManagerS3BucketPrefix undefined
 				}
-
-				Contents	"@(Contents)"\
-							"	\"ServeAllSubdomains\": @(WebAppManagerServeAllSubdomains),\n"
+				WebAppSettings =+ {AllowRedirectsOutsideOfDomain: WebAppManagerAllowRedirectsOutsideOfDomain}
 				{
-					!WebAppManagerServeAllSubdomains ""
+					!WebAppManagerAllowRedirectsOutsideOfDomain undefined
 				}
+			}
+			GenerateFile
+			{
+				Name MalterlibWebAppSettingsPath
 
-				Contents	"@(Contents)"\
-							"	\"S3BucketPrefix\": \"@(WebAppManagerS3BucketPrefix)\",\n"
-				{
-					!WebAppManagerS3BucketPrefix ""
-				}
-
-				Contents	"@(Contents)"\
-							"	\"AllowRedirectsOutsideOfDomain\": @(WebAppManagerAllowRedirectsOutsideOfDomain),\n"
-				{
-					!WebAppManagerAllowRedirectsOutsideOfDomain ""
-				}
-
-				Contents	"@(Contents)"\
-							"	\"ContentSecurity\": {\n"
-
-				Contents	"@(Contents)"\
-							"		\"ScriptSrc\": \"@(ContentSecurity_ScriptSrc)\",\n"
-				{
-					!ContentSecurity_ScriptSrc ""
-				}
-
-				Contents	"@(Contents)"\
-							"		\"ImgSrc\": \"@(ContentSecurity_ImgSrc)\",\n"
-				{
-					!ContentSecurity_ImgSrc ""
-				}
-
-				Contents	"@(Contents)"\
-							"		\"MediaSrc\": \"@(ContentSecurity_MediaSrc)\",\n"
-				{
-					!ContentSecurity_MediaSrc ""
-				}
-
-				Contents	"@(Contents)"\
-							"		\"FontSrc\": \"@(ContentSecurity_FontSrc)\",\n"
-				{
-					!ContentSecurity_FontSrc ""
-				}
-
-				Contents	"@(Contents)"\
-							"		\"StyleSrc\": \"@(ContentSecurity_StyleSrc)\",\n"
-				{
-					!ContentSecurity_StyleSrc ""
-				}
-
-				Contents	"@(Contents)"\
-							"		\"FrameSrc\": \"@(ContentSecurity_FrameSrc)\",\n"
-				{
-					!ContentSecurity_FrameSrc ""
-				}
-
-				Contents	"@(Contents)"\
-							"		\"ConnectSrc\": \"@(ContentSecurity_ConnectSrc)\",\n"
-				{
-					!ContentSecurity_ConnectSrc ""
-				}
-
-				Contents	"@(Contents)"\
-							"		\"FormAction\": \"@(ContentSecurity_FormAction)\",\n"
-				{
-					!ContentSecurity_FormAction ""
-				}
-
-				Contents	"@(Contents)"\
-							"		\"ReportURI\": \"@(ContentSecurity_ReportURI)\",\n"
-				{
-					!ContentSecurity_ReportURI ""
-				}
-
-				Contents	"@(Contents)"\
-							"		\"ChildSrc\": \"@(ContentSecurity_ChildSrc)\",\n"
-				{
-					!ContentSecurity_ChildSrc ""
-				}
-
-				Contents	"@(Contents)"\
-							"		\"ObjectSrc\": \"@(ContentSecurity_ObjectSrc)\",\n"
-				{
-					!ContentSecurity_ObjectSrc ""
-				}
-
-				Contents	"@(Contents)"\
-							"	},\n"
-
-				Contents	"@(Contents)"\
-							"	\"AccessControl\": {\n"
-
-				Contents	"@(Contents)"\
-							"		\"AllowMethods\": \"@(AccessControl_AllowMethods)\",\n"
-				{
-					!AccessControl_AllowMethods ""
-				}
-				Contents	"@(Contents)"\
-							"		\"AllowMethods\": \"@(AccessControl_AllowHeaders)\",\n"
-				{
-					!AccessControl_AllowHeaders ""
-				}
-				Contents	"@(Contents)"\
-							"		\"AllowOrigin\": \"@(AccessControl_AllowOrigin)\",\n"
-				{
-					!AccessControl_AllowOrigin ""
-				}
-				Contents	"@(Contents)"\
-							"		\"MaxAge\": \"@(AccessControl_MaxAge)\",\n"
-				{
-					!AccessControl_MaxAge ""
-				}
-
-				Contents	"@(Contents)"\
-							"	},\n"
-
-				EnvironmentDefaultTags_Template	"\"@(Explodee)\", "
-				{
-					!Explodee ""
-				}
-
-				Contents	"@(Contents)"\
-							"	\"EnvironmentDefaultTags\": [@(Builtin.Function->ExplodeList('@(WebAppManagerEnvironmentDefaultTags)', ';', 'EnvironmentDefaultTags_Template'))],\n"
-				{
-					!WebAppManagerEnvironmentDefaultTags ""
-				}
-
-				NodeEnvironment_Variable "@(Explodee->ParseFormatString('{}={}', '{0}'))"
-				NodeEnvironment_Variable "@(NodeEnvironment_Variable->ParseFormatString('{}({})', '{0}'))"
-
-				NodeEnvironment_Tags "@(Explodee->ParseFormatString('{}({})={}', '{1}'))"
-
-				NodeEnvironment_Setting "@(Explodee->ParseFormatString('{}={}', '{1}'))"
-				NodeEnvironment_Setting "@(NodeEnvironment_Setting->ParseFormatString('{}|{}', '{0}'))"
-
-				NodeEnvironment_Default "@(Explodee->ParseFormatString('{}={}|{}', '{2}'))"
-
-				NodeEnvironment "@(NodeEnvironment)"\
-								"			\"Setting\": \"@(NodeEnvironment_Setting)\",\n"
-
-				NodeEnvironment "@(NodeEnvironment)"\
-								"			\"Default\": \"@(NodeEnvironment_Default)\",\n"
-				{
-					!NodeEnvironment_Default ""
-				}
-
-				NodeEnvironment_Tags_Template "\"@(Explodee)\", "
-				{
-				}
-
-				NodeEnvironment "@(NodeEnvironment)"\
-								"			\"Tags\": [@(Builtin.Function->ExplodeList('@(NodeEnvironment_Tags)', ',', 'NodeEnvironment_Tags_Template'))],\n"
-				{
-					!NodeEnvironment_Tags ""
-				}
-
-				NodeEnvironment_Template	"		\"@(NodeEnvironment_Variable)\": {\n"\
-											"@(NodeEnvironment)"\
-											"		},\n"
-				{
-					!Explodee ""
-				}
-
-				Contents	"@(Contents)"\
-							"	\"Environment\": {\n"\
-							"@(Builtin.Function->ExplodeList('@(WebAppManagerEnvironmment)', ';', 'NodeEnvironment_Template'))"\
-							"	},\n"
-
-				Contents	"@(Contents)"\
-							"}\n"\
-							")-----\"\n"
+				Contents `R"-----(\n@(WebAppSettings->EJSONToString())\n)-----"\n`
 
 				Executable false
 				UnicodeBOM true
@@ -1021,158 +1077,170 @@ Property
 
 	Property
 	{
-		CheckError "@(Error('You need to specify MeteorBuilds, FastCGIBuilds, WebsocketBuilds, NpmBuilds, StaticBuilds, and/or CustomBuilds'))"
+		CheckError Error("You need to specify MeteorBuilds, FastCGIBuilds, WebsocketBuilds, NpmBuilds, StaticBuilds, and/or CustomBuilds")
 		{
 			&
 			{
-				FastCGIBuilds ""
-				WebsocketBuilds ""
-				MeteorBuilds ""
-				NpmBuilds ""
-				StaticBuilds ""
-				CustomBuilds ""
+				FastCGIBuilds undefined
+				WebsocketBuilds undefined
+				MeteorBuilds undefined
+				NpmBuilds undefined
+				StaticBuilds undefined
+				CustomBuilds undefined
 			}
 		}
 
-		BuildDependencies_ExcludePattern "@(ExcludePatterns_@(Expand0))"
-		BuildDependencies_ExcludePattern "@(BuildDependencies_ExcludePattern->Replace('*','`'))"
-		BuildDependencies_ExcludePattern "@(BuildDependencies_ExcludePattern->Replace(';','´'))"
+		BuildDependencies_CommonProperties function(type(CWebAppManagerBuild) _Build) {...: any} = {}
 
-		BuildDependencies_MalterlibWebAppToolDependencies "@(Dependencies_@(Expand0))"
-		BuildDependencies_MalterlibWebAppToolDependencies "@(BuildDependencies_MalterlibWebAppToolDependencies->Replace(';','´'))"
+		BuildDependencies_CommonProperties =+ {
+			MalterlibWebAppManagerName: MalterlibWebAppManagerName
+			, MalterlibWebAppToolBuildName: _Build<Name>
+			, MalterlibWebAppToolBuildDirectory: _Build<BuildDir>
+			, MalterlibWebAppToolExcludePatterns: IsDefined(`ExcludePatterns_@(_Build<Name>)`) ? ExcludePatterns_@(_Build<Name>) : []
+			, MalterlibWebAppSourceRoot: MalterlibWebAppSourceRoot
+			, MalterlibWebAppMeteorSharedPackages: MalterlibWebAppMeteorSharedPackages
+			, MalterlibWebAppCustomBuildScript: IsDefined(`CustomBuildScript_@(_Build<Name>)`) ? CustomBuildScript_@(_Build<Name>) : undefined
+			, MalterlibWebAppToolDependencies: IsDefined(`Dependencies_@(_Build<Name>)`) ? Dependencies_@(_Build<Name>) : []
+			, MalterlibWebAppMeteorCheckedOutPath: MalterlibWebAppMeteorCheckedOutPath
+			, MalterlibWebAppMeteorDebugBundle: MalterlibWebAppMeteorDebugBundle
+			, MalterlibWebAppNodePackagePath: MalterlibWebAppNodePackagePath
+			, MalterlibWebAppHostNodePackagePath: MalterlibWebAppHostNodePackagePath
+			, MalterlibWebAppManagerPrefix: MalterlibWebAppManagerPrefix
+		}->RemoveUndefined()
 
-		BuildDependencies_CommonProperties "MalterlibWebAppManagerName=@(MalterlibWebAppManagerName)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppToolBuildName=@(Expand0)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppToolBuildDirectory=@(Expand1)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppToolExcludePatterns=@(BuildDependencies_ExcludePattern)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppSourceRoot=@(MalterlibWebAppSourceRoot)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppMeteorSharedPackages=@(MalterlibWebAppMeteorSharedPackages)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppCustomBuildScript=@(CustomBuildScript_@(Expand0))*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppToolDependencies=@(BuildDependencies_MalterlibWebAppToolDependencies)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppMeteorCheckedOutPath=@(MalterlibWebAppMeteorCheckedOutPath)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppMeteorDebugBundle=@(MalterlibWebAppMeteorDebugBundle)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppNodePackagePath=@(MalterlibWebAppNodePackagePath)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppHostNodePackagePath=@(MalterlibWebAppHostNodePackagePath)*@(BuildDependencies_CommonProperties)"
-		BuildDependencies_CommonProperties "MalterlibWebAppManagerPrefix=@(MalterlibWebAppManagerPrefix)*@(BuildDependencies_CommonProperties)"
-
-		BuildDependencies_CommonProperties "NpmBuildType=@(NpmBuildType_@(Expand0))*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties =+ {
+			NpmBuildType: @(NpmBuildType_@(_Build<Name>))
+		}
 		{
-			!Empty "@(NpmBuildType_@(Expand0))"
+			!!true IsDefined(`NpmBuildType_@(_Build<Name>)`)
 		}
 
-		BuildDependencies_CommonProperties "MalterlibPostCopyProject=@(MalterlibPostCopyProject)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties =+ {
+			MalterlibPostCopyProject: MalterlibPostCopyProject
+		}
 		{
-			!MalterlibPostCopyProject ""
+			!MalterlibPostCopyProject undefined
 		}
 
-		BuildDependencies_CommonProperties "MalterlibPostCopyDestination=@(MalterlibPostCopyDestination)*@(BuildDependencies_CommonProperties)"
+		BuildDependencies_CommonProperties =+ {
+			MalterlibPostCopyDestination: MalterlibPostCopyDestination
+		}
 		{
-			!MalterlibPostCopyDestination ""
+			!MalterlibPostCopyDestination undefined
 		}
 
-		BuildDependencies_Meteor_Template_Expand "Tool_Malterlib_BuildWebApp=Tool_BuildWebApp_@(MalterlibWebAppManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibWebAppToolType=Meteor"
-		BuildDependencies_Meteor_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Meteor_Template_Expand'));"
-		{
-			!Explodee ""
+		BuildDependencies_Template function(type(CWebAppManagerBuild) _Build) [type(CEntity)] = []
+		BuildDependencies_Template =+ {
+			Name: `Tool_BuildWebApp_@(MalterlibWebAppManagerName)_@(_Build<Name>)`
+			, Properties: {
+				Dependency.Target: "Tool_Malterlib_BuildWebApp"
+				, Dependency.TargetProperties: {
+					MalterlibWebAppToolType: MalterlibWebAppToolType
+					, <<: BuildDependencies_CommonProperties(_Build)
+				}
+			}
 		}
 
-		BuildDependencies_FastCGI_Template_Expand "Tool_Malterlib_BuildWebApp=Tool_BuildWebApp_@(MalterlibWebAppManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibWebAppToolType=FastCGI"
-		BuildDependencies_FastCGI_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_FastCGI_Template_Expand'));"
-		{
-			!Explodee ""
-		}
+		BuildDependencies_Meteor define [type(CEntity)] = (MeteorBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "Meteor"})
+		BuildDependencies_FastCGI define [type(CEntity)] = (FastCGIBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "FastCGI"})
+		BuildDependencies_Websocket define [type(CEntity)] = (WebsocketBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "Websocket"})
+		BuildDependencies_Npm define [type(CEntity)] = (NpmBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "Npm"})
+		BuildDependencies_Static define [type(CEntity)] = (StaticBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "Static"})
+		BuildDependencies_Custom define [type(CEntity)] = (CustomBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "Custom"})
 
-		BuildDependencies_Websocket_Template_Expand "Tool_Malterlib_BuildWebApp=Tool_BuildWebApp_@(MalterlibWebAppManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibWebAppToolType=Websocket"
-		BuildDependencies_Websocket_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Websocket_Template_Expand'));"
-		{
-			!Explodee ""
-		}
+		BuildDependencies define [type(CEntity)] = [
+			BuildDependencies_Meteor...
+			, BuildDependencies_FastCGI...
+			, BuildDependencies_Websocket...
+			, BuildDependencies_Npm...
+			, BuildDependencies_Static...
+			, BuildDependencies_Custom...
+		]
 
-		BuildDependencies_Npm_Template_Expand "Tool_Malterlib_BuildWebApp=Tool_BuildWebApp_@(MalterlibWebAppManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibWebAppToolType=Npm"
-		BuildDependencies_Npm_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Npm_Template_Expand'));"
-		{
-			!Explodee ""
-		}
+		BuildPackageNames_Template function(type(CWebAppManagerBuild) _Build) [string] = []
+		BuildPackageNames_Template =+ _Build<Name>
 
-		BuildDependencies_Static_Template_Expand "Tool_Malterlib_BuildWebApp=Tool_BuildWebApp_@(MalterlibWebAppManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibWebAppToolType=Static"
-		BuildDependencies_Static_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Static_Template_Expand'));"
-		{
-			!Explodee ""
-		}
+		BuildPackageNames_Meteor define [string] = (MeteorBuilds || [])->ForEach("BuildPackageNames_Template")
+		BuildPackageNames_FastCGI define [string] = (FastCGIBuilds || [])->ForEach("BuildPackageNames_Template")
+		BuildPackageNames_Websocket define [string] = (WebsocketBuilds || [])->ForEach("BuildPackageNames_Template")
+		BuildPackageNames_Npm define [string] = (NpmBuilds || [])->ForEach("BuildPackageNames_Template")
+		BuildPackageNames_Static define [string] = (StaticBuilds || [])->ForEach("BuildPackageNames_Template")
+		BuildPackageNames_Custom define [string] = (CustomBuilds || [])->ForEach("BuildPackageNames_Template")
 
-		BuildDependencies_Custom_Template_Expand "Tool_Malterlib_BuildWebApp=Tool_BuildWebApp_@(MalterlibWebAppManagerName)_@(Expand0)*@(BuildDependencies_CommonProperties)*MalterlibWebAppToolType=Custom"
-		BuildDependencies_Custom_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildDependencies_Custom_Template_Expand'));"
-		{
-			!Explodee ""
-		}
+		BuildPackageNames define [string] = [
+			BuildPackageNames_Meteor...
+			, BuildPackageNames_FastCGI...
+			, BuildPackageNames_Websocket...
+			, BuildPackageNames_Npm...
+			, BuildPackageNames_Static...
+			, BuildPackageNames_Custom...
+		]
 
-		BuildDependencies_Meteor "@(Builtin.Function->ExplodeList('@(MeteorBuilds)', ';', 'BuildDependencies_Meteor_Template'))"
-		BuildDependencies_FastCGI "@(Builtin.Function->ExplodeList('@(FastCGIBuilds)', ';', 'BuildDependencies_FastCGI_Template'))"
-		BuildDependencies_Websocket "@(Builtin.Function->ExplodeList('@(WebsocketBuilds)', ';', 'BuildDependencies_Websocket_Template'))"
-		BuildDependencies_Npm "@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildDependencies_Npm_Template'))"
-		BuildDependencies_Static "@(Builtin.Function->ExplodeList('@(StaticBuilds)', ';', 'BuildDependencies_Static_Template'))"
-		BuildDependencies_Custom "@(Builtin.Function->ExplodeList('@(CustomBuilds)', ';', 'BuildDependencies_Custom_Template'))"
-		BuildDependencies "@(BuildDependencies_Meteor);@(BuildDependencies_FastCGI);@(BuildDependencies_Websocket);@(BuildDependencies_Npm);@(BuildDependencies_Static);@(BuildDependencies_Custom)"
+		BuildNeedNodeBinaries_NpmBuildType function(string _PackageName) string = NpmBuildType_@(_PackageName)
 
-		BuildPackageNames_Template_Expand "@(Expand0)"
-		BuildPackageNames_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildPackageNames_Template_Expand'));"
-
-		BuildPackageNames_Meteor "@(Builtin.Function->ExplodeList('@(MeteorBuilds)', ';', 'BuildPackageNames_Template'))"
-		BuildPackageNames_FastCGI "@(Builtin.Function->ExplodeList('@(FastCGIBuilds)', ';', 'BuildPackageNames_Template'))"
-		BuildPackageNames_Websocket "@(Builtin.Function->ExplodeList('@(WebsocketBuilds)', ';', 'BuildPackageNames_Template'))"
-		BuildPackageNames_Npm "@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildPackageNames_Template'))"
-		BuildPackageNames_Static "@(Builtin.Function->ExplodeList('@(StaticBuilds)', ';', 'BuildPackageNames_Template'))"
-		BuildPackageNames_Custom "@(Builtin.Function->ExplodeList('@(CustomBuilds)', ';', 'BuildPackageNames_Template'))"
-
-		BuildPackageNames "@(BuildPackageNames_Meteor);@(BuildPackageNames_FastCGI);@(BuildPackageNames_Websocket);@(BuildPackageNames_Npm);@(BuildPackageNames_Static);@(BuildPackageNames_Custom)"
-
-		BuildNeedNodeBinaries_NpmBuildType "@(NpmBuildType_@(Expand0))"
-
-		BuildNeedNodeBinaries_Template_Expand true
+		BuildNeedNodeBinaries_Template_NeedNode function(string _PackageName) bool = false
+		BuildNeedNodeBinaries_Template_NeedNode true
 		{
 			&
 			{
-				!BuildNeedNodeBinaries_NpmBuildType "Compile"
-				!BuildNeedNodeBinaries_NpmBuildType "Build"
+				!BuildNeedNodeBinaries_NpmBuildType(_PackageName) "Compile"
+				!BuildNeedNodeBinaries_NpmBuildType(_PackageName) "Build"
 			}
 		}
-		BuildNeedNodeBinaries_Template "@(Builtin.Function->ExpandList('@(Explodee)', '=', 'BuildNeedNodeBinaries_Template_Expand'))"
 
-		BuildNeedNodeBinaries "@(BuildPackageNames_Meteor)@(Builtin.Function->ExplodeList('@(NpmBuilds)', ';', 'BuildNeedNodeBinaries_Template'))"
+		BuildNeedNodeBinaries_Template function(type(CWebAppManagerBuild) _Build) bool = false
+		BuildNeedNodeBinaries_Template BuildNeedNodeBinaries_Template || BuildNeedNodeBinaries_Template_NeedNode(_Build<Name>)
+
+		BuildNeedNodeBinaries define bool = !(BuildPackageNames_Meteor->IsEmpty()) || NpmBuilds->ForEach("BuildNeedNodeBinaries_Template")
 	}
 
 	%Dependency "Lib_Malterlib_WebAppManager"
 	%Dependency "Lib_Malterlib_Cloud"
 	%Dependency "Lib_Malterlib"
-	%Dependency "@(BuildDependencies_Meteor);@(BuildDependencies_FastCGI);@(BuildDependencies_Websocket);@(BuildDependencies_Npm);@(BuildDependencies_Static);@(BuildDependencies_Custom)"
+	%Dependency BuildDependencies
 	{
 		Dependency.Link false
 	}
 	Property
 	{
+		NginxPostCopyDestination define string
 		NginxPostCopyDestination "bin/"
-		NginxPostCopyDestination "@(MalterlibPostCopyDestination)@(NginxPostCopyDestination)"
+		NginxPostCopyDestination `@(MalterlibPostCopyDestination)@(NginxPostCopyDestination)`
 		{
-			!MalterlibPostCopyDestination ""
+			!MalterlibPostCopyDestination undefined
 		}
 	}
-	%Dependency "Exe_nginx=Com_nginx_@(MalterlibWebAppManagerName)*NgnixTargetBaseName=nginx_@(MalterlibWebAppManagerName)*NgnixTargetGroup=WebApp/@(MalterlibWebAppManagerName)*HTTP_SSL=true*HTTP_V2=true*NGX_USER=@(MalterlibWebAppManagerUserNamePrefix)nginx_@(MalterlibWebAppManagerName)*NGX_GROUP=@(MalterlibWebAppManagerUserNamePrefix)nginx_@(MalterlibWebAppManagerName)*HTTP_GZIP_STATIC=true*MalterlibPostCopyProject=@(MalterlibPostCopyProject)*MalterlibPostCopyDestination=@(NginxPostCopyDestination)"
+	%Dependency {
+		Name: `Com_nginx_@(MalterlibWebAppManagerName)`
+		, Properties: {
+			Dependency.Target: "Exe_nginx"
+			, Dependency.TargetProperties: {
+				NgnixTargetBaseName: `nginx_@(MalterlibWebAppManagerName)`
+				, NgnixTargetGroup: `WebApp/@(MalterlibWebAppManagerName)`
+				, HTTP_SSL: true
+				, HTTP_V2: true
+				, NGX_USER: `@(MalterlibWebAppManagerUserNamePrefix)nginx_@(MalterlibWebAppManagerName)`
+				, NGX_GROUP: `@(MalterlibWebAppManagerUserNamePrefix)nginx_@(MalterlibWebAppManagerName)`
+				, HTTP_GZIP_STATIC: true
+				, MalterlibPostCopyProject: MalterlibPostCopyProject
+				, MalterlibPostCopyDestination: NginxPostCopyDestination
+			}
+		}
+	}
 	{
 		Dependency.Link false
 	}
 
 	Property
 	{
-		CloudUploadSources_Template "@(Builtin.Function->GetProperty('Property', 'MalterlibBuildServerPutSources', 'Group:@(Explodee).Target:Tool_Malterlib_BuildWebApp.Target:Tool_Malterlib_BuildWebApp'));"
-		{
-			!Explodee ""
-		}
-		CloudUploadSources "@(Builtin.Function->ExplodeList('@(BuildPackageNames)', ';', 'CloudUploadSources_Template'));@(CloudUploadSources)"
+		CloudUploadSources_Template function(string _PackageName) [type(CFileCopyOptions)] = []
+		CloudUploadSources_Template =+ GetProperty("Property", "MalterlibBuildServerPutSources", `Group:@(_PackageName).Target:Tool_Malterlib_BuildWebApp.Target:Tool_Malterlib_BuildWebApp`)
 
-		CloudUploadSources "@(Builtin.Function->GetProperty('Property', 'MalterlibFinalModuleDestination', 'Target:Exe_nginx.Target:Exe_nginx'))|/bin;@(CloudUploadSources)"
+		CloudUploadSources define [type(CFileCopyOptions)] = []
+		CloudUploadSources =+ MalterlibBuildServerPutSources
+		CloudUploadSources =+ {Pattern: GetProperty("Property", "MalterlibFinalModuleDestination", "Target:Exe_nginx.Target:Exe_nginx"), Destination: "/bin"}
+		CloudUploadSources =+ BuildPackageNames->ForEach("CloudUploadSources_Template")
 
-		MalterlibCloud_VersionUploadSources "@(CloudUploadSources);@(MalterlibCloud_VersionUploadSources)"
+		MalterlibCloud_VersionUploadSources =+ CloudUploadSources
 	}
 }
-
-Property.Malterlib_WebApp_App_Targets "@(Malterlib_WebApp_App_Targets)"
