@@ -466,7 +466,18 @@ namespace NMib::NWebApp::NWebAppManager
 			if (auto *pValue = PackageSettings.f_GetMember("AlternateSources"))
 			{
 				for (auto &Redirect : pValue->f_Array())
-					Package.m_AlternateSources.f_Insert({Redirect["Pattern"].f_String(), Redirect["Destination"].f_String(), Redirect["Search"].f_String(), Redirect["Replace"].f_String()});
+				{
+					Package.m_AlternateSources.f_Insert
+						(
+							{
+								Redirect["Pattern"].f_String()
+								, Redirect["Destination"].f_String()
+								, Redirect.f_GetMemberValue("Search", "").f_String()
+								, Redirect.f_GetMemberValue("Replace", "").f_String()
+							}
+						)
+					;
+				}
 			}
 
 			if (auto *pValue = PackageSettings.f_GetMember("StaticPath"))

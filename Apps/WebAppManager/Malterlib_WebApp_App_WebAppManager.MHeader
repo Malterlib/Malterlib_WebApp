@@ -602,7 +602,20 @@ Property
 			}
 		}
 
-		MalterlibWebAppNodePackagePath NodeBinariesPath->FindFilesIn("*.tar.gz")
+		f_GetSingleNodeBinary function(string _Path) string
+
+		f_GetSingleNodeBinary NodeBinariesPath->FindFilesIn("*.tar.gz")
+		f_GetSingleNodeBinary Error(`No node binaries (*.tar.gz) found in path: @(_Path)`)
+		{
+			f_GetSingleNodeBinary->Length() == 0
+		}
+		f_GetSingleNodeBinary Error(`Found more than one node distribution in "@(_Path)": @(f_GetSingleNodeBinary->ToString())`)
+		{
+			f_GetSingleNodeBinary->Length() > 1
+		}
+		f_GetSingleNodeBinary f_GetSingleNodeBinary<[0]>
+
+		MalterlibWebAppNodePackagePath NodeBinariesPath->f_GetSingleNodeBinary()
 		{
 			&
 			{
@@ -610,7 +623,7 @@ Property
 				!NodeBinariesPath undefined
 			}
 		}
-		MalterlibWebAppHostNodePackagePath NodeHostBinariesPath->FindFilesIn("*.tar.gz")
+		MalterlibWebAppHostNodePackagePath NodeHostBinariesPath->f_GetSingleNodeBinary()
 		{
 			&
 			{
@@ -998,8 +1011,8 @@ Property
 					, Packages: BuildPackageNames->ForEach("PackageSettings_Template")
 					, Mongo: WebAppSettingsMongo
 					, Environment: WebAppManagerEnvironment
-					, AllowRobotsAllow: (WebAppManagerAllowRobotsAllow != undefined) ? WebAppManagerAllowRobotsAllow : []
-					, AllowRobotsDisallow: (WebAppManagerAllowRobotsDisallow != undefined) ? WebAppManagerAllowRobotsDisallow : []
+					, AllowRobotsAllow: WebAppManagerAllowRobotsAllow || []
+					, AllowRobotsDisallow: WebAppManagerAllowRobotsDisallow || []
 					, FullManagerName: MalterlibCloudVersionInfo_Executable
 					, UserNamePrefix: MalterlibWebAppManagerUserNamePrefix
 					, ContentSecurity: WebAppSettingsContentSecurity
@@ -1109,7 +1122,7 @@ Property
 		}->RemoveUndefined()
 
 		BuildDependencies_CommonProperties =+ {
-			NpmBuildType: @(NpmBuildType_@(_Build<Name>))
+			NpmBuildType: NpmBuildType_@(_Build<Name>)
 		}
 		{
 			!!true IsDefined(`NpmBuildType_@(_Build<Name>)`)
@@ -1191,7 +1204,8 @@ Property
 		BuildNeedNodeBinaries_Template function(type(CWebAppManagerBuild) _Build) bool = false
 		BuildNeedNodeBinaries_Template BuildNeedNodeBinaries_Template || BuildNeedNodeBinaries_Template_NeedNode(_Build<Name>)
 
-		BuildNeedNodeBinaries define bool = !(BuildPackageNames_Meteor->IsEmpty()) || NpmBuilds->ForEach("BuildNeedNodeBinaries_Template")
+		BuildNeedNodeBinaries define bool
+		BuildNeedNodeBinaries ((!BuildPackageNames_Meteor->IsEmpty()) || (NpmBuilds || [])->ForEach("BuildNeedNodeBinaries_Template"))
 	}
 
 	%Dependency "Lib_Malterlib_WebAppManager"
