@@ -604,7 +604,7 @@ Property
 
 		f_GetSingleNodeBinary function(string _Path) string
 
-		f_GetSingleNodeBinary NodeBinariesPath->FindFilesIn("*.tar.gz")
+		f_GetSingleNodeBinary _Path->FindFilesIn("*.tar.gz")
 		f_GetSingleNodeBinary Error(`No node binaries (*.tar.gz) found in path: @(_Path)`)
 		{
 			f_GetSingleNodeBinary->Length() == 0
