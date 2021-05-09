@@ -26,6 +26,7 @@ Type
 {
 	Property
 	{
+		MalterlibWebAppManagerProductName define string?
 		MalterlibWebAppManagerName define string
 		MalterlibWebAppSourceRoot define string
 		WebAppManagerEnvironmentDefaultTags define [one_of(string, [string])]?
@@ -189,13 +190,13 @@ Type
 			!!HostPlatformFamily "OSX"
 		}
 
-		MeteorCommand "meteor.bat"
+		MeteorOverridePath define bool = false
+		MeteorOverridePath true
 		{
-			!!HostPlatformFamily "Windows"
+			!!HostPlatformFamily "OSX"
 		}
-
+		
 		MalterlibExportEnvironmentMinGW true
-
 
 		Target_MatchesDependenciesMatchTargetToMatch define string
 
@@ -274,6 +275,7 @@ Type
 		ExportScriptEnvironment =+ "MalterlibWebAppToolBuildName"
 		ExportScriptEnvironment =+ "WebAppBuildDirectory"
 		ExportScriptEnvironment =+ "MalterlibWebAppMeteorSharedPackages"
+		ExportScriptEnvironment =+ "MeteorOverridePath"
 		ExportScriptEnvironment =+ "PlatformFamily"
 		ExportScriptEnvironment =+ "MalterlibWebAppMeteorCheckedOutPath"
 		ExportScriptEnvironment =+ "MalterlibWebAppMeteorDebugBundle"

@@ -31,7 +31,9 @@ else
 fi
 
 OldPath="$PATH"
-export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+if [[ "$MeteorOverridePath" == "true" ]]; then
+	export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+fi
 
 if [[ "$NodePackage" != "" ]]; then
 	pushd "$NodeDirectory" > /dev/null

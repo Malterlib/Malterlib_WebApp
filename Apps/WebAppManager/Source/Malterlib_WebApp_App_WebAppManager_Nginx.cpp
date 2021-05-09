@@ -1038,7 +1038,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					Server = Server.f_Replace("{PathRedirect}",  SetupResults.m_Redirects[Package.f_GetName()]);
 					auto &AlternateSource = AlternateSources[Package.f_GetName()];
 					Server = Server.f_Replace("{AlternateSources}", AlternateSource.m_Locations);
-					Server = Server.f_Replace("{DefaultLocation}", AlternateSource.m_DefaultLocation ? AlternateSource.m_DefaultLocation : "/.*$");
+					Server = Server.f_Replace("{DefaultLocation}", AlternateSource.m_DefaultLocation ? AlternateSource.m_DefaultLocation : CStr("/.*$"));
 
 					if (bIsMainServer && mp_Options.m_bRedirectWWW)
 					{
@@ -1107,7 +1107,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			ConfigContents = ConfigContents.f_Replace(ToRemove, "");
 
 		{
-			CStr RedirectReferrerCookie = mp_Options.m_HTTPRedirectReferrerCookie.f_IsEmpty() ? "RedirectReferrer" : mp_Options.m_HTTPRedirectReferrerCookie;
+			CStr RedirectReferrerCookie = mp_Options.m_HTTPRedirectReferrerCookie.f_IsEmpty() ? CStr("RedirectReferrer") : mp_Options.m_HTTPRedirectReferrerCookie;
 			ConfigContents = ConfigContents.f_Replace("{HTTPRedirectReferrerCookie}", RedirectReferrerCookie);
 		}
 

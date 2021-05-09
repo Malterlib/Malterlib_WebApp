@@ -100,7 +100,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 
 		CStr CloudFrontDistribution;
-		CStr ConfigName = _Prefix ? CStr("AWSCloudFrontDistribution_{}"_f << _Prefix) : "AWSCloudFrontDistribution";
+		CStr ConfigName = _Prefix ? CStr("AWSCloudFrontDistribution_{}"_f << _Prefix) : CStr("AWSCloudFrontDistribution");
 		CloudFrontDistribution = fp_GetConfigValue(ConfigName, "").f_String();
 
 		CStr FullDomainName = mp_Domain;
@@ -126,7 +126,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		mp_LambdaActor = fg_Construct(*mp_CurlActors, AWSCredentials);
 
-		CStr PrefixLambdaSuffix = _Prefix ? CStr(".{}"_f << _Prefix) : "";
+		CStr PrefixLambdaSuffix = _Prefix ? CStr(".{}"_f << _Prefix) : CStr();
 
 		CStr OriginRequestFunctionName = CStr("originrequest.{}{}{}"_f << mp_Options.m_S3BucketPrefix << mp_Domain << PrefixLambdaSuffix).f_ReplaceChar('.', '_');
 		TCMap<CStr, CStr> OriginRequestFiles;
@@ -641,7 +641,7 @@ exports.handler = async (event) => {
 			UploadPrefixes[Package.m_UploadS3Prefix];
 
 			{
-				CStr ConfigName = Package.m_UploadS3Prefix ? CStr("AWSCloudFrontDistribution_{}"_f << Package.m_UploadS3Prefix) : "AWSCloudFrontDistribution";
+				CStr ConfigName = Package.m_UploadS3Prefix ? CStr("AWSCloudFrontDistribution_{}"_f << Package.m_UploadS3Prefix) : CStr("AWSCloudFrontDistribution");
 				auto Distribution = fp_GetConfigValue(ConfigName, "").f_String();
 				if (Distribution)
 					CloudFrontDistributions[Distribution];
