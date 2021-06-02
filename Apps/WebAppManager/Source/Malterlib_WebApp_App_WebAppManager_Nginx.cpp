@@ -40,8 +40,8 @@ R"---(
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
-			error_page 502 = @{PackageName}_Fallback$1;
-			proxy_pass http://{UpstreamSticky}$1;
+			error_page 502 = @{PackageName}_Fallback$1$is_args$args;
+			proxy_pass http://{UpstreamSticky}$1$is_args$args;
 			proxy_http_version 1.1;
 			proxy_set_header Host $host;
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
@@ -103,8 +103,8 @@ R"---(
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
-			error_page 502 = @{PackageName}_Fallback$1;
-			proxy_pass http://{UpstreamSticky}$1;
+			error_page 502 = @{PackageName}_Fallback$1$is_args$args;
+			proxy_pass http://{UpstreamSticky}$1$is_args$args;
 			proxy_http_version 1.1;
 			proxy_set_header Host $host;
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
@@ -537,7 +537,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						"{{SecurityHeaders}\n"
 						"			resolver 8.8.8.8;\n"
 						"			proxy_ssl_server_name on;\n"
-						"			proxy_pass https://{}$1;\n"
+						"			proxy_pass https://{}$1$is_args$args;\n"
 						"{}"
 						"		}\n"
 						, AlternateSource.m_Pattern
