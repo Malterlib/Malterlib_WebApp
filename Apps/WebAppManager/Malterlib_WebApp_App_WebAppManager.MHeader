@@ -285,7 +285,7 @@ Type
 		ExportScriptEnvironment =+ "MalterlibWebAppToolDependenciesFiles"
 		ExportScriptEnvironment =+ "NpmBuildType"
 
-		Output Builtin.GeneratorStateFile
+		CommandLine_Outputs =+ Builtin.GeneratorStateFile
 		Group `WebApp/@(MalterlibWebAppManagerName)/@(MalterlibWebAppToolBuildName)`
 	}
 	%Group "Build"
