@@ -650,7 +650,11 @@ Property
 
 		PrefixHeader "Source/Malterlib_WebApp_App_WebAppManager_Server.h"->MakeAbsolute()
 		{
-			!Compile.Type "C++"
+			|
+			{
+				Compile.Type "C++"
+				!GeneratorFamily "VisualStudio"
+			}
 		}
 
 		PreprocessorDefines += `DMibWebAppManager_ManagerName="@(MalterlibWebAppManagerName)"`
