@@ -69,20 +69,20 @@ Type
 
 		NpmBuildType define string?
 
-		ContentSecurity_ScriptSrc define string?
-		ContentSecurity_ImgSrc define string?
-		ContentSecurity_MediaSrc define string?
-		ContentSecurity_FontSrc define string?
-		ContentSecurity_StyleSrc define string?
-		ContentSecurity_FrameSrc define string?
-		ContentSecurity_ConnectSrc define string?
-		ContentSecurity_FormAction define string?
-		ContentSecurity_ReportURI define string?
-		ContentSecurity_ChildSrc define string?
-		ContentSecurity_ObjectSrc define string?
+		ContentSecurity_ScriptSrc define [string]?
+		ContentSecurity_ImgSrc define [string]?
+		ContentSecurity_MediaSrc define [string]?
+		ContentSecurity_FontSrc define [string]?
+		ContentSecurity_StyleSrc define [string]?
+		ContentSecurity_FrameSrc define [string]?
+		ContentSecurity_ConnectSrc define [string]?
+		ContentSecurity_FormAction define [string]?
+		ContentSecurity_ReportURI define [string]?
+		ContentSecurity_ChildSrc define [string]?
+		ContentSecurity_ObjectSrc define [string]?
 
-		AccessControl_AllowMethods define string?
-		AccessControl_AllowHeaders define string?
+		AccessControl_AllowMethods define [string]?
+		AccessControl_AllowHeaders define [string]?
 		AccessControl_AllowOrigin define string?
 		AccessControl_MaxAge define string?
 		MalterlibWebAppManagerPrefix define string?
@@ -939,68 +939,68 @@ Property
 				}
 				WebAppSettingsContentSecurity define {...:any} = {}
 
-				WebAppSettingsContentSecurity =+ {ScriptSrc: ContentSecurity_ScriptSrc}
+				WebAppSettingsContentSecurity =+ {ScriptSrc: ContentSecurity_ScriptSrc->Join(" ")}
 				{
 					!ContentSecurity_ScriptSrc undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {ImgSrc: ContentSecurity_ImgSrc}
+				WebAppSettingsContentSecurity =+ {ImgSrc: ContentSecurity_ImgSrc->Join(" ")}
 				{
 					!ContentSecurity_ImgSrc undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {MediaSrc: ContentSecurity_MediaSrc}
+				WebAppSettingsContentSecurity =+ {MediaSrc: ContentSecurity_MediaSrc->Join(" ")}
 				{
 					!ContentSecurity_MediaSrc undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {FontSrc: ContentSecurity_FontSrc}
+				WebAppSettingsContentSecurity =+ {FontSrc: ContentSecurity_FontSrc->Join(" ")}
 				{
 					!ContentSecurity_FontSrc undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {StyleSrc: ContentSecurity_StyleSrc}
+				WebAppSettingsContentSecurity =+ {StyleSrc: ContentSecurity_StyleSrc->Join(" ")}
 				{
 					!ContentSecurity_StyleSrc undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {FrameSrc: ContentSecurity_FrameSrc}
+				WebAppSettingsContentSecurity =+ {FrameSrc: ContentSecurity_FrameSrc->Join(" ")}
 				{
 					!ContentSecurity_FrameSrc undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {ConnectSrc: ContentSecurity_ConnectSrc}
+				WebAppSettingsContentSecurity =+ {ConnectSrc: ContentSecurity_ConnectSrc->Join(" ")}
 				{
 					!ContentSecurity_ConnectSrc undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {FormAction: ContentSecurity_FormAction}
+				WebAppSettingsContentSecurity =+ {FormAction: ContentSecurity_FormAction->Join(" ")}
 				{
 					!ContentSecurity_FormAction undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {ReportURI: ContentSecurity_ReportURI}
+				WebAppSettingsContentSecurity =+ {ReportURI: ContentSecurity_ReportURI->Join(" ")}
 				{
 					!ContentSecurity_ReportURI undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {ChildSrc: ContentSecurity_ChildSrc}
+				WebAppSettingsContentSecurity =+ {ChildSrc: ContentSecurity_ChildSrc->Join(" ")}
 				{
 					!ContentSecurity_ChildSrc undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {ObjectSrc: ContentSecurity_ObjectSrc}
+				WebAppSettingsContentSecurity =+ {ObjectSrc: ContentSecurity_ObjectSrc->Join(" ")}
 				{
 					!ContentSecurity_ObjectSrc undefined
 				}
 
 				WebAppSettingsAccessControl define {...: any} = {}
 
-				WebAppSettingsAccessControl =+ {AllowMethods: AccessControl_AllowMethods}
+				WebAppSettingsAccessControl =+ {AllowMethods: AccessControl_AllowMethods->Join(", ")}
 				{
 					!AccessControl_AllowMethods undefined
 				}
-				WebAppSettingsAccessControl =+ {AllowMethods: AccessControl_AllowHeaders}
+				WebAppSettingsAccessControl =+ {AllowMethods: AccessControl_AllowHeaders->Join(", ")}
 				{
 					!AccessControl_AllowHeaders undefined
 				}
