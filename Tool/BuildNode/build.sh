@@ -132,6 +132,7 @@ function BuildNode()
 		./npm install -g npm
 	fi
 
+	./npm config set python `which python3`
 	./npm install -g retire
 	./npm install -g npm-check-updates
 
