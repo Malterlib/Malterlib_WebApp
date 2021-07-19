@@ -44,6 +44,7 @@ Type
 		WebAppManagerMongoDatabaseSetupScript define string?
 		WebAppManagerMongoDefaultReplicaName define string?
 		WebAppManagerMongoDefaultDatabase define string?
+		WebAppManagerCopySources define [type(CFileCopyOptions)] = []
 
 		WebAppManagerLoopbackPrefix define int?
 		WebAppManagerSaveUserPasswords define bool?
@@ -77,7 +78,7 @@ Type
 		ContentSecurity_FrameSrc define [string]?
 		ContentSecurity_ConnectSrc define [string]?
 		ContentSecurity_FormAction define [string]?
-		ContentSecurity_ReportURI define [string]?
+		ContentSecurity_ReportURI define string?
 		ContentSecurity_ChildSrc define [string]?
 		ContentSecurity_ObjectSrc define [string]?
 
@@ -100,6 +101,8 @@ Type
 		MalterlibWebAppHostNodePackagePath define string?
 
 		FirstDependencyExecutable define string?
+		WebAppBuildDirectory define string
+		MalterlibWebAppToolBuildName define string
 	}
 }
 
@@ -108,7 +111,6 @@ Type
 	Property
 	{
 		MalterlibWebAppCustomBuildScript define string
-		MalterlibWebAppToolBuildName define string
 		MalterlibWebAppToolType define string
 		MalterlibWebAppToolDependencies define [type(CEntity)] = []
 		MalterlibWebAppToolExcludePatterns define [string] = []
@@ -124,7 +126,7 @@ Type
 
 		MalterlibPostCopySources =+ {Pattern: `@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.*`}
 		MalterlibBuildServerPutSources =+ {Pattern: `@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.*`}
-		WebAppBuildDirectory define string = MalterlibWebAppToolBuildDirectory->MakeAbsolute(MalterlibWebAppSourceRoot)
+		WebAppBuildDirectory MalterlibWebAppToolBuildDirectory->MakeAbsolute(MalterlibWebAppSourceRoot)
 	}
 	Property
 	{
@@ -285,7 +287,6 @@ Type
 		ExportScriptEnvironment =+ "MalterlibWebAppToolDependenciesFiles"
 		ExportScriptEnvironment =+ "NpmBuildType"
 
-		CommandLine_Outputs =+ Builtin.GeneratorStateFile
 		Group `WebApp/@(MalterlibWebAppManagerName)/@(MalterlibWebAppToolBuildName)`
 	}
 	%Group "Build"
@@ -582,7 +583,6 @@ Property
 
 		MalterlibDoExeFS true
 
-		WebAppManagerCopySources define [type(CFileCopyOptions)] = []
 		WebAppManagerCopySources =+ {Pattern: "Source/Malterlib_WebApp_App_WebAppManager_OSSetup.sh"->MakeAbsolute(), Destination: "Source"}
 		WebAppManagerCopySources =+ {Pattern: "Source/Malterlib_WebApp_App_WebAppManager_Nginx.conf"->MakeAbsolute(), Destination: "Source"}
 		WebAppManagerCopySources =+ {Pattern: "Source/Malterlib_WebApp_App_WebAppManager_FastCGI.conf"->MakeAbsolute(), Destination: "Source"}
@@ -979,7 +979,7 @@ Property
 					!ContentSecurity_FormAction undefined
 				}
 
-				WebAppSettingsContentSecurity =+ {ReportURI: ContentSecurity_ReportURI->Join(" ")}
+				WebAppSettingsContentSecurity =+ {ReportURI: ContentSecurity_ReportURI}
 				{
 					!ContentSecurity_ReportURI undefined
 				}
