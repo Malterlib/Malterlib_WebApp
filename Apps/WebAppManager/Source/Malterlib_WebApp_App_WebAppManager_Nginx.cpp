@@ -561,6 +561,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					, NginxDirectory
 					, bIsStaging = mp_bIsStaging
 					, Domain = mp_Domain
+					, DomainCookie = mp_DomainCookie
 					, Packages = FilteredPackages
 					, DhParamFile
 					, ConfigFile
@@ -714,12 +715,12 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 											(
 												"			if ($uri ~* ^/{}$) {{\n"
 												"{{SecurityHeaders}\n"
-												"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{}\";\n"
+												"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain={}\";\n"
 												"				return 302 {}?campaign={};\n"
 												"			}\n"
 												, Path
 												, ReferrerCookie
-												, Domain
+												, DomainCookie
 												, RedirectTo
 												, CampaignPercentEncoded
 											)
@@ -892,7 +893,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		location /
 		{
-			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{DomainName}";
+			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/; Domain={DomainNameCookie}";
 			return 302 https://$host{SSLPortRewrite}$request_uri;
 		}
 	}
@@ -1054,7 +1055,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		location /
 		{
 {SecurityHeaders}
-			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/; Domain=.{DomainName}";
+			add_header Set-Cookie "{HTTPRedirectReferrerCookie}=$http_referer; Secure; HttpOnly; Path=/; Domain={DomainNameCookie}";
 			return 302 https://{DomainName}{SSLPortRewrite}$request_uri;
 		}
 		return 302 https://{DomainName}{SSLPortRewrite}$request_uri;
@@ -1115,6 +1116,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			ConfigContents = ConfigContents.f_Replace(VariablesToReplace.fs_GetKey(ReplaceWith), ReplaceWith);
 
 		ConfigContents = ConfigContents.f_Replace("{DomainName}", mp_Domain);
+		ConfigContents = ConfigContents.f_Replace("{DomainNameCookie}", mp_DomainCookie);
 		ConfigContents = ConfigContents.f_Replace("{DomainNameEscaped}", mp_Domain.f_Replace(".", "\\."));
 
 		ConfigContents = ConfigContents.f_Replace("{Root}", (NginxDirectory + "/root").f_EscapeStr());

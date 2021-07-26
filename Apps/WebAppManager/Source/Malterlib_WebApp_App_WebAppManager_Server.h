@@ -499,6 +499,7 @@ namespace NMib::NWebApp::NWebAppManager
 		// Precalculated config
 
 		CStr mp_Domain;
+		CStr mp_DomainCookie;
 		CStr mp_DDPSelf;
 
 		CStr mp_MongoDirectory;

@@ -47,6 +47,8 @@ namespace NMib::NWebApp::NWebAppManager
 			DMibLog(Info, "Running in STAGING mode");
 		}
 
+		mp_DomainCookie = mp_Domain.f_FindChar('.') >= 0 ? "." + mp_Domain : mp_Domain;
+
 		mp_WebPort = fp_GetConfigValue("WebPort", mp_Options.m_DefaultWebPort).f_Integer();
 		mp_WebSSLPort = fp_GetConfigValue("WebSSLPort", mp_Options.m_DefaultWebSSLPort).f_Integer();
 
