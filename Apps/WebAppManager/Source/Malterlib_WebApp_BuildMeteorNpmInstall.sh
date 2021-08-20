@@ -38,7 +38,7 @@ fi
 if [[ "$NodePackage" != "" ]]; then
 	pushd "$NodeDirectory" > /dev/null
 	tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$NodePackage"
-	export PATH="$PWD/bin:$PATH"
+	export PATH="$PWD/bin:$PWD:$PATH"
 	popd > /dev/null
 fi
 
