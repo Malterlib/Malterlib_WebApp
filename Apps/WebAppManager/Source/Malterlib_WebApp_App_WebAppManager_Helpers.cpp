@@ -29,11 +29,6 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 	}
 
-	bool CVersion::operator < (CVersion const &_Right) const
-	{
-		return fg_TupleReferences(m_Major, m_Minor, m_Revision) < fg_TupleReferences(_Right.m_Major, _Right.m_Minor, _Right.m_Revision);
-	}
-
 	CToolLaunch::CToolLaunch()
 		: m_pDestroyed(fg_Construct(false))
 	{

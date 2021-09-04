@@ -47,10 +47,7 @@ namespace NMib::NWebApp::NWebAppManager
 					CTime m_Time;
 					CStr m_Version;
 
-					bool operator < (CVersion const &_Right) const
-					{
-						return fg_TupleReferences(_Right.m_Time, _Right.m_Version) < fg_TupleReferences(this->m_Time, this->m_Version);
-					}
+					auto operator <=> (CVersion const &_Right) const = default;
 				};
 
 				TCVector<CVersion> Versions;

@@ -26,7 +26,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CVersion(uint32 _Major, uint32 _Minor, uint32 _Revision);
 		CVersion();
 
-		bool operator < (CVersion const &_Right) const;
+		auto operator <=> (CVersion const &_Right) const = default;
 
 		template <typename tf_CFormatInto>
 		void f_Format(tf_CFormatInto &o_FormatInto) const;

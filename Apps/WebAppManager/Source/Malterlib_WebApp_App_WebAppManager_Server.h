@@ -308,10 +308,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_PackageName;
 			mint m_iAppSequence = 0;
 
-			bool operator < (CAppLaunchKey const &_Right) const
-			{
-				return fg_TupleReferences(m_PackageName, m_iAppSequence) < fg_TupleReferences(_Right.m_PackageName, _Right.m_iAppSequence);
-			}
+			auto operator <=> (CAppLaunchKey const &_Right) const = default;
 		};
 
 		struct CAppLaunch
