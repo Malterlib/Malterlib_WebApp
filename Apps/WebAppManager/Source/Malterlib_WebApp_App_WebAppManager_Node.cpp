@@ -18,7 +18,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 #ifdef DPlatformFamily_Windows
 		if (mp_Options.m_bUseInternalNode)
-			return "{}/node_dist/{}}.exe"_f << CFile::fs_GetProgramDirectory() << _Executable;
+			return "{}/node_dist/{}.exe"_f << CFile::fs_GetProgramDirectory() << _Executable;
 		else
 			return "{}.exe"_f << _Executable;
 #else
