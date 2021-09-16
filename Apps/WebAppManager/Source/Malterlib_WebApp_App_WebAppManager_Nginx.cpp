@@ -306,7 +306,7 @@ ch8 const *g_pWebsocketServerTemplate[2] =
 	{
 R"---(
 		# pass all requests to Websocket
-		location ^/{SubPath}({DefaultLocationEnd})
+		location ^/{SubPath}({DefaultLocation})
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
