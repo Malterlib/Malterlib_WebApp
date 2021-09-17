@@ -12,7 +12,7 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 33;
+		uint32 gc_UpdateVersion = 34;
 	}
 
 	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
@@ -226,7 +226,7 @@ exports.handler = (event, context, callback) => {
 			if (!fp_FormatAlternateSourcesSearchReplace(AlternateSourcesString, AlternateSources))
 				co_return {};
 
-			CStr ContentSecurityPolicy = "default-src 'none' ;";
+			CStr ContentSecurityPolicy = "default-src 'none' {};"_f << mp_Options.m_ContentSecurity_DefaultSrc;
 			ContentSecurityPolicy += " img-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ImgSrc;
 			ContentSecurityPolicy += " font-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FontSrc;
 			ContentSecurityPolicy += " media-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_MediaSrc;
@@ -236,6 +236,7 @@ exports.handler = (event, context, callback) => {
 			ContentSecurityPolicy += " connect-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ConnectSrc;
 			ContentSecurityPolicy += " child-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ChildSrc;
 			ContentSecurityPolicy += " form-action 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FormAction;
+			ContentSecurityPolicy += " manifest-action 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ManifestSrc;
 			ContentSecurityPolicy += " object-src 'none' {} ;"_f << mp_Options.m_ContentSecurity_ObjectSrc;
 
 			if (mp_Options.m_ContentSecurity_ReportURI)
@@ -754,6 +755,8 @@ exports.handler = async (event) => {
 					Stream << gc_UpdateVersion; // Version
 					Stream << bAllowRobots;
 					Stream << CloudFrontDistributions;
+					Stream << Options.m_ContentSecurity_DefaultSrc;
+					Stream << Options.m_ContentSecurity_ManifestSrc;
 					Stream << Options.m_ContentSecurity_ImgSrc;
 					Stream << Options.m_ContentSecurity_MediaSrc;
 					Stream << Options.m_ContentSecurity_FontSrc;

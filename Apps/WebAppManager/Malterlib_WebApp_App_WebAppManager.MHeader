@@ -70,6 +70,7 @@ Type
 
 		NpmBuildType define string?
 
+		ContentSecurity_DefaultSrc define [string]?
 		ContentSecurity_ScriptSrc define [string]?
 		ContentSecurity_ImgSrc define [string]?
 		ContentSecurity_MediaSrc define [string]?
@@ -77,10 +78,11 @@ Type
 		ContentSecurity_StyleSrc define [string]?
 		ContentSecurity_FrameSrc define [string]?
 		ContentSecurity_ConnectSrc define [string]?
-		ContentSecurity_FormAction define [string]?
-		ContentSecurity_ReportURI define string?
 		ContentSecurity_ChildSrc define [string]?
 		ContentSecurity_ObjectSrc define [string]?
+		ContentSecurity_ManifestSrc define [string]?
+		ContentSecurity_FormAction define [string]?
+		ContentSecurity_ReportURI define string?
 
 		AccessControl_AllowMethods define [string]?
 		AccessControl_AllowHeaders define [string]?
@@ -939,6 +941,11 @@ Property
 				}
 				WebAppSettingsContentSecurity define {...:any} = {}
 
+				WebAppSettingsContentSecurity =+ {DefaultSrc: ContentSecurity_DefaultSrc->Join(" ")}
+				{
+					!ContentSecurity_DefaultSrc undefined
+				}
+
 				WebAppSettingsContentSecurity =+ {ScriptSrc: ContentSecurity_ScriptSrc->Join(" ")}
 				{
 					!ContentSecurity_ScriptSrc undefined
@@ -972,6 +979,11 @@ Property
 				WebAppSettingsContentSecurity =+ {ConnectSrc: ContentSecurity_ConnectSrc->Join(" ")}
 				{
 					!ContentSecurity_ConnectSrc undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {DefaultSrc: ContentSecurity_ManifestSrc->Join(" ")}
+				{
+					!ContentSecurity_ManifestSrc undefined
 				}
 
 				WebAppSettingsContentSecurity =+ {FormAction: ContentSecurity_FormAction->Join(" ")}

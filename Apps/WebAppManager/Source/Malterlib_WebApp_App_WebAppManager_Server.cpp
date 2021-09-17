@@ -540,6 +540,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 		if (auto *pContentSecurity = Settings.f_GetMember("ContentSecurity"))
 		{
+			if (auto *pValue = pContentSecurity->f_GetMember("DefaultSrc"))
+				m_ContentSecurity_DefaultSrc = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("ScriptSrc"))
 				m_ContentSecurity_ScriptSrc = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("ImgSrc"))
@@ -558,6 +560,8 @@ namespace NMib::NWebApp::NWebAppManager
 				m_ContentSecurity_ObjectSrc = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("ChildSrc"))
 				m_ContentSecurity_ChildSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("ManifestSrc"))
+				m_ContentSecurity_ManifestSrc = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("FormAction"))
 				m_ContentSecurity_FormAction = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("ReportURI"))

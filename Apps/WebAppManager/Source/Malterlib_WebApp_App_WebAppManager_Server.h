@@ -190,6 +190,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr m_S3BucketPrefix;
 		CStr m_RobotsSitemap;
 
+		CStr m_ContentSecurity_DefaultSrc;
 		CStr m_ContentSecurity_ScriptSrc;
 		CStr m_ContentSecurity_ImgSrc;
 		CStr m_ContentSecurity_MediaSrc;
@@ -199,6 +200,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr m_ContentSecurity_ConnectSrc;
 		CStr m_ContentSecurity_ObjectSrc;
 		CStr m_ContentSecurity_ChildSrc;
+		CStr m_ContentSecurity_ManifestSrc;
 		CStr m_ContentSecurity_FormAction;
 		CStr m_ContentSecurity_ReportURI;
 

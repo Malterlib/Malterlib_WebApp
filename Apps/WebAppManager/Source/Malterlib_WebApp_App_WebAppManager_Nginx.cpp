@@ -1167,7 +1167,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		}
 		{
 			CStr SecurityHeaders;
-			CStr ContentSecurityPolicy = "default-src 'none' ;";
+			CStr ContentSecurityPolicy = "default-src 'none' {};"_f << mp_Options.m_ContentSecurity_DefaultSrc;
 			ContentSecurityPolicy += " img-src 'self' data: https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ImgSrc;
 			ContentSecurityPolicy += " font-src 'self' data: https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FontSrc;
 			ContentSecurityPolicy += " media-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_MediaSrc;
@@ -1176,6 +1176,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			ContentSecurityPolicy += " frame-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FrameSrc;
 			ContentSecurityPolicy += " connect-src 'self' https://*.{0} https://{0} wss://*.{0} wss://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ConnectSrc;
 			ContentSecurityPolicy += " child-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ChildSrc;
+			ContentSecurityPolicy += " manifest-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ManifestSrc;
 			ContentSecurityPolicy += " form-action 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FormAction;
 			ContentSecurityPolicy += " object-src 'none' {} ;"_f << mp_Options.m_ContentSecurity_ObjectSrc;
 
