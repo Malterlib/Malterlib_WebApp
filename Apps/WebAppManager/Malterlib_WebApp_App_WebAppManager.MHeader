@@ -209,7 +209,7 @@ Type
 		{
 			&
 			{
-				Target_MatchesDependenciesMatchTarget undefined
+				!Target_MatchesDependenciesMatchTarget true
 				true _Target->IsString()
 				Target_MatchesDependenciesMatchTargetToMatch _Target
 			}
@@ -218,7 +218,7 @@ Type
 		{
 			&
 			{
-				Target_MatchesDependenciesMatchTarget undefined
+				!Target_MatchesDependenciesMatchTarget true
 				true _Target->IsObject()
 				true _Target->HasMember("Properties")
 				true _Target<Properties>->HasMember("Dependency.Target")
@@ -229,7 +229,7 @@ Type
 		{
 			&
 			{
-				Target_MatchesDependenciesMatchTarget undefined
+				!Target_MatchesDependenciesMatchTarget true
 				true _Target->IsObject()
 				true _Target->HasMember("Name")
 				Target_MatchesDependenciesMatchTargetToMatch _Target<Name>
