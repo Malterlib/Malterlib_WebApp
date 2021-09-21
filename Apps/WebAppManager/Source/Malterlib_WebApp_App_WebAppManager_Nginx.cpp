@@ -36,7 +36,7 @@ R"---(
 		}
 
 		# pass all other requests to upstream
-		location ~ ^/{SubPath}({DefaultLocation})
+		location ~ ^/{SubPath}({DefaultLocation})?$
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -99,7 +99,7 @@ R"---(
 		}
 
 		# pass all other requests to upstream
-		location ~ (^{DefaultLocation})
+		location ~ (^{DefaultLocation})$
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -129,7 +129,7 @@ R"---(
 ch8 const *g_pStaticServerTemplate[2] =
 	{
 R"---(
-		location ~ ^/{SubPath}({DefaultLocation})
+		location ~ ^/{SubPath}({DefaultLocation})?$
 		{
 {PathRedirect}
 			gzip_static always;
@@ -174,7 +174,7 @@ R"---(
 			return 200 "{AllowRobots}";
 		}
 
-		location ~ ^({DefaultLocation})
+		location ~ ^({DefaultLocation})$
 		{
 {PathRedirect}
 			gzip_static always;
@@ -207,7 +207,7 @@ R"---(
 		}
 
 		# pass all requests to FastCGI
-		location ~ ^/{SubPath}({DefaultLocation})
+		location ~ ^/{SubPath}({DefaultLocation})?$
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -273,7 +273,7 @@ R"---(
 		}
 
 		# pass all requests to FastCGI
-		location ~ ^({DefaultLocation})
+		location ~ ^({DefaultLocation})$
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -306,7 +306,7 @@ ch8 const *g_pWebsocketServerTemplate[2] =
 	{
 R"---(
 		# pass all requests to Websocket
-		location ^/{SubPath}({DefaultLocation})
+		location ~ ^/{SubPath}({DefaultLocation})?$
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -361,7 +361,7 @@ R"---(
 		}
 
 		# pass all requests to Websocket
-		location ~ ^({DefaultLocation})
+		location ~ ^({DefaultLocation})$
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
@@ -1039,7 +1039,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					Server = Server.f_Replace("{PathRedirect}",  SetupResults.m_Redirects[Package.f_GetName()]);
 					auto &AlternateSource = AlternateSources[Package.f_GetName()];
 					Server = Server.f_Replace("{AlternateSources}", AlternateSource.m_Locations);
-					Server = Server.f_Replace("{DefaultLocation}", AlternateSource.m_DefaultLocation ? AlternateSource.m_DefaultLocation : CStr("/.*$"));
+					Server = Server.f_Replace("{DefaultLocation}", AlternateSource.m_DefaultLocation ? AlternateSource.m_DefaultLocation : CStr("/.*"));
 
 					if (bIsMainServer && mp_Options.m_bRedirectWWW)
 					{

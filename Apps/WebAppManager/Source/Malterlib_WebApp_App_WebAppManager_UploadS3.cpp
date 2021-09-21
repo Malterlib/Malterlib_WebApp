@@ -31,7 +31,7 @@ namespace NMib::NWebApp::NWebAppManager
 				}
 			}
 			o_Str += "	{{ pattern: new RegExp({}), destination: {}, isDefault: {} },\n"_f
-				<< CJSON("^" + AlternateSource.m_Pattern).f_ToString(nullptr)
+				<< CJSON("^" + AlternateSource.m_Pattern + "$").f_ToString(nullptr)
 				<< CJSON(Destination).f_ToString(nullptr)
 				<< CJSON(Destination == "Default").f_ToString(nullptr)
 			;
@@ -56,7 +56,7 @@ namespace NMib::NWebApp::NWebAppManager
 			}
 
 			o_Str += "	{{ pattern: new RegExp({}), destination: {}, search: new RegExp(escapeRegExp({}), \"g\"), replace: {} },\n"_f
-				<< CJSON("^" + AlternateSource.m_Pattern).f_ToString(nullptr)
+				<< CJSON("^" + AlternateSource.m_Pattern + "$").f_ToString(nullptr)
 				<< CJSON(Destination).f_ToString(nullptr)
 				<< CJSON(AlternateSource.m_Search.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr)
 				<< CJSON(AlternateSource.m_Replace.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr)
