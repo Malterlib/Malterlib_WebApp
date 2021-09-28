@@ -1126,45 +1126,77 @@ exports.handler = async (event) => {
 		fg_Move(Results) | g_Unwrap;
 		fg_Move(LambdaUpdateResults) | g_Unwrap;
 
-		TCVector<CStr> PathsToInvalidate = {"/*"};
-		if (!CloudFrontDistributions.f_IsEmpty())
-		{
-			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache");
-			TCActorResultVector<CStr> Results;
-			for (auto &Distribution : CloudFrontDistributions)
-				mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, Distribution, PathsToInvalidate) > Results.f_AddResult();
-			co_await Results.f_GetResults() | g_Unwrap;
-			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
-		}
-
-		fg_Timeout(60.0) > [=]() mutable
+		auto fInvalidateCache = g_ActorFunctor / [this, CloudFrontDistributions]() -> TCFuture<void>
 			{
-				DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
-				Clock.f_Start();
-				TCActorResultVector<CStr> Results;
-				for (auto &Distribution : CloudFrontDistributions)
-					mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, Distribution, PathsToInvalidate) > Results.f_AddResult();
+				auto OnResume = g_OnResume / [&]
+					{
+						if (f_IsDestroyed())
+							DMibError("Shutting down");
+					}
+				;
 
-				Results.f_GetResults() > [=](TCAsyncResult<TCVector<TCAsyncResult<CStr>>> &&_Result)
+				TCVector<CStr> PathsToInvalidate = {"/*"};
+				TCSet<CStr> ToInvalidate = CloudFrontDistributions;
+
+				TCVector<TCAsyncResult<CStr>> Errors;
+
+				for (mint iRetry = 10; iRetry >= 0; --iRetry)
+				{
+					TCActorResultMap<CStr, CStr> Results;
+					for (auto &Distribution : ToInvalidate)
+						mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, Distribution, PathsToInvalidate) > Results.f_AddResult(Distribution);
+
+					auto ResultsMap = co_await Results.f_GetResults();
+
+					if (iRetry == 0)
+					{
+						fg_Move(ResultsMap) | g_Unwrap;
+						break;
+					}
+
+					for (auto &Result : ResultsMap)
+					{
+						auto &Key = ResultsMap.fs_GetKey(Result);
+
+						if (!Result && Result.f_GetExceptionStr().f_Find("503: ServiceUnavailable") >= 0)
+							continue;
+
+						if (!Result)
+							Errors.f_Insert(fg_Move(Result));
+
+						ToInvalidate.f_Remove(Key);
+					}
+
+					if (ToInvalidate.f_IsEmpty())
+						break;
+
+					co_await fg_Timeout(60.0);
+
+					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache retry due to 503: ServiceUnavailable for: {vs}", ToInvalidate);
+				}
+
+				fg_Move(Errors) | g_Unwrap;
+
+				co_return {};
+			}
+		;
+
+		DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache");
+		co_await fInvalidateCache();
+		DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
+
+		fg_Timeout(60.0) > [fInvalidateCache = fg_Move(fInvalidateCache), Clock]() mutable
+			{
+				Clock.f_Start();
+ 				DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
+				fInvalidateCache() > [=](TCAsyncResult<void> &&_Result)
 					{
 						if (!_Result)
 						{
-							DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache failed: {}", _Result.f_GetExceptionStr());
+							DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again failed: {}", _Result.f_GetExceptionStr());
 							return;
 						}
-
-						bool bFoundError = false;
-						for (auto &Result : *_Result)
-						{
-							if (!Result)
-							{
-								bFoundError = true;
-								DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache failed: {}", Result.f_GetExceptionStr());
-							}
-						}
-
-						if (!bFoundError)
-							DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again {fe2} s", Clock.f_GetTime());
+						DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again {fe2} s", Clock.f_GetTime());
 					}
 				;
 			}
