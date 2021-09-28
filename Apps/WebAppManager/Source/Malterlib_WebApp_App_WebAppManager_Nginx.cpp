@@ -135,8 +135,8 @@ R"---(
 			gzip_static always;
 {SecurityHeaders}
 			add_header Cache-Control no-cache;
-			alias "{StaticRoot}$1";
-			index index.html
+			alias "{StaticRoot}";
+			try_files "$1" "$1/index.html" "/index.html";
 			access_log logs/static_access_{PackageName}.log;
 			error_page 403 = /403/index.html;
 			error_page 404 = /404/index.html;
@@ -180,8 +180,8 @@ R"---(
 			gzip_static always;
 {SecurityHeaders}
 			add_header Cache-Control no-cache;
-			alias "{StaticRoot}$1";
-			index index.html
+			alias "{StaticRoot}";
+			try_files "$1" "$1/index.html" "/index.html";
 			access_log logs/static_access_{PackageName}.log;
 			error_page 403 = /403/index.html;
 			error_page 404 = /404/index.html;
