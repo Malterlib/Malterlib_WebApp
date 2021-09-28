@@ -60,6 +60,7 @@ Type
 		WebAppManagerServeAllSubdomains define bool?
 		WebAppManagerS3BucketPrefix define string?
 		WebAppManagerAllowRedirectsOutsideOfDomain define bool?
+		WebAppManagerAllowRedirectsOutsideOfDomainPatterns define [string]?
 
 		FastCGIBuilds define [type(CWebAppManagerBuild)]?
 		WebsocketBuilds define [type(CWebAppManagerBuild)]?
@@ -1095,6 +1096,10 @@ Property
 				WebAppSettings =+ {AllowRedirectsOutsideOfDomain: WebAppManagerAllowRedirectsOutsideOfDomain}
 				{
 					!WebAppManagerAllowRedirectsOutsideOfDomain undefined
+				}
+				WebAppSettings =+ {AllowRedirectsOutsideOfDomainPatterns: WebAppManagerAllowRedirectsOutsideOfDomainPatterns}
+				{
+					!WebAppManagerAllowRedirectsOutsideOfDomainPatterns undefined
 				}
 			}
 			GenerateFile

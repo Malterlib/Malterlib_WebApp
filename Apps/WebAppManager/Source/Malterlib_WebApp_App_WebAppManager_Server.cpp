@@ -538,6 +538,9 @@ namespace NMib::NWebApp::NWebAppManager
 		if (auto *pValue = Settings.f_GetMember("AllowRedirectsOutsideOfDomain"))
 			m_bAllowRedirectsOutsideOfDomain = pValue->f_Boolean();
 
+		if (auto *pValue = Settings.f_GetMember("AllowRedirectsOutsideOfDomainPatterns"))
+			m_AllowRedirectsOutsideOfDomainPatterns = pValue->f_StringArray();
+
 		if (auto *pContentSecurity = Settings.f_GetMember("ContentSecurity"))
 		{
 			if (auto *pValue = pContentSecurity->f_GetMember("DefaultSrc"))

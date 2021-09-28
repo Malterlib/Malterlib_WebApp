@@ -12,7 +12,7 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 34;
+		uint32 gc_UpdateVersion = 35;
 	}
 
 	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
@@ -280,6 +280,11 @@ exports.handler = (event, context, callback) => {
 				;
 			}
 
+			CStr AllowRedirectsOutsideOfDomainPatternsString;
+
+			for (auto &Pattern : mp_Options.m_AllowRedirectsOutsideOfDomainPatterns)
+				AllowRedirectsOutsideOfDomainPatternsString += "	new RegExp({}),\n"_f << CJSON(Pattern.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr);
+
 			OriginResponseFiles["index.js"] = CStr(R"----(
 'use strict';
 function escapeRegExp(string) {
@@ -288,6 +293,9 @@ function escapeRegExp(string) {
 
 let alternateSources = [
 {AlternateSources}];
+
+let allowRedirectsOutsideOfDomainPatterns = [
+{AllowRedirectsOutsideOfDomainPatterns}];
 
 const domainRegex = /(http(s)?:\/\/)(([a-zA-Z\d-]+\.?)+)(\/.*)/;
 
@@ -306,6 +314,15 @@ const getContent = function(url) {
 	})
 };
 
+function allowedByPatterns(domain) {
+	for (let pattern of allowRedirectsOutsideOfDomainPatterns) {
+		if (pattern.test(domain))
+			return true;
+	}
+
+	return false;
+}
+
 exports.handler = async (event) => {
 
 	// Get contents of response
@@ -321,10 +338,10 @@ exports.handler = async (event) => {
 	headers['x-xss-protection'] = [{key: 'X-XSS-Protection', value: '1; mode=block'}];
 	headers['referrer-policy'] = [{key: 'Referrer-Policy', value: 'same-origin'}];
 
-	if (!{AllowRedirectsOutsideOfDomain} && response.status == 301 && headers['location'] && headers['location'][0] && headers['location'][0].value) {
+	if (!{AllowRedirectsOutsideOfDomain} && (response.status == 301 || response.status == 302) && headers['location'] && headers['location'][0] && headers['location'][0].value) {
 		let matchResult = headers['location'][0].value.match(domainRegex);
-		if (matchResult && matchResult[3] && matchResult[3] != {DomainName}) {
-			headers['location'][0].value = matchResult[1] + {DomainName} + matchResult[5];
+		if (matchResult && matchResult[3] && matchResult[3] != {DomainName} && !matchResult[3].endsWith({DomainSuffix}) && !allowedByPatterns(matchResult[3])) {
+			headers['location'][0].value = matchResult[1] + {FullDomainName} + matchResult[5];
 		}
 	}
 
@@ -372,7 +389,11 @@ exports.handler = async (event) => {
 	.f_Replace("{AccessControl}", AccessControl)
 	.f_Replace("{Redirects}", RedirectContents)
 	.f_Replace("{AllowRedirectsOutsideOfDomain}", mp_Options.m_bAllowRedirectsOutsideOfDomain ? "true" : "false")
-	.f_Replace("{DomainName}", NEncoding::CJSON(FullDomainName).f_ToString(nullptr))
+	.f_Replace("{AllowRedirectsOutsideOfDomainPatterns}", AllowRedirectsOutsideOfDomainPatternsString)
+	.f_Replace("{DomainName}", NEncoding::CJSON(mp_Domain).f_ToString(nullptr))
+	.f_Replace("{FullDomainName}", NEncoding::CJSON(FullDomainName).f_ToString(nullptr))
+	.f_Replace("{DomainSuffix}", NEncoding::CJSON(".{}"_f << mp_Domain).f_ToString(nullptr))
+
 ;
 		}
 
