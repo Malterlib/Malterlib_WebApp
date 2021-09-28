@@ -616,7 +616,7 @@ namespace NMib::NWebApp::NWebAppManager
 				CStr Hostname = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 				CStr HostnameStatic = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_Static);
 				CalculatedSettings[fg_Format("Hostname_{}", Package.f_GetName())] = Hostname;
-				CalculatedSettings[fg_Format("RootURL_{}", Package.f_GetName())] = fp_GetRootURL(Hostname, PackageOptions.m_SubPath);
+				CalculatedSettings[fg_Format("RootURL_{}", Package.f_GetName())] = fp_GetRootURL(Hostname, Package.m_SubPath);
 				CalculatedSettings[fg_Format("LocalURL_{}", Package.f_GetName())] = fp_GetPackageLocalURL(Package.f_GetName());
 			}
 

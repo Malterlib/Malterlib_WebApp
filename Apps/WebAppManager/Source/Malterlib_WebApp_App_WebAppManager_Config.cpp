@@ -14,8 +14,6 @@ namespace NMib::NWebApp::NWebAppManager
 
 		if (mp_WebSSLPort != 443)
 			mp_DDPSelf = fg_Format("{}:{}", mp_DDPSelf, mp_WebSSLPort);
-
-		DLog(Info, "DDP self: {}", mp_DDPSelf);
 	}
 
 	void CWebAppManagerActor::fp_ParseConfig()
@@ -51,6 +49,12 @@ namespace NMib::NWebApp::NWebAppManager
 
 		mp_WebPort = fp_GetConfigValue("WebPort", mp_Options.m_DefaultWebPort).f_Integer();
 		mp_WebSSLPort = fp_GetConfigValue("WebSSLPort", mp_Options.m_DefaultWebSSLPort).f_Integer();
+
+		for (auto &Package : mp_Options.m_Packages)
+		{
+			CStr Hostname = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
+			DMibLog(Info, "URL for {}: {}", Package.f_GetName(), fp_GetRootURL(Hostname, Package.m_SubPath));
+		}
 
 		mp_MongoDirectory = fp_GetConfigValue("MongoDirectory", mp_Options.m_Mongo.m_Directory).f_String();
 		mp_MongoHost = fp_GetConfigValue("MongoHost", mp_Options.m_Mongo.m_Host).f_String();
