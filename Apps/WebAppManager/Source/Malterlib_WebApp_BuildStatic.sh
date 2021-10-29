@@ -33,13 +33,11 @@ if [ "$Action" == "Clean" ]; then
 	exit 0
 fi
 
-DependencyFile=${OutputDir}$Name.MalterlibDependency
-
-if [ -e "$DependencyFile" ]; then
+if [ -e "$ScriptDependencyFile" ]; then
 	MTool CheckDependencies Verbose=true "Directory=$OutputDir"
 fi
 
-if [ -e "$OutputBundleTar" ] && [ -e "$DependencyFile" ]; then
+if [ -e "$OutputBundleTar" ] && [ -e "$ScriptDependencyFile" ]; then
 	echo Bundle is up to date. To force rebuild:
 	echo rm -f \"$OutputBundleTar\"
 	exit 0
@@ -77,6 +75,6 @@ fi
 ExcludePatterns="*/bin;*/node_modules"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 
-MTool BuildDependencies "OutputFile=`ConvertPath \"$DependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Find:`ConvertPath \"$AppDir\"`/*;RIF;33;$ExcludePatterns"
+MTool BuildDependencies "OutputFile=`ConvertPath \"$ScriptDependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Find:`ConvertPath \"$AppDir\"`/*;RIF;33;$ExcludePatterns"
 
 exit 0

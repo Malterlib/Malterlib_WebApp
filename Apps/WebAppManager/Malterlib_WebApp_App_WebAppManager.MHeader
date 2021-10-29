@@ -184,6 +184,8 @@ Type
 			!!BuildScript undefined
 		}
 
+		ScriptDependencyFile define string = OutputDirectory / `@(MalterlibWebAppToolBuildName).MalterlibDependency`
+
 		ExcludeFiles =+ ["*/.DS_Store", "*/.build.*", "*/.gitignore", "*/.git", "*/node_modules", "*/.npm", "*/build"]
 		ExcludeFiles =+ MalterlibWebAppToolExcludePatterns
 
@@ -274,10 +276,12 @@ Type
 		CommandLine_Build `@(BashScriptPrefix)@(BuildScript) Build`
 		CommandLine_ReBuild `@(BashScriptPrefix)@(BuildScript) Rebuild`
 		CommandLine_Clean `@(BashScriptPrefix)@(BuildScript) Clean`
+		PostBuildScriptInputs =+ ScriptDependencyFile
 
 		ExportScriptEnvironment =+ "MeteorCommand"
 		ExportScriptEnvironment =+ "OutputDirectory"
 		ExportScriptEnvironment =+ "MalterlibWebAppToolBuildName"
+		ExportScriptEnvironment =+ "ScriptDependencyFile"
 		ExportScriptEnvironment =+ "WebAppBuildDirectory"
 		ExportScriptEnvironment =+ "MalterlibWebAppMeteorSharedPackages"
 		ExportScriptEnvironment =+ "MeteorOverridePath"

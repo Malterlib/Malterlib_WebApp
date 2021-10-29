@@ -40,13 +40,11 @@ if [ "$Action" == "Clean" ]; then
 	exit 0
 fi
 
-DependencyFile=${OutputDir}$Name.MalterlibDependency
-
-if [ -e "$DependencyFile" ]; then
+if [ -e "$ScriptDependencyFile" ]; then
 	MTool CheckDependencies Verbose=true "Directory=$OutputDir"
 fi
 
-if [ -e "$OutputBundleTar" ] && [ -e "$DependencyFile" ]; then
+if [ -e "$OutputBundleTar" ] && [ -e "$ScriptDependencyFile" ]; then
 	echo Bundle is up to date. To force rebuild:
 	echo rm -f \"$OutputBundleTar\"
 	exit 0
@@ -135,7 +133,7 @@ ExcludePatterns="$ExcludePatterns;*/.git"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 ExcludePatterns="$ExcludePatterns;*/*.MRepoState"
 
-DependencyCommands=("OutputFile=`ConvertPath \"$DependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Input:`ConvertPath \"$ScriptDir/Malterlib_WebApp_BuildMeteorNpmInstall.sh\"`" "Find:`ConvertPath \"$MeteorDir\"`/*;RIF;33;$ExcludePatterns")
+DependencyCommands=("OutputFile=`ConvertPath \"$ScriptDependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Input:`ConvertPath \"$ScriptDir/Malterlib_WebApp_BuildMeteorNpmInstall.sh\"`" "Find:`ConvertPath \"$MeteorDir\"`/*;RIF;33;$ExcludePatterns")
 echo $DependencyCommands
 if [[ "$SharedPackagesDir" != "" ]]; then
 	DependencyCommands+=(@"Find:`ConvertPath \"$SharedPackagesDir\"`/*;RIF;33;$ExcludePatterns")
