@@ -795,7 +795,7 @@ Property
 					!!true IsDefined(`StaticPath_@(_PackageName)`)
 				}
 
-				PackageSettings	=+ {UploadS3: UploadS3_@(_PackageName)}
+				PackageSettings	=+ {UploadS3: CheckIsBool(UploadS3_@(_PackageName))}
 				{
 					!!true IsDefined(`UploadS3_@(_PackageName)`)
 				}
@@ -803,6 +803,11 @@ Property
 				PackageSettings	=+ {UploadS3Prefix: UploadS3Prefix_@(_PackageName)}
 				{
 					!!true IsDefined(`UploadS3Prefix_@(_PackageName)`)
+				}
+
+				PackageSettings	=+ {MalterlibDistributedApp: CheckIsBool(MalterlibDistributedApp_@(_PackageName))}
+				{
+					!!true IsDefined(`MalterlibDistributedApp_@(_PackageName)`)
 				}
 
 				CheckWebAppManagerUploadS3Priority function(type(CWebAppManagerUploadS3Priority) _Priorities) type(CWebAppManagerUploadS3Priority) = _Priorities
@@ -838,6 +843,7 @@ Property
 				}
 
 				CheckIsStringArray function([string] _Dependencies) [string] = _Dependencies
+				CheckIsBool function(bool _bBool) bool = _bBool
 
 				PackageSettings	=+ {StartupDependencies: CheckIsStringArray(StartDependencies_@(_PackageName))}
 				{

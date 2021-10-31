@@ -98,7 +98,7 @@ namespace NMib::NWebApp::NWebAppManager
 		DLog(Info, "Done setting up mongo, starting apps");
 		co_await (fp_StartApps() + fp_SetupNetworkTunnels());
 
-		DLog(Info, "Done stating apps, starting nginx");
+		DLog(Info, "Done starting apps, starting nginx");
 		co_await fp_StartNginx();
 
 		co_return {};
@@ -152,6 +152,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 		co_await fp_DestroyApps().f_Wrap();
 		DLog(Debug, "Destroy apps done");
+
+		if (mp_AppLaunchHelper)
+			co_await mp_AppLaunchHelper.f_Destroy();
 
 		{
 			TCActorResultVector<void> Destroys;
@@ -488,6 +491,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("UploadS3"))
 				Package.m_bUploadS3 = pValue->f_Boolean();
+
+			if (auto *pValue = PackageSettings.f_GetMember("MalterlibDistributedApp"))
+				Package.m_bMalterlibDistributedApp = pValue->f_Boolean();
 
 			if (auto *pValue = PackageSettings.f_GetMember("UploadS3Priority"))
 			{

@@ -21,6 +21,7 @@
 #include <Mib/Web/Curl>
 #include <Mib/WebApp/WebCertificateDeploy>
 #include <Mib/Cloud/NetworkTunnelsServer>
+#include <Mib/Concurrency/DistributedAppLaunchHelper>
 
 #include "Malterlib_WebApp_App_WebAppManager_Helpers.h"
 
@@ -156,6 +157,7 @@ namespace NMib::NWebApp::NWebAppManager
 			bool m_bOwnPackageDirectory = false;
 			bool m_bAllowRobots = true;
 			bool m_bUploadS3 = false;
+			bool m_bMalterlibDistributedApp = false;
 		};
 
 		struct CMongo
@@ -314,6 +316,12 @@ namespace NMib::NWebApp::NWebAppManager
 			auto operator <=> (CAppLaunchKey const &_Right) const = default;
 		};
 
+		struct CNormalProcessLaunch
+		{
+			TCActor<CProcessLaunchActor> m_Launch;
+			CActorSubscription m_Subscription;
+		};
+
 		struct CAppLaunch
 		{
 			CAppLaunchKey const &f_GetKey() const
@@ -321,12 +329,13 @@ namespace NMib::NWebApp::NWebAppManager
 				return TCMap<CAppLaunchKey, CAppLaunch>::fs_GetKey(*this);
 			}
 
-			TCActor<CProcessLaunchActor> m_Launch;
-			CActorSubscription m_LaunchSubscription;
+			TCVariant<void, CNormalProcessLaunch, TCUniquePointer<CDistributedApp_LaunchInfo>> m_Launch;
 			CActorSubscription m_TunnelSubscription;
 			CStr m_LogCategory;
 			CStr m_BackendIdentifier;
+			TCOptional<TCPromise<void>> m_DestroyPromise;
 			bool m_bInitialLaunched = false;
+			bool m_bMalterlibDistributedApp = false;
 		};
 
 		TCFuture<void> fp_Destroy() override;
@@ -468,6 +477,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		TCLinkedList<CToolLaunch> mp_ToolLaunches;
 
+		TCActor<CDistributedApp_LaunchHelper> mp_AppLaunchHelper;
 		TCMap<CAppLaunchKey, CAppLaunch> mp_AppLaunches;
 		TCMap<CStr, zmint> mp_OutstandingLaunches;
 		mutable TCMap<CStr, zmint> mp_CurrentPackageLocalURL;

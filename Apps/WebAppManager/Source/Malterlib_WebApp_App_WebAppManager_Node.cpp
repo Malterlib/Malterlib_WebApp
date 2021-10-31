@@ -118,6 +118,7 @@ namespace NMib::NWebApp::NWebAppManager
 					AppLaunch.m_LogCategory = LaunchKey.m_PackageName;
 
 				AppLaunch.m_BackendIdentifier = fg_Format("{}_{}", LaunchKey.m_PackageName, fg_RandomID());
+				AppLaunch.m_bMalterlibDistributedApp = Package.m_bMalterlibDistributedApp;
 
 				for (mint i = 0; i < Package.m_PortConcurrency; ++i)
 					mp_PackageLocalURLs[LaunchKey.m_PackageName].f_Insert(fp_GetAppLocalURL(AppLaunch, i));
@@ -153,9 +154,18 @@ namespace NMib::NWebApp::NWebAppManager
 
 		for (auto &Launch : mp_AppLaunches)
 		{
-			if (!Launch.m_Launch)
+			if (Launch.m_Launch.f_IsOfType<void>())
 				continue;
-			Launch.m_Launch.f_Destroy() > Destroys.f_AddResult();
+			else if (Launch.m_Launch.f_IsOfType<CNormalProcessLaunch>())
+				Launch.m_Launch.f_GetAsType<CNormalProcessLaunch>().m_Launch.f_Destroy() > Destroys.f_AddResult();
+			else
+			{
+				auto &pLaunchInfo = Launch.m_Launch.f_GetAsType<TCUniquePointer<CDistributedApp_LaunchInfo>>();
+				if (pLaunchInfo && pLaunchInfo->m_Launch)
+					fg_Move(pLaunchInfo->m_Launch).f_Destroy() > Destroys.f_AddResult();
+				else
+					Launch.m_DestroyPromise.f_Set<1>().f_Future() > Destroys.f_AddResult();
+			}
 		}
 
 		Destroys.f_GetResults() > Promise.f_ReceiveAny();
@@ -345,7 +355,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 	void CWebAppManagerActor::fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch)
 	{
-		if (_AppLaunch.m_Launch || mp_bStopped || f_IsDestroyed())
+		if (!_AppLaunch.m_Launch.f_IsOfType<void>() || mp_bStopped || f_IsDestroyed())
 			return; // Launch already in progress
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
@@ -434,16 +444,19 @@ namespace NMib::NWebApp::NWebAppManager
 						{
 							if (f_IsDestroyed() || mp_bStopped)
 							{
-								if (AppLaunch.m_Launch)
-									AppLaunch.m_Launch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
+								if (AppLaunch.m_Launch.f_IsOfType<CNormalProcessLaunch>())
+								{
+									auto &NormalLaunch = AppLaunch.m_Launch.f_Get<1>();
+									NormalLaunch.m_Launch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
+								}
 								if (_bInitialLaunch)
 									fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance("Application is being destroyed")));
 							}
 							else
 							{
-								if (_bInitialLaunch)
+								if (_bInitialLaunch && AppLaunch.m_Launch.f_IsOfType<CNormalProcessLaunch>())
 								{
-									--mp_OutstandingLaunches[pAppLaunch->f_GetKey().m_PackageName];
+									--mp_OutstandingLaunches[AppLaunch.f_GetKey().m_PackageName];
 									fp_UpdateAppLaunch(nullptr);
 								}
 							}
@@ -451,6 +464,9 @@ namespace NMib::NWebApp::NWebAppManager
 						break;
 					case EProcessLaunchState_Exited:
 						{
+							if (AppLaunch.m_DestroyPromise)
+								AppLaunch.m_DestroyPromise->f_SetResult();
+
 							if (!f_IsDestroyed() && !mp_bStopped)
 							{
 								if (_bInitialLaunch)
@@ -464,14 +480,14 @@ namespace NMib::NWebApp::NWebAppManager
 									}
 								;
 							}
-							AppLaunch.m_Launch.f_Clear();
-							AppLaunch.m_LaunchSubscription.f_Clear();
+							AppLaunch.m_Launch.f_Set<0>();
 						}
 						break;
 					case EProcessLaunchState_LaunchFailed:
 						{
-							AppLaunch.m_Launch.f_Clear();
-							AppLaunch.m_LaunchSubscription.f_Clear();
+							if (AppLaunch.m_DestroyPromise)
+								AppLaunch.m_DestroyPromise->f_SetResult();
+							AppLaunch.m_Launch.f_Set<0>();
 							if (_bInitialLaunch)
 								fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Launch failed: {}", _Change.f_Get<EProcessLaunchState_LaunchFailed>()))));
 						}
@@ -723,9 +739,66 @@ namespace NMib::NWebApp::NWebAppManager
 			return;
 		}
 
-		_AppLaunch.m_Launch = fg_ConstructActor<CProcessLaunchActor>();
+		if (_AppLaunch.m_bMalterlibDistributedApp)
+		{
+			if (!mp_AppLaunchHelper)
+			{
+				CDistributedApp_LaunchHelperDependencies Dependencies;
+				Dependencies.m_TrustManager = this->mp_AppState.m_TrustManager;
+				Dependencies.m_DistributionManager = this->mp_AppState.m_DistributionManager;
+				Dependencies.m_Address = this->mp_AppState.m_LocalAddress;
+				mp_AppLaunchHelper = fg_Construct(Dependencies, false);
+			}
 
-		_AppLaunch.m_Launch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this))
+			_AppLaunch.m_Launch.f_Set<2>();
+
+			mp_AppLaunchHelper(&CDistributedApp_LaunchHelper::f_LaunchWithLaunch, _AppLaunch.m_LogCategory, fg_Move(Launch), fg_ThisActor(this))
+				> [this, pAppLaunch, _bInitialLaunch](TCAsyncResult<CDistributedApp_LaunchInfo> &&_LaunchInfo) mutable
+				{
+					auto &AppLaunch = *pAppLaunch;
+
+					if (!_LaunchInfo)
+					{
+						if (_bInitialLaunch)
+							fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Launch failed: {}", _LaunchInfo.f_GetExceptionStr()))));
+
+						if (AppLaunch.m_DestroyPromise)
+							AppLaunch.m_DestroyPromise.f_Get().f_SetResult();
+						AppLaunch.m_Launch.f_Set<0>();
+						return;
+					}
+
+					auto &pLaunchInfo = AppLaunch.m_Launch.f_Get<2>();
+					pLaunchInfo = fg_Construct(fg_Move(*_LaunchInfo));
+
+					if (AppLaunch.m_DestroyPromise)
+					{
+						if (pLaunchInfo->m_Subscription)
+						{
+							pLaunchInfo->f_Destroy() > AppLaunch.m_DestroyPromise->f_ReceiveAny();
+							AppLaunch.m_DestroyPromise.f_Clear();
+						}
+						else if (pLaunchInfo->m_Launch)
+							pLaunchInfo->m_Launch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
+
+						return;
+					}
+
+					if (_bInitialLaunch)
+					{
+						--mp_OutstandingLaunches[pAppLaunch->f_GetKey().m_PackageName];
+						fp_UpdateAppLaunch(nullptr);
+					}
+				}
+			;
+
+			return;
+		}
+
+		auto &NormalLaunch = _AppLaunch.m_Launch.f_Set<1>();
+
+		NormalLaunch.m_Launch = fg_ConstructActor<CProcessLaunchActor>();
+		NormalLaunch.m_Launch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this))
 			> [this, pAppLaunch, _bInitialLaunch](TCAsyncResult<CActorSubscription> &&_Subscription)
 			{
 				auto &AppLaunch = *pAppLaunch;
@@ -734,10 +807,11 @@ namespace NMib::NWebApp::NWebAppManager
 				{
 					if (_bInitialLaunch)
 						fp_UpdateAppLaunch(_Subscription.f_GetException());
-					AppLaunch.m_Launch.f_Clear();
+					AppLaunch.m_Launch.f_Set<0>();
 					return;
 				}
-				AppLaunch.m_LaunchSubscription = fg_Move(*_Subscription);
+				auto &NormalLaunch = AppLaunch.m_Launch.f_Get<1>();
+				NormalLaunch.m_Subscription = fg_Move(*_Subscription);
 			}
 		;
 	}
