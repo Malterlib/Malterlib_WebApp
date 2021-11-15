@@ -1265,8 +1265,8 @@ Property
 		, Properties: {
 			Dependency.Target: "Exe_nginx"
 			, Dependency.TargetProperties: {
-				NgnixTargetBaseName: `nginx_@(MalterlibWebAppManagerName)`
-				, NgnixTargetGroup: `WebApp/@(MalterlibWebAppManagerName)`
+				NginxTargetBaseName: `nginx_@(MalterlibWebAppManagerName)`
+				, NginxTargetGroup: `WebApp/@(MalterlibWebAppManagerName)`
 				, HTTP_SSL: true
 				, HTTP_V2: true
 				, NGX_USER: `@(MalterlibWebAppManagerUserNamePrefix)nginx_@(MalterlibWebAppManagerName)`

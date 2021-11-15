@@ -1132,9 +1132,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		ConfigContents = ConfigContents.f_Replace("{WorkerMaxOpenedFiles}", CStr::fs_ToStr(fs_GetNginxWorkerFileLimits()));
 
 #ifdef DPlatformFamily_Windows
-		ConfigContents = ConfigContents.f_Replace("{NgnixUserLine}", "");
+		ConfigContents = ConfigContents.f_Replace("{NginxUserLine}", "");
 #else
-		ConfigContents = ConfigContents.f_Replace("{NgnixUserLine}", ("user {} {};"_f << mp_NginxUser.m_UserName << mp_NginxUser.m_GroupName).f_GetStr());
+		ConfigContents = ConfigContents.f_Replace("{NginxUserLine}", ("user {} {};"_f << mp_NginxUser.m_UserName << mp_NginxUser.m_GroupName).f_GetStr());
 #endif
 
 		{
@@ -1297,7 +1297,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 	{
 		TCPromise<void> Promise;
 
-		if (mp_NginxLaunch || mp_bStopped || f_IsDestroyed() || !mp_bStartNgnix)
+		if (mp_NginxLaunch || mp_bStopped || f_IsDestroyed() || !mp_bStartNginx)
 			return Promise <<= g_Void; // Launch already in progress
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();

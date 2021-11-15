@@ -47,7 +47,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 			TCOptional<CCertificateLocation> m_Location_Ec;
 			TCOptional<CCertificateLocation> m_Location_Rsa;
-			TCOptional<CStr> m_Location_NgnixPid;
+			TCOptional<CStr> m_Location_NginxPid;
 
 			CCertificateFileSettings m_FileSettings_Certificate;
 			CCertificateFileSettings m_FileSettings_Key;

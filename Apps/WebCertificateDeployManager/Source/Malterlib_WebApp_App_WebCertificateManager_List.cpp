@@ -107,7 +107,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 				 	Name
 				 	, fFormatLocation(Domain.m_Settings.m_Location_Ec)
 				 	, fFormatLocation(Domain.m_Settings.m_Location_Rsa)
-				 	, Domain.m_Settings.m_Location_NgnixPid ? *Domain.m_Settings.m_Location_NgnixPid : CStr("DISABLED")
+				 	, Domain.m_Settings.m_Location_NginxPid ? *Domain.m_Settings.m_Location_NginxPid : CStr("DISABLED")
 					, fFormatFileSettings(Domain.m_Settings.m_FileSettings_Certificate)
 					, fFormatFileSettings(Domain.m_Settings.m_FileSettings_Key)
 				 	, Status

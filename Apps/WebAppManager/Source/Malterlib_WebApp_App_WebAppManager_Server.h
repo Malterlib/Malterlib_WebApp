@@ -529,7 +529,7 @@ namespace NMib::NWebApp::NWebAppManager
 		uint8 mp_LoopbackPrefix = 0;
 		bool mp_bIsStaging = false;
 		bool mp_bAllowRobots = true;
-		bool mp_bStartNgnix = true;
+		bool mp_bStartNginx = true;
 		bool mp_bEnableIPV6 = true;
 	};
 }

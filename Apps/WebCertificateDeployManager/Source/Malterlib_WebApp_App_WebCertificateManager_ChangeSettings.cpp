@@ -75,7 +75,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 				if (!pDomain)
 					co_return {};
 
-				if (!pDomain->m_Settings.m_Location_NgnixPid)
+				if (!pDomain->m_Settings.m_Location_NginxPid)
 					co_return {};
 
 #ifdef DPlatformFamily_Windows
@@ -83,7 +83,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 #else
 				co_await
 					(
-						g_Dispatch(mp_FileActor) / [PidLocation = *pDomain->m_Settings.m_Location_NgnixPid]
+						g_Dispatch(mp_FileActor) / [PidLocation = *pDomain->m_Settings.m_Location_NginxPid]
 						{
 							auto PidText = CFile::fs_ReadStringFromFile(PidLocation);
 							auto ProcessId = PidText.f_ToInt(int32(0));
@@ -91,7 +91,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 								return;
 
 							if (kill(ProcessId, SIGHUP))
-								DMibError(NMib::NPlatform::fg_FormatErrno(NMib::NStr::CStr::CFormat("kill({}, SIGHUP) when reloading ngnix config") << ProcessId, errno));
+								DMibError(NMib::NPlatform::fg_FormatErrno(NMib::NStr::CStr::CFormat("kill({}, SIGHUP) when reloading nginx config") << ProcessId, errno));
 						}
 					)
 				;

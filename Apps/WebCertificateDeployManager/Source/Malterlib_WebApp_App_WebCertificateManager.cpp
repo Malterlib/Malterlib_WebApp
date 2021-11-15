@@ -61,7 +61,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 	auto CWebCertificateManagerActor::CDomainSettings::f_Tuple() const
 	{
-		return fg_TupleReferences(m_Location_Ec, m_Location_Rsa, m_Location_NgnixPid, m_FileSettings_Certificate, m_FileSettings_Key);
+		return fg_TupleReferences(m_Location_Ec, m_Location_Rsa, m_Location_NginxPid, m_FileSettings_Certificate, m_FileSettings_Key);
 	}
 
 	bool CWebCertificateManagerActor::CDomainSettings::operator == (CWebCertificateManagerActor::CDomainSettings const &_Right) const

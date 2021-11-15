@@ -97,9 +97,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 			o_Settings.m_Location_Rsa = fParseLocation(*pValue);
 
 		if (auto pValue = _Params.f_GetMember("LocationNginxPid", EJSONType_Null))
-			o_Settings.m_Location_NgnixPid.f_Clear();
+			o_Settings.m_Location_NginxPid.f_Clear();
 		else if (auto pValue = _Params.f_GetMember("LocationNginxPid", EJSONType_String))
-			o_Settings.m_Location_NgnixPid = pValue->f_String();
+			o_Settings.m_Location_NginxPid = pValue->f_String();
 
 		auto fParseFileSettings = [&](CEJSON const &_JSON) -> CCertificateFileSettings
 			{
@@ -149,8 +149,8 @@ namespace NMib::NWebApp::NWebCertificateManager
 		else
 			Domain["LocationRsa"] = nullptr;
 
-		if (_Settings.m_Location_NgnixPid)
-			Domain["LocationNginxPid"] = *_Settings.m_Location_NgnixPid;
+		if (_Settings.m_Location_NginxPid)
+			Domain["LocationNginxPid"] = *_Settings.m_Location_NginxPid;
 		else
 			Domain["LocationNginxPid"] = nullptr;
 

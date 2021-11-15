@@ -51,13 +51,13 @@ namespace NMib::NWebApp::NWebCertificateManager
 		NewSettings.m_Location_Ec = fParseLocation(NewSettings.m_Location_Ec, "Ec");
 
 		if (_Params.f_GetMember("LocationNginxPid", EJSONType_Null))
-			NewSettings.m_Location_NgnixPid.f_Clear();
+			NewSettings.m_Location_NginxPid.f_Clear();
 		else if (auto pValue = _Params.f_GetMember("LocationNginxPid", EJSONType_String))
 		{
 			if (!CFile::fs_IsPathAbsolute(pValue->f_String()))
 				DMibError("Path '{}' should be absolute"_f << pValue->f_String());
 
-			NewSettings.m_Location_NgnixPid = pValue->f_String();
+			NewSettings.m_Location_NginxPid = pValue->f_String();
 		}
 
 		auto fParseFileSettings = [&](CCertificateFileSettings &o_FileSettings, CStr const &_Type)
@@ -124,13 +124,13 @@ namespace NMib::NWebApp::NWebCertificateManager
 				, "Description"_= "File location to deploy EC key to"
 			}
 		;
- 		auto SettingsOption_LocationNgnixPid = "LocationNginxPid?"_=
+ 		auto SettingsOption_LocationNginxPid = "LocationNginxPid?"_=
 			{
 				"Names"_= {"--location-nginx-pid"}
 				, "Default"_= nullptr
 				, "Type"_= COneOfType{COneOf(nullptr), ""}
-				, "Description"_= "File location where ngnix pid file lives.\n"
-				"After deploying new certificates this location will de used to read the PID to send a HUP signal to make ngnix reload the configuration."
+				, "Description"_= "File location where nginx pid file lives.\n"
+				"After deploying new certificates this location will de used to read the PID to send a HUP signal to make nginx reload the configuration."
 			}
 		;
 		auto SettingsOption_CertificateFileUser = "CertificateFileUser?"_=
@@ -213,7 +213,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 						, SettingsOption_LocationEcCertificate
 						, SettingsOption_LocationEcKey
 #ifndef DPlatformFamily_Windows
-						, SettingsOption_LocationNgnixPid
+						, SettingsOption_LocationNginxPid
 #endif
 						, SettingsOption_CertificateFileUser
 						, SettingsOption_CertificateFileGroup
@@ -247,7 +247,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 						, fStripDefault(SettingsOption_LocationEcCertificate)
 						, fStripDefault(SettingsOption_LocationEcKey)
 #ifndef DPlatformFamily_Windows
-						, fStripDefault(SettingsOption_LocationNgnixPid)
+						, fStripDefault(SettingsOption_LocationNginxPid)
 #endif
 						, fStripDefault(SettingsOption_CertificateFileUser)
 						, fStripDefault(SettingsOption_CertificateFileGroup)
