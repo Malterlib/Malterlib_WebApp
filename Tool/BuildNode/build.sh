@@ -65,7 +65,7 @@ function AbsolutePath()
 MalterlibRoot=`AbsolutePath "../../../.."`
 OpenSSLBuildDir="$IntermediateDir/boringssl"
 
-OutputBinDir="$OutputDir/$OutputPlatform/node"
+OutputBinDir="$OutputDir/$OutputPlatform/$BuildArch/node"
 mkdir -p "$OutputBinDir"
 
 function BuildBoringSSL()
