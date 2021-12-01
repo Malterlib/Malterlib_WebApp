@@ -192,10 +192,6 @@ Type
 		OutputDirectory define string = Target.OutputDirectory
 
 		MeteorCommand define string = "meteor"
-		MeteorCommand "arch -x86_64 meteor"
-		{
-			!!HostPlatformFamily "OSX"
-		}
 
 		MeteorOverridePath define bool = false
 		MeteorOverridePath true
