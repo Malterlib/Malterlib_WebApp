@@ -22,6 +22,7 @@ Name="$MalterlibWebAppToolBuildName"
 MeteorDir="$WebAppBuildDirectory"
 SharedPackagesDir="$MalterlibWebAppMeteorSharedPackages"
 PlatformFamily="$PlatformFamily"
+Architecture="$Architecture"
 MeteorCheckedOutPath="$MalterlibWebAppMeteorCheckedOutPath"
 MeteorDebugPackage="$MalterlibWebAppMeteorDebugBundle"
 NodePackage="$MalterlibWebAppNodePackagePath"
@@ -66,12 +67,34 @@ cd "$MeteorDir"
 
 rm -rf .meteor/local/plugin-cache/less/local
 
-if [ "$PlatformFamily" == "Windows" ]; then
-	METEOR_ARCH="os.windows.x86_64"
-elif [ "$PlatformFamily" == "Linux" ]; then
-	METEOR_ARCH="os.linux.x86_64"
+if [[ "$PlatformFamily" == "Windows" ]]; then
+	if [[ "$Architecture" == "x64" ]]; then
+		METEOR_ARCH="os.windows.x86_64"
+	else
+		echo "Unknown meteor arch for PlatformFamily: $PlatformFamily and Architecture: $Architecture"
+		exit 1
+	fi
+elif [[ "$PlatformFamily" == "Linux" ]]; then
+	if [[ "$Architecture" == "x64" ]]; then
+		METEOR_ARCH="os.linux.x86_64"
+	elif [[ "$Architecture" == "arm64" ]]; then
+		METEOR_ARCH="os.linux.aarch64"
+	else
+		echo "Unknown meteor arch for PlatformFamily: $PlatformFamily and Architecture: $Architecture"
+		exit 1
+	fi
+elif [[ "$PlatformFamily" == "OSX" ]]; then
+	if [[ "$Architecture" == "x64" ]]; then
+		METEOR_ARCH="os.osx.x86_64"
+	elif [[ "$Architecture" == "arm64" ]]; then
+		METEOR_ARCH="os.osx.arm64"
+	else
+		echo "Unknown meteor arch for PlatformFamily: $PlatformFamily and Architecture: $Architecture"
+		exit 1
+	fi
 else
-	METEOR_ARCH="os.osx.x86_64"
+	echo "Unknown meteor arch for PlatformFamily: $PlatformFamily"
+	exit 1
 fi
 
 export NPM_CONFIG_PROGRESS=false

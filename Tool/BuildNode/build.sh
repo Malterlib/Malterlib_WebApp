@@ -50,6 +50,8 @@ elif [[ $ProcessorArch == x86_64 ]] ; then
 	BuildArch=x64
 elif [[ $ProcessorArch == arm64 ]] ; then
 	BuildArch=arm64
+elif [[ $ProcessorArch == aarch64 ]] ; then
+	BuildArch=arm64
 else
 	echo $ProcessorArch is not a recognized architecture
 	exit 1

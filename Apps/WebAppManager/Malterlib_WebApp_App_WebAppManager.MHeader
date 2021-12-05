@@ -282,6 +282,7 @@ Type
 		ExportScriptEnvironment =+ "MalterlibWebAppMeteorSharedPackages"
 		ExportScriptEnvironment =+ "MeteorOverridePath"
 		ExportScriptEnvironment =+ "PlatformFamily"
+		ExportScriptEnvironment =+ "Architecture"
 		ExportScriptEnvironment =+ "MalterlibWebAppMeteorCheckedOutPath"
 		ExportScriptEnvironment =+ "MalterlibWebAppMeteorDebugBundle"
 		ExportScriptEnvironment =+ "MalterlibWebAppNodePackagePath"
