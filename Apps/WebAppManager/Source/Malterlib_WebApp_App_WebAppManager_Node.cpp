@@ -646,7 +646,7 @@ namespace NMib::NWebApp::NWebAppManager
 				CStr ClientCertificatePath = LaunchHomePath + "/certificates/admin.pem";
 				CStr UserNameEncoded;
 
-				NHTTP::CURL::fs_PercentEncode(UserNameEncoded, mp_MongoAdminUserName, nullptr, true);
+				NHTTP::CURL::fs_PercentEncode(UserNameEncoded, mp_MongoAdminUserName, nullptr, EEncodeFlag_UpperCasePercentEncode);
 
 				CalculatedSettings["MongoHost"] = mp_MongoHost;
 				CalculatedSettings["MongoURL"] = fg_Format
