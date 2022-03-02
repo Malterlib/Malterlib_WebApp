@@ -1285,7 +1285,7 @@ Property
 
 		CloudUploadSources define [type(CFileCopyOptions)] = []
 		CloudUploadSources =+ MalterlibBuildServerPutSources
-		CloudUploadSources =+ {Pattern: GetProperty("Property", "MalterlibFinalModuleDestination", "Target:Exe_nginx.Target:Exe_nginx"), Destination: "/bin"}
+		CloudUploadSources =+ GetProperty("Property", "MalterlibBuildServerPutSources", "Target:Exe_nginx.Target:Exe_nginx")->f_AddDestinationPrefixToCopyOptions("/bin")
 		CloudUploadSources =+ BuildPackageNames->ForEach("CloudUploadSources_Template")
 
 		MalterlibCloud_VersionUploadSources =+ CloudUploadSources
