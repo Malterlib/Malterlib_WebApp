@@ -7,8 +7,6 @@ Import "Tool/*/*.MHeader"
 
 %Group "{Malterlib}/{Lib_Malterlib_WebApp}"
 {
-	Property.MalterlibConcurrency_DistributedActors true
-
 	%Group "WebApp"
 	{
 		%Group "Include"
@@ -29,23 +27,27 @@ Import "Tool/*/*.MHeader"
 	{
 		Dependency.Indirect true
 	}
+	%Dependency "Lib_Malterlib_Concurrency"
+	{
+		Dependency.Indirect true
+	}
 }
 
 Property
 {
-	MalterlibLibrary_WebApp define bool = MalterlibLibrary_All
+	MalterlibLibrary_WebApp: bool = MalterlibLibrary_All
 	MalterlibSubLibraries =+ "WebApp"
 	{
 		!!MalterlibLibrary_WebApp true
 	}
-	MalterlibLibrarySeparate_Lib_Malterlib_WebApp define bool = true
-//	MalterlibSubLibrarySeparate_Lib_Malterlib_WebApp define bool = true
+	MalterlibLibrarySeparate_Lib_Malterlib_WebApp: bool = true
+//	MalterlibSubLibrarySeparate_Lib_Malterlib_WebApp: bool = true
 	MalterlibIncludeRoots =+ "Include"->MakeAbsolute()
 	{
 		!!MalterlibLibrary_WebApp true
 	}
 
-	MalterlibWebAppEnableWebAppManagerTestInAppsWorkspace define bool = false
+	MalterlibWebAppEnableWebAppManagerTestInAppsWorkspace: bool = false
 }
 
 %Group "{Test}/{Malterlib_WebApp}/WebApp/TestWebAppManager"
@@ -77,7 +79,7 @@ Property
 
 		MeteorBuilds [{Name: "Meteor", BuildDir: "Meteor"}]
 
-		AllowRobots_Meteor define bool = false
+		AllowRobots_Meteor: bool = false
 	}
 
 	Group.HideTargets true
@@ -104,7 +106,7 @@ Property
 
 Property
 {
-	MalterlibWebAppEnableWebAppManagerTest define bool = false // User(Tests)=true: Enable building of web app manager. Requires meteor to be installed on system
+	MalterlibWebAppEnableWebAppManagerTest: bool = false // User(Tests)=true: Enable building of web app manager. Requires meteor to be installed on system
 }
 
 Property
@@ -112,17 +114,17 @@ Property
 	!!MalterlibEnableInternalTests true
 
 	MalterlibTests =+ "Malterlib_WebApp"
-	MalterlibTestFiles_Malterlib_WebApp define [type(CEntity)] = ["Test/*"->MakeAbsolute()]
-	MalterlibTestDependencies_Malterlib_WebApp define [type(CEntity)] = ["Lib_Malterlib_WebApp"]
-	MalterlibTestExtraGroups_Malterlib_WebApp define [string] = ["{Test}/{Malterlib_WebApp}"]
-	MalterlibTestWorkspaceExtraGroups_Malterlib_WebApp define [type(CEntity)] = []
+	MalterlibTestFiles_Malterlib_WebApp: [type(CEntity)] = ["Test/*"->MakeAbsolute()]
+	MalterlibTestDependencies_Malterlib_WebApp: [type(CEntity)] = ["Lib_Malterlib_WebApp"]
+	MalterlibTestExtraGroups_Malterlib_WebApp: [string] = ["{Test}/{Malterlib_WebApp}"]
+	MalterlibTestWorkspaceExtraGroups_Malterlib_WebApp: [type(CEntity)] = []
 	MalterlibTestWorkspaceExtraGroups_Malterlib_WebApp ["{Test}/{Malterlib_WebApp}/WebApp/TestWebAppManager", "{Malterlib}/{WebApp}/{WebAppManagerVariables}"]
 	{
 		!!MalterlibWebAppEnableWebAppManagerTest true
 	}
 }
 
-Property.Malterlib_WebApp_App_Targets define [type(CEntity)] = []
+Property.Malterlib_WebApp_App_Targets: [type(CEntity)] = []
 
 %Workspace "Apps_Malterlib_WebApp"
 {

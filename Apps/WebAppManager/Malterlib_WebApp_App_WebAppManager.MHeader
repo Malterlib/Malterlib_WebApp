@@ -3,22 +3,22 @@
 
 Type
 {
-	CWebAppManagerBuild define {
+	CWebAppManagerBuild: {
 		Name: string
 		, BuildDir: string
 	}
-	CWebAppManagerUploadS3Priority define {
+	CWebAppManagerUploadS3Priority: {
 		...: int
 	}
-	CWebAppManagerRedirect define {
+	CWebAppManagerRedirect: {
 		From: string
 		, To: string
 	}
-	CWebAppManagerAlternateSourceSearchReplace define {
+	CWebAppManagerAlternateSourceSearchReplace: {
 		Search: string
 		, Replace: string
 	}
-	CWebAppManagerAlternateSource define {
+	CWebAppManagerAlternateSource: {
 		Pattern: string
 		, Destination: string
 		, SearchReplace?: [type(CWebAppManagerAlternateSourceSearchReplace)]
@@ -29,95 +29,95 @@ Type
 {
 	Property
 	{
-		MalterlibWebAppManagerProductName define string?
-		MalterlibWebAppManagerName define string
-		MalterlibWebAppSourceRoot define string
-		WebAppManagerEnvironmentDefaultTags define [one_of(string, [string])]?
-		WebAppManagerAllowRobotsAllow define [string]?
-		WebAppManagerAllowRobotsDisallow define [string]?
-		WebAppManagerAllowRobots define bool?
-		WebAppManagerAllowRobotsSitemap define string?
+		MalterlibWebAppManagerProductName: string?
+		MalterlibWebAppManagerName: string
+		MalterlibWebAppSourceRoot: string
+		WebAppManagerEnvironmentDefaultTags: [one_of(string, [string])]?
+		WebAppManagerAllowRobotsAllow: [string]?
+		WebAppManagerAllowRobotsDisallow: [string]?
+		WebAppManagerAllowRobots: bool?
+		WebAppManagerAllowRobotsSitemap: string?
 
-		WebAppManagerMongoDirectory define string?
-		WebAppManagerMongoHost define string?
-		WebAppManagerMongoPort define int?
-		WebAppManagerMongoToolsUser define string?
-		WebAppManagerMongoToolsGroup define string?
-		WebAppManagerMongoSSLDirectory define string?
-		WebAppManagerMongoDatabaseSetupScript define string?
-		WebAppManagerMongoDefaultReplicaName define string?
-		WebAppManagerMongoDefaultDatabase define string?
-		WebAppManagerMongoBinariesPath define string?
-		WebAppManagerMongoDefaultVersion define string = "6.0"
+		WebAppManagerMongoDirectory: string?
+		WebAppManagerMongoHost: string?
+		WebAppManagerMongoPort: int?
+		WebAppManagerMongoToolsUser: string?
+		WebAppManagerMongoToolsGroup: string?
+		WebAppManagerMongoSSLDirectory: string?
+		WebAppManagerMongoDatabaseSetupScript: string?
+		WebAppManagerMongoDefaultReplicaName: string?
+		WebAppManagerMongoDefaultDatabase: string?
+		WebAppManagerMongoBinariesPath: string?
+		WebAppManagerMongoDefaultVersion: string = "6.0"
 
 		WebAppManagerMongoDirectory "mongo"
 		{
 			!WebAppManagerMongoBinariesPath undefined
 		}
 
-		WebAppManagerCopySources define [type(CFileCopyOptions)] = []
+		WebAppManagerCopySources: [type(CFileCopyOptions)] = []
 
-		WebAppManagerLoopbackPrefix define int?
-		WebAppManagerSaveUserPasswords define bool?
-		WebAppManagerDefaultDomain define string?
-		WebAppManagerStartNginx define bool?
+		WebAppManagerLoopbackPrefix: int?
+		WebAppManagerSaveUserPasswords: bool?
+		WebAppManagerDefaultDomain: string?
+		WebAppManagerStartNginx: bool?
 
-		MalterlibWebAppManagerUserNamePrefix define string = "mib_"
+		MalterlibWebAppManagerUserNamePrefix: string = "mib_"
 
-		WebAppManagerDefaultWebPort define int?
-		WebAppManagerDefaultWebSSLPort define int?
-		WebAppManagerHTTPRedirectReferrerCookie define string?
-		WebAppManagerRedirectWWW define bool?
-		WebAppManagerServeAllSubdomains define bool?
-		WebAppManagerS3BucketPrefix define string?
-		WebAppManagerAllowRedirectsOutsideOfDomain define bool?
-		WebAppManagerAllowRedirectsOutsideOfDomainPatterns define [string]?
+		WebAppManagerDefaultWebPort: int?
+		WebAppManagerDefaultWebSSLPort: int?
+		WebAppManagerHTTPRedirectReferrerCookie: string?
+		WebAppManagerRedirectWWW: bool?
+		WebAppManagerServeAllSubdomains: bool?
+		WebAppManagerS3BucketPrefix: string?
+		WebAppManagerAllowRedirectsOutsideOfDomain: bool?
+		WebAppManagerAllowRedirectsOutsideOfDomainPatterns: [string]?
 
-		FastCGIBuilds define [type(CWebAppManagerBuild)]?
-		WebsocketBuilds define [type(CWebAppManagerBuild)]?
-		MeteorBuilds define [type(CWebAppManagerBuild)]?
-		NpmBuilds define [type(CWebAppManagerBuild)]?
-		StaticBuilds define [type(CWebAppManagerBuild)]?
-		CustomBuilds define [type(CWebAppManagerBuild)]?
+		FastCGIBuilds: [type(CWebAppManagerBuild)]?
+		WebsocketBuilds: [type(CWebAppManagerBuild)]?
+		MeteorBuilds: [type(CWebAppManagerBuild)]?
+		NpmBuilds: [type(CWebAppManagerBuild)]?
+		StaticBuilds: [type(CWebAppManagerBuild)]?
+		CustomBuilds: [type(CWebAppManagerBuild)]?
 
-		NpmBuildType define string?
+		NpmBuildType: string?
 
-		ContentSecurity_DefaultSrc define [string]?
-		ContentSecurity_PrefetchSrc define [string]?
-		ContentSecurity_ScriptSrc define [string]?
-		ContentSecurity_ImgSrc define [string]?
-		ContentSecurity_MediaSrc define [string]?
-		ContentSecurity_FontSrc define [string]?
-		ContentSecurity_StyleSrc define [string]?
-		ContentSecurity_FrameSrc define [string]?
-		ContentSecurity_ConnectSrc define [string]?
-		ContentSecurity_ChildSrc define [string]?
-		ContentSecurity_ObjectSrc define [string]?
-		ContentSecurity_ManifestSrc define [string]?
-		ContentSecurity_FormAction define [string]?
-		ContentSecurity_ReportURI define string?
+		ContentSecurity_DefaultSrc: [string]?
+		ContentSecurity_PrefetchSrc: [string]?
+		ContentSecurity_ScriptSrc: [string]?
+		ContentSecurity_ImgSrc: [string]?
+		ContentSecurity_MediaSrc: [string]?
+		ContentSecurity_FontSrc: [string]?
+		ContentSecurity_StyleSrc: [string]?
+		ContentSecurity_FrameSrc: [string]?
+		ContentSecurity_ConnectSrc: [string]?
+		ContentSecurity_ChildSrc: [string]?
+		ContentSecurity_ObjectSrc: [string]?
+		ContentSecurity_ManifestSrc: [string]?
+		ContentSecurity_FormAction: [string]?
+		ContentSecurity_ReportURI: string?
 
-		AccessControl_AllowMethods define [string]?
-		AccessControl_AllowHeaders define [string]?
-		AccessControl_AllowOrigin define string?
-		AccessControl_MaxAge define string?
-		MalterlibWebAppManagerPrefix define string?
+		AccessControl_AllowMethods: [string]?
+		AccessControl_AllowHeaders: [string]?
+		AccessControl_AllowOrigin: string?
+		AccessControl_MaxAge: string?
+		MalterlibWebAppManagerPrefix: string?
 
-		NodeBinariesPath define string?
-		NodeHostBinariesPath define string?
+		NodeBinariesPath: string?
+		NodeHostBinariesPath: string?
 
-		WebAppManagerCustomizationFile define string?
-		WebAppManagerExtraSources define [type(CEntity)]?
+		WebAppManagerCustomizationFile: string?
+		WebAppManagerExtraSources: [type(CEntity)]?
 
-		MalterlibWebAppMeteorSharedPackages define string?
-		MalterlibWebAppMeteorCheckedOutPath define string?
-		MalterlibWebAppMeteorDebugBundle define bool?
-		MalterlibWebAppNodePackagePath define string?
-		MalterlibWebAppHostNodePackagePath define string?
+		MalterlibWebAppMeteorSharedPackages: string?
+		MalterlibWebAppMeteorCheckedOutPath: string?
+		MalterlibWebAppMeteorDebugBundle: bool?
+		MalterlibWebAppNodePackagePath: string?
+		MalterlibWebAppHostNodePackagePath: string?
 
-		FirstDependencyExecutable define string?
-		WebAppBuildDirectory define string
-		MalterlibWebAppToolBuildName define string
+		FirstDependencyExecutable: string?
+		WebAppBuildDirectory: string
+		MalterlibWebAppToolBuildName: string
 	}
 }
 
@@ -125,11 +125,11 @@ Type
 {
 	Property
 	{
-		MalterlibWebAppCustomBuildScript define string
-		MalterlibWebAppToolType define string
-		MalterlibWebAppToolDependencies define [type(CEntity)] = []
-		MalterlibWebAppToolExcludePatterns define [string] = []
-		MalterlibWebAppToolBuildDirectory define string
+		MalterlibWebAppCustomBuildScript: string
+		MalterlibWebAppToolType: string
+		MalterlibWebAppToolDependencies: [type(CEntity)] = []
+		MalterlibWebAppToolExcludePatterns: [string] = []
+		MalterlibWebAppToolBuildDirectory: string
 	}
 
 	Property
@@ -145,7 +145,7 @@ Type
 	}
 	Property
 	{
-		BuildScript define string
+		BuildScript: string
 		BuildScript "Source/Malterlib_WebApp_BuildMeteor.sh"->MakeAbsolute()
 		{
 			&
@@ -196,16 +196,16 @@ Type
 			!!BuildScript undefined
 		}
 
-		ScriptDependencyFile define string = OutputDirectory / `@(MalterlibWebAppToolBuildName).MalterlibDependency`
+		ScriptDependencyFile: string = OutputDirectory / `@(MalterlibWebAppToolBuildName).MalterlibDependency`
 
 		ExcludeFiles =+ ["*/.DS_Store", "*/.build.*", "*/.gitignore", "*/.git", "*/node_modules", "*/.npm", "*/build"]
 		ExcludeFiles =+ MalterlibWebAppToolExcludePatterns
 
-		OutputDirectory define string = Target.OutputDirectory
+		OutputDirectory: string = Target.OutputDirectory
 
-		MeteorCommand define string = "meteor"
+		MeteorCommand: string = "meteor"
 
-		MeteorOverridePath define bool = false
+		MeteorOverridePath: bool = false
 		MeteorOverridePath true
 		{
 			!!HostPlatformFamily "macOS"
@@ -213,7 +213,7 @@ Type
 		
 		MalterlibExportEnvironmentMinGW true
 
-		Target_MatchesDependenciesMatchTargetToMatch define string
+		Target_MatchesDependenciesMatchTargetToMatch: string
 
 		Target_MatchesDependenciesMatchTarget function(type(CEntity) _Target) bool = false
 		Target_MatchesDependenciesMatchTarget true
@@ -247,10 +247,10 @@ Type
 			}
 		}
 
-		Target_MatchesDependencies function(string _Target) bool = MalterlibWebAppToolDependencies->ForEach("Target_MatchesDependenciesMatchTarget", {Target_MatchesDependenciesMatchTargetToMatch: GetProperty("Property", "TargetIdentity", _Target)})
+		Target_MatchesDependencies function(string _Target) bool = MalterlibWebAppToolDependencies->ForEach(&Target_MatchesDependenciesMatchTarget, {Target_MatchesDependenciesMatchTargetToMatch: GetProperty(&TargetIdentity, _Target)})
 
 		MalterlibWebAppToolDependenciesFiles_Template function(string _Dependency) [type(CFileCopyOptions)] = []
-		MalterlibWebAppToolDependenciesFiles_Template =+ GetProperty("Property", "MalterlibCloud_VersionUploadSources", _Dependency)
+		MalterlibWebAppToolDependenciesFiles_Template =+ GetProperty(&MalterlibCloud_VersionUploadSources, _Dependency)
 		{
 			&
 			{
@@ -261,21 +261,21 @@ Type
 		MalterlibWebAppToolDependenciesFilesGetPattern function(type(CFileCopyOptions) _CopyOptions) [string] = []
 		MalterlibWebAppToolDependenciesFilesGetPattern =+ _CopyOptions<Pattern>
 
-		MalterlibWebAppToolDependenciesFiles define string
-		MalterlibWebAppToolDependenciesFiles Target.Dependencies->ForEach("MalterlibWebAppToolDependenciesFiles_Template")->fg_ExpandCopyOptions()->ForEach("MalterlibWebAppToolDependenciesFilesGetPattern")->Join(";")
+		MalterlibWebAppToolDependenciesFiles: string
+		MalterlibWebAppToolDependenciesFiles Target.Dependencies->ForEach(&MalterlibWebAppToolDependenciesFiles_Template)->fg_ExpandCopyOptions()->ForEach(&MalterlibWebAppToolDependenciesFilesGetPattern)->Join(";")
 
 		FirstDependencyExecutable_Template function(string _Dependency) string?
-		FirstDependencyExecutable_Template GetProperty("Property", "TargetExecutable", _Dependency)
+		FirstDependencyExecutable_Template GetProperty(&TargetExecutable, _Dependency)
 		{
 			&
 			{
 				FirstDependencyExecutable_Template undefined
 				true Target_MatchesDependencies(_Dependency)
-				true GetProperty("Property", "TargetIsLaunchableExecutable", _Dependency)
+				true GetProperty(&TargetIsLaunchableExecutable, _Dependency)
 			}
 		}
 
-		FirstDependencyExecutable Target.Dependencies->ForEach("FirstDependencyExecutable_Template")
+		FirstDependencyExecutable Target.Dependencies->ForEach(&FirstDependencyExecutable_Template)
 		MalterlibPostBuildScriptInputs =+ ScriptDependencyFile
 	}
 	Target
@@ -349,7 +349,6 @@ Type
 {
 	Property
 	{
-		MalterlibConcurrency_DistributedActors true
 		MalterlibPostCopyProject undefined
 		MalterlibTargetNameType "Normal"
 	}
@@ -404,7 +403,7 @@ Type
 
 Type
 {
-	CWebAppManagerEnvironment define {
+	CWebAppManagerEnvironment: {
 		EnvVar: string
 		, ConfigVar: string
 		, Tags?: [one_of(string, [string])]
@@ -414,7 +413,7 @@ Type
 
 Property
 {
-	WebAppManagerEnvironment define [type(CWebAppManagerEnvironment)] = []
+	WebAppManagerEnvironment: [type(CWebAppManagerEnvironment)] = []
 
 	WebAppManagerEnvironment =+ {
 		EnvVar: "ROOT_URL"
@@ -571,7 +570,6 @@ Property
 		{
 			!!MalterlibPostCopyProject undefined
 		}
-		MalterlibConcurrency_DistributedActors true
 		MalterlibTargetNameType "Normal"
 
 		MalterlibWebAppManagerPrefix "WebAppManager_"
@@ -587,7 +585,7 @@ Property
 			!!MalterlibWebAppManagerPrefix "Empty"
 		}
 
-		MalterlibWebAppManagerDaemonName define string
+		MalterlibWebAppManagerDaemonName: string
 		MalterlibWebAppManagerDaemonName `MalterlibWebAppManager_@(MalterlibWebAppManagerName)`
 		{
 			&
@@ -601,7 +599,7 @@ Property
 			!!MalterlibWebAppManagerDaemonName undefined
 		}
 
-		MalterlibWebAppManagerDescription define string = `Malterlib Web App Manager (@(MalterlibWebAppManagerName))`
+		MalterlibWebAppManagerDescription: string = `Malterlib Web App Manager (@(MalterlibWebAppManagerName))`
 
 		MalterlibCloudVersionInfo_Application `@(MalterlibWebAppManagerPrefix->Replace("_", "-"))@(MalterlibWebAppManagerName)`
 		MalterlibCloudVersionInfo_Executable `@(MalterlibWebAppManagerPrefix)@(MalterlibWebAppManagerName)`
@@ -663,7 +661,7 @@ Property
 			}
 		}
 
-		MalterlibWebAppSettingsPath define string = GeneratedDirectory / "WebAppSettings.json"
+		MalterlibWebAppSettingsPath: string = GeneratedDirectory / "WebAppSettings.json"
 	}
 	Target
 	{
@@ -755,7 +753,7 @@ Property
 
 				CustomExecutable function(string _PackageName) string?
 				CustomExecutable IsDefined(`Executable_@(_PackageName)`) ? Executable_@(_PackageName) : undefined
-				CustomExecutable GetProperty("Property", "FirstDependencyExecutable", `Group:WebApp.Group:@(MalterlibWebAppManagerName).Group:@(_PackageName).Target:Tool_Malterlib_BuildWebApp.Target:Tool_Malterlib_BuildWebApp`)
+				CustomExecutable GetProperty(&FirstDependencyExecutable, `Group:WebApp.Group:@(MalterlibWebAppManagerName).Group:@(_PackageName).Target:Tool_Malterlib_BuildWebApp.Target:Tool_Malterlib_BuildWebApp`)
 				{
 					&
 					{
@@ -926,7 +924,7 @@ Property
 					`@(_PackageName)`: PackageSettings(_PackageName)
 				}
 
-				WebAppSettingsMongo define {...: any} = {}
+				WebAppSettingsMongo: {...: any} = {}
 
 				WebAppSettingsMongo =+ {Directory: WebAppManagerMongoDirectory}
 				{
@@ -976,7 +974,7 @@ Property
 						!MeteorBuilds undefined
 					}
 				}
-				WebAppSettingsContentSecurity define {...:any} = {}
+				WebAppSettingsContentSecurity: {...:any} = {}
 
 				WebAppSettingsContentSecurity =+ {DefaultSrc: ContentSecurity_DefaultSrc->Join(" ")}
 				{
@@ -1048,7 +1046,7 @@ Property
 					!ContentSecurity_ObjectSrc undefined
 				}
 
-				WebAppSettingsAccessControl define {...: any} = {}
+				WebAppSettingsAccessControl: {...: any} = {}
 
 				WebAppSettingsAccessControl =+ {AllowMethods: AccessControl_AllowMethods->Join(", ")}
 				{
@@ -1067,11 +1065,11 @@ Property
 					!AccessControl_MaxAge undefined
 				}
 
-				WebAppSettings define {...: any}
+				WebAppSettings: {...: any}
 
 				WebAppSettings {
 					DefaultDomain: WebAppManagerDefaultDomain || Error("You need to specify WebAppManagerDefaultDomain")
-					, Packages: BuildPackageNames->ForEach("PackageSettings_Template")
+					, Packages: BuildPackageNames->ForEach(&PackageSettings_Template)
 					, Mongo: WebAppSettingsMongo
 					, Environment: WebAppManagerEnvironment
 					, AllowRobotsAllow: WebAppManagerAllowRobotsAllow || []
@@ -1221,14 +1219,14 @@ Property
 			}
 		}
 
-		BuildDependencies_Meteor define [type(CEntity)] = (MeteorBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "Meteor"})
-		BuildDependencies_FastCGI define [type(CEntity)] = (FastCGIBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "FastCGI"})
-		BuildDependencies_Websocket define [type(CEntity)] = (WebsocketBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "Websocket"})
-		BuildDependencies_Npm define [type(CEntity)] = (NpmBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "Npm"})
-		BuildDependencies_Static define [type(CEntity)] = (StaticBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "Static"})
-		BuildDependencies_Custom define [type(CEntity)] = (CustomBuilds || [])->ForEach("BuildDependencies_Template", {MalterlibWebAppToolType: "Custom"})
+		BuildDependencies_Meteor: [type(CEntity)] = (MeteorBuilds || [])->ForEach(&BuildDependencies_Template, {MalterlibWebAppToolType: "Meteor"})
+		BuildDependencies_FastCGI: [type(CEntity)] = (FastCGIBuilds || [])->ForEach(&BuildDependencies_Template, {MalterlibWebAppToolType: "FastCGI"})
+		BuildDependencies_Websocket: [type(CEntity)] = (WebsocketBuilds || [])->ForEach(&BuildDependencies_Template, {MalterlibWebAppToolType: "Websocket"})
+		BuildDependencies_Npm: [type(CEntity)] = (NpmBuilds || [])->ForEach(&BuildDependencies_Template, {MalterlibWebAppToolType: "Npm"})
+		BuildDependencies_Static: [type(CEntity)] = (StaticBuilds || [])->ForEach(&BuildDependencies_Template, {MalterlibWebAppToolType: "Static"})
+		BuildDependencies_Custom: [type(CEntity)] = (CustomBuilds || [])->ForEach(&BuildDependencies_Template, {MalterlibWebAppToolType: "Custom"})
 
-		BuildDependencies define [type(CEntity)] = [
+		BuildDependencies: [type(CEntity)] = [
 			BuildDependencies_Meteor...
 			, BuildDependencies_FastCGI...
 			, BuildDependencies_Websocket...
@@ -1240,14 +1238,14 @@ Property
 		BuildPackageNames_Template function(type(CWebAppManagerBuild) _Build) [string] = []
 		BuildPackageNames_Template =+ _Build<Name>
 
-		BuildPackageNames_Meteor define [string] = (MeteorBuilds || [])->ForEach("BuildPackageNames_Template")
-		BuildPackageNames_FastCGI define [string] = (FastCGIBuilds || [])->ForEach("BuildPackageNames_Template")
-		BuildPackageNames_Websocket define [string] = (WebsocketBuilds || [])->ForEach("BuildPackageNames_Template")
-		BuildPackageNames_Npm define [string] = (NpmBuilds || [])->ForEach("BuildPackageNames_Template")
-		BuildPackageNames_Static define [string] = (StaticBuilds || [])->ForEach("BuildPackageNames_Template")
-		BuildPackageNames_Custom define [string] = (CustomBuilds || [])->ForEach("BuildPackageNames_Template")
+		BuildPackageNames_Meteor: [string] = (MeteorBuilds || [])->ForEach(&BuildPackageNames_Template)
+		BuildPackageNames_FastCGI: [string] = (FastCGIBuilds || [])->ForEach(&BuildPackageNames_Template)
+		BuildPackageNames_Websocket: [string] = (WebsocketBuilds || [])->ForEach(&BuildPackageNames_Template)
+		BuildPackageNames_Npm: [string] = (NpmBuilds || [])->ForEach(&BuildPackageNames_Template)
+		BuildPackageNames_Static: [string] = (StaticBuilds || [])->ForEach(&BuildPackageNames_Template)
+		BuildPackageNames_Custom: [string] = (CustomBuilds || [])->ForEach(&BuildPackageNames_Template)
 
-		BuildPackageNames define [string] = [
+		BuildPackageNames: [string] = [
 			BuildPackageNames_Meteor...
 			, BuildPackageNames_FastCGI...
 			, BuildPackageNames_Websocket...
@@ -1271,8 +1269,8 @@ Property
 		BuildNeedNodeBinaries_Template function(type(CWebAppManagerBuild) _Build) bool = false
 		BuildNeedNodeBinaries_Template BuildNeedNodeBinaries_Template || BuildNeedNodeBinaries_Template_NeedNode(_Build<Name>)
 
-		BuildNeedNodeBinaries define bool
-		BuildNeedNodeBinaries ((!BuildPackageNames_Meteor->IsEmpty()) || (NpmBuilds || [])->ForEach("BuildNeedNodeBinaries_Template"))
+		BuildNeedNodeBinaries: bool
+		BuildNeedNodeBinaries ((!BuildPackageNames_Meteor->IsEmpty()) || (NpmBuilds || [])->ForEach(&BuildNeedNodeBinaries_Template))
 	}
 
 	%Dependency "Lib_Malterlib_WebAppManager"
@@ -1284,7 +1282,7 @@ Property
 	}
 	Property
 	{
-		NginxPostCopyDestination define string
+		NginxPostCopyDestination: string
 		NginxPostCopyDestination "bin/"
 		NginxPostCopyDestination `@(MalterlibPostCopyDestination)@(NginxPostCopyDestination)`
 		{
@@ -1315,12 +1313,12 @@ Property
 	Property
 	{
 		CloudUploadSources_Template function(string _PackageName) [type(CFileCopyOptions)] = []
-		CloudUploadSources_Template =+ GetProperty("Property", "MalterlibBuildServerPutSources", `Group:@(_PackageName).Target:Tool_Malterlib_BuildWebApp.Target:Tool_Malterlib_BuildWebApp`)
+		CloudUploadSources_Template =+ GetProperty(&MalterlibBuildServerPutSources, `Group:@(_PackageName).Target:Tool_Malterlib_BuildWebApp.Target:Tool_Malterlib_BuildWebApp`)
 
-		CloudUploadSources define [type(CFileCopyOptions)] = []
+		CloudUploadSources: [type(CFileCopyOptions)] = []
 		CloudUploadSources =+ MalterlibBuildServerPutSources
-		CloudUploadSources =+ GetProperty("Property", "MalterlibBuildServerPutSources", "Target:Exe_nginx.Target:Exe_nginx")->f_AddDestinationPrefixToCopyOptions("/bin")
-		CloudUploadSources =+ BuildPackageNames->ForEach("CloudUploadSources_Template")
+		CloudUploadSources =+ GetProperty(&MalterlibBuildServerPutSources, "Target:Exe_nginx.Target:Exe_nginx")->f_AddDestinationPrefixToCopyOptions("/bin")
+		CloudUploadSources =+ BuildPackageNames->ForEach(&CloudUploadSources_Template)
 
 		MalterlibCloud_VersionUploadSources =+ CloudUploadSources
 	}
