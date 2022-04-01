@@ -12,7 +12,7 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 35;
+		uint32 gc_UpdateVersion = 36;
 	}
 
 	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
@@ -287,6 +287,11 @@ exports.handler = (event, context, callback) => {
 				AllowRedirectsOutsideOfDomainPatternsString += "	new RegExp({}),\n"_f << CJSON(Pattern.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr);
 
 			OriginResponseFiles["index.js"] = CStr(R"----(
+
+const zlib = require('zlib');
+const util = require('util');
+const zlibGzip = util.promisify(zlib.gzip);
+
 'use strict';
 function escapeRegExp(string) {
 	return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -376,6 +381,14 @@ exports.handler = async (event) => {
 			if (alternate.pattern.test(request.uri)) {
 				let originalBody = await getContent("https://" + alternate.destination + request.uri);
 				response.body = originalBody.replace(alternate.search, alternate.replace);
+				if (headers["content-encoding"]) {
+					if (headers["content-encoding"][0] && headers["content-encoding"][0].value == "gzip") {
+						response.body = (await zlibGzip(response.body)).toString("base64");
+						response.bodyEncoding = "base64";
+					} else {
+						delete headers["content-encoding"];
+					}
+				}
 				break;
 			}
 		}
