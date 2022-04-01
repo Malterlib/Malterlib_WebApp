@@ -1168,6 +1168,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		{
 			CStr SecurityHeaders;
 			CStr ContentSecurityPolicy = "default-src 'none' {};"_f << mp_Options.m_ContentSecurity_DefaultSrc;
+			ContentSecurityPolicy += " prefetch-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_PrefetchSrc;
 			ContentSecurityPolicy += " img-src 'self' data: https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ImgSrc;
 			ContentSecurityPolicy += " font-src 'self' data: https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FontSrc;
 			ContentSecurityPolicy += " media-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_MediaSrc;

@@ -551,6 +551,8 @@ namespace NMib::NWebApp::NWebAppManager
 		{
 			if (auto *pValue = pContentSecurity->f_GetMember("DefaultSrc"))
 				m_ContentSecurity_DefaultSrc = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("PrefetchSrc"))
+				m_ContentSecurity_PrefetchSrc = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("ScriptSrc"))
 				m_ContentSecurity_ScriptSrc = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("ImgSrc"))

@@ -194,6 +194,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCVector<CStr> m_AllowRedirectsOutsideOfDomainPatterns;
 
 		CStr m_ContentSecurity_DefaultSrc;
+		CStr m_ContentSecurity_PrefetchSrc;
 		CStr m_ContentSecurity_ScriptSrc;
 		CStr m_ContentSecurity_ImgSrc;
 		CStr m_ContentSecurity_MediaSrc;

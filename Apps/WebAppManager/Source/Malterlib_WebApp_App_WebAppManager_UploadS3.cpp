@@ -227,6 +227,7 @@ exports.handler = (event, context, callback) => {
 				co_return {};
 
 			CStr ContentSecurityPolicy = "default-src 'none' {};"_f << mp_Options.m_ContentSecurity_DefaultSrc;
+			ContentSecurityPolicy += " prefetch-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_PrefetchSrc;
 			ContentSecurityPolicy += " img-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ImgSrc;
 			ContentSecurityPolicy += " font-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FontSrc;
 			ContentSecurityPolicy += " media-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_MediaSrc;
@@ -777,6 +778,7 @@ exports.handler = async (event) => {
 					Stream << bAllowRobots;
 					Stream << CloudFrontDistributions;
 					Stream << Options.m_ContentSecurity_DefaultSrc;
+					Stream << Options.m_ContentSecurity_PrefetchSrc;
 					Stream << Options.m_ContentSecurity_ManifestSrc;
 					Stream << Options.m_ContentSecurity_ImgSrc;
 					Stream << Options.m_ContentSecurity_MediaSrc;

@@ -72,6 +72,7 @@ Type
 		NpmBuildType define string?
 
 		ContentSecurity_DefaultSrc define [string]?
+		ContentSecurity_PrefetchSrc define [string]?
 		ContentSecurity_ScriptSrc define [string]?
 		ContentSecurity_ImgSrc define [string]?
 		ContentSecurity_MediaSrc define [string]?
@@ -952,6 +953,11 @@ Property
 				WebAppSettingsContentSecurity =+ {DefaultSrc: ContentSecurity_DefaultSrc->Join(" ")}
 				{
 					!ContentSecurity_DefaultSrc undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {PrefetchSrc: ContentSecurity_PrefetchSrc->Join(" ")}
+				{
+					!ContentSecurity_PrefetchSrc undefined
 				}
 
 				WebAppSettingsContentSecurity =+ {ScriptSrc: ContentSecurity_ScriptSrc->Join(" ")}
