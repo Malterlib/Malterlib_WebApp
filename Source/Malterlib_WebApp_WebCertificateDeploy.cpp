@@ -47,13 +47,7 @@ namespace NMib::NWebApp
 
 		Internal.m_bStarted = true;
 
-		Internal.m_SecretsManagerSubscription = co_await Internal.m_TrustManager
-			(
-				&CDistributedActorTrustManager::f_SubscribeTrustedActors<CSecretsManager>
-				, CSecretsManager::mc_pDefaultNamespace
-				, fg_ThisActor(this)
-			)
-		;
+		Internal.m_SecretsManagerSubscription = co_await Internal.m_TrustManager->f_SubscribeTrustedActors<CSecretsManager>();
 
 		co_await Internal.m_SecretsManagerSubscription.f_OnActor
 			(
