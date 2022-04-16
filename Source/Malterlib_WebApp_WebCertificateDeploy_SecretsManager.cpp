@@ -47,7 +47,9 @@ namespace NMib::NWebApp
 					if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
 						return;
 
-					f_SecretsManagerAddedWithRetry(_SecretsManager, _Info) > fg_LogError("Mib/WebApp/WebCertificateDeploy", "Failed to handle secret manager added (retry)");
+					fg_CallSafe(this, &CInternal::f_SecretsManagerAddedWithRetry, _SecretsManager, _Info)
+						> fg_LogError("Mib/WebApp/WebCertificateDeploy", "Failed to handle secret manager added (retry)")
+					;
 				}
 			;
 		}
