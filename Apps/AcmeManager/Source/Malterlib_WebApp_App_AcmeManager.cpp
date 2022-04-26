@@ -60,13 +60,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		mp_AcmeAccountEmails = AccountEmailsJSON.f_StringArray();
 
-		mp_SecretsManagerSubscription = co_await mp_State.m_TrustManager
-			(
-				&CDistributedActorTrustManager::f_SubscribeTrustedActors<CSecretsManager>
-				, CSecretsManager::mc_pDefaultNamespace
-				, fg_ThisActor(this)
-			)
-		;
+		mp_SecretsManagerSubscription = co_await mp_State.m_TrustManager->f_SubscribeTrustedActors<CSecretsManager>();
 
 		{
 			auto Result = co_await mp_SecretsManagerSubscription.f_OnActor
@@ -77,6 +71,12 @@ namespace NMib::NWebApp::NAcmeManager
 
 						co_return {};
 					}
+					, g_ActorFunctor / [this](TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo &&_ActorInfo) -> TCFuture<void>
+					{
+						self(&CAcmeManagerActor::fp_SecretsManagerRemoved, _SecretsManager, _ActorInfo) > fg_LogError("Mib/WebApp/AcmeManager", "Failed to handle secrets manager removed");
+
+						co_return {};
+					}
 				)
 				.f_Wrap()
 			;
@@ -84,18 +84,6 @@ namespace NMib::NWebApp::NAcmeManager
 			if (!Result)
 				DMibLog(Error, "Failed when subscripbing to secrets manager: {}", Result.f_GetExceptionStr());
 		}
-
-
-		mp_SecretsManagerSubscription.f_OnRemoveActor
-			(
-				g_ActorFunctor / [this](TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo &&_ActorInfo) -> TCFuture<void>
-				{
-					self(&CAcmeManagerActor::fp_SecretsManagerRemoved, _SecretsManager, _ActorInfo) > fg_LogError("Mib/WebApp/AcmeManager", "Failed to handle secrets manager removed");
-
-					co_return {};
-				}
-			)
-		;
 
 		mp_DomainUpdateTimerSubscription = co_await fg_RegisterTimer
 			(

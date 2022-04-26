@@ -57,21 +57,14 @@ namespace NMib::NWebApp
 
 					co_return {};
 				}
-				, "Mib/WebApp/WebCertificateDeploy"
-				, "Failed to handle secrets manager added"
-			)
-		;
-
-		Internal.m_SecretsManagerSubscription.f_OnRemoveActor
-			(
-				g_ActorFunctor / [pInternal = &Internal](TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo &&_ActorInfo) -> TCFuture<void>
+				, g_ActorFunctor / [pInternal = &Internal](TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo &&_ActorInfo) -> TCFuture<void>
 				{
 					co_await fg_CallSafe(pInternal, &CInternal::f_SecretsManagerRemoved, _SecretsManager, _ActorInfo);
 
 					co_return {};
 				}
 				, "Mib/WebApp/WebCertificateDeploy"
-				, "Failed to handle secrets manager removed"
+				, "Failed to calling {} for secrets manager"
 			)
 		;
 
