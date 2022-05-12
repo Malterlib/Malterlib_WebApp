@@ -460,6 +460,8 @@ namespace NMib::NWebApp::NWebAppManager
 		TCActorSequencer<void> mp_S3UploadSequencer;
 		TCActorSequencer<void> mp_S3FileReadSequencer{8};
 		TCActorSequencer<void> mp_S3PrioritySequencer;
+		TCActorSequencer<void> mp_S3DeleteSequencer{32};
+		TCActorSequencer<CAwsS3Actor::CObjectInfoMetaData> mp_S3MetadataSequencer{32};
 
 		CUser mp_NodeUser;
 		CUser mp_FastCGIUser;
@@ -492,8 +494,8 @@ namespace NMib::NWebApp::NWebAppManager
 		TCActor<CProcessLaunchActor> mp_NginxLaunch;
 		CActorSubscription mp_NginxLaunchSubscription;
 
-		TCRoundRobinActors<CCurlActor> mp_CurlActors{2 + 32};
-		TCRoundRobinActors<CAwsS3Actor> mp_S3Actors{32};
+		TCRoundRobinActors<CCurlActor> mp_CurlActors{4};
+		TCRoundRobinActors<CAwsS3Actor> mp_S3Actors{4};
 
 		TCSet<CStr> mp_LastCloudFrontDistributions;
 

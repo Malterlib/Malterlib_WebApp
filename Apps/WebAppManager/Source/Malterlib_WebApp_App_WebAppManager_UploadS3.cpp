@@ -944,7 +944,13 @@ exports.handler = async (event) => {
 			}
 
 			++nMetaDataQueries;
-			(*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetaData, BucketName, DestinationFileName) > MetaDataResults.f_AddResult(DestinationFileName);
+			mp_S3MetadataSequencer / [=]() -> TCFuture<CAwsS3Actor::CObjectInfoMetaData>
+				{
+					co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetaData, BucketName, DestinationFileName);
+				}
+				> MetaDataResults.f_AddResult(DestinationFileName)
+			;
+
 		}
 
 		if (nMetaDataQueries)
@@ -1105,7 +1111,14 @@ exports.handler = async (event) => {
 
 		TCActorResultVector<void> DeleteFilesResults;
 		for (auto &File : FilesToDelete)
-			(*mp_S3Actors)(&CAwsS3Actor::f_DeleteObject, BucketName, File) > DeleteFilesResults.f_AddResult();
+		{
+			mp_S3DeleteSequencer / [=]() -> TCFuture<void>
+				{
+					co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_DeleteObject, BucketName, File);
+				}
+				> DeleteFilesResults.f_AddResult();
+			;
+		}
 
 		bool bDeleteFiles = !DeleteFilesResults.f_IsEmpty();
 		if (bDeleteFiles)
