@@ -501,7 +501,7 @@ exports.handler = async (event) => {
 			if (Package.m_ExternalRoot.f_IsEmpty())
 				continue;
 
-			CStr Root = CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot);
+			CStr Root = fp_GetPackageRoot(Package.f_GetName());
 
 			(
 				self / [=]() -> TCFuture<void>
@@ -623,11 +623,7 @@ exports.handler = async (event) => {
 			if (Package.m_ExcludeGzipPatterns.f_Contains("*.tar.gz") >= 0)
 				bRawTarGz = true;
 
-			CStr Root;
-			if (Package.m_ExternalRoot.f_IsEmpty())
-				Root = ProgramDirectory / Package.f_GetName();
-			else
-				Root = CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot);
+			CStr Root = fp_GetPackageRoot(Package.f_GetName());
 
 			Roots[Root];
 		}
@@ -683,11 +679,7 @@ exports.handler = async (event) => {
 					CloudFrontDistributions[Distribution];
 			}
 
-			CStr Root;
-			if (Package.m_ExternalRoot.f_IsEmpty())
-				Root = ProgramDirectory / Package.f_GetName();
-			else
-				Root = CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot);
+			CStr Root = fp_GetPackageRoot(Package.f_GetName());
 
 			CStr RelativePath = CFile::fs_MakePathRelative(Root, RootPath);
 

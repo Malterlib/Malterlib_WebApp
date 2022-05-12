@@ -992,12 +992,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					Server = Server.f_Replace("{Upstream}", fg_Format("upstream_{}", Package.f_GetName()));
 
 					if (bIsStatic)
-					{
-						if (Package.m_ExternalRoot.f_IsEmpty())
-							Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
-						else
-							Server = Server.f_Replace("{StaticRoot}", CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot).f_EscapeStrNoQuotes());
-					}
+						Server = Server.f_Replace("{StaticRoot}", fp_GetPackageRoot(Package.f_GetName()).f_EscapeStrNoQuotes());
 					else if (bIsMeteor)
 						Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
 					else

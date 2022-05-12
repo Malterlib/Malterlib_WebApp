@@ -33,7 +33,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		auto &Package = mp_Options.m_Packages[_PackageName];
 		if (!Package.f_IsServer())
-			DMibError("Cannot get package name for non-server package");
+			DMibError("Cannot get package hostname for non-server package");
 
 		CStr Prefix = Package.m_DomainPrefix;
 
@@ -48,6 +48,20 @@ namespace NMib::NWebApp::NWebAppManager
 			return mp_Domain;
 
 		return fg_Format("{}.{}", Prefix, mp_Domain);
+	}
+
+	CStr CWebAppManagerActor::fp_GetPackageRoot(CStr const &_PackageName) const
+	{
+		auto &Package = mp_Options.m_Packages[_PackageName];
+		if (!Package.f_IsServer())
+			DMibError("Cannot get package root path for non-server package");
+
+		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+
+		if (Package.m_ExternalRoot.f_IsEmpty())
+			return ProgramDirectory / Package.f_GetName();
+		else
+			return fp_GetConfigValue("ExternalRoot_{}"_f << _PackageName, CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot)).f_String();
 	}
 
 	CStr CWebAppManagerActor::fp_GetRootURL(CStr const &_Hostname, CStr const &_SubPath) const
