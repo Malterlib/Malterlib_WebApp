@@ -908,6 +908,8 @@ exports.handler = async (event) => {
 		for (auto &Object : Bucket.m_Objects)
 			ExistingObjects[Object.m_Key] = Object.m_ETag;
 
+		bool bVerbose = fp_GetConfigValue("VerboseS3Logging", false).f_Boolean();
+
 		TCSet<CStr> FilesToUpdate;
 
 		mint nMetaDataQueries = 0;
@@ -931,6 +933,8 @@ exports.handler = async (event) => {
 			if (!pExistingObject)
 			{
 				FilesToUpdate[DestinationFileName];
+				if (bVerbose)
+					DMibLogWithCategory(S3Upload, Info, "Add - Does not exist in bucket: {}", DestinationFileName);
 				continue;
 			}
 
@@ -940,6 +944,8 @@ exports.handler = async (event) => {
 			if (!pNewChecksum || pNewChecksum->m_MD5.f_GetString() != *pExistingObject)
 			{
 				FilesToUpdate[DestinationFileName];
+				if (bVerbose)
+					DMibLogWithCategory(S3Upload, Info, "Update - MD5 differs. {} != {}: {}", pNewChecksum->m_MD5.f_GetString(), *pExistingObject, DestinationFileName);
 				continue;
 			}
 
@@ -1002,17 +1008,54 @@ exports.handler = async (event) => {
 			if (!FilesToUpdate.f_FindEqual(FileName))
 			{
 				auto pMetaData = MetaData.f_FindEqual(FileName);
-				if (pMetaData && *pMetaData)
+				if (pMetaData)
 				{
-					auto &MetaData = **pMetaData;
-					if
-						(
-							MetaData.m_CacheControl.f_Get("") == PutInfo.m_CacheControl.f_Get("")
-							&& MetaData.m_ContentEncoding.f_Get("") == PutInfo.m_ContentEncoding.f_Get("")
-							&& MetaData.m_ContentType.f_Get("") == PutInfo.m_ContentType.f_Get("")
-						)
+					if (*pMetaData)
 					{
-						continue; // Already up to date
+						auto &MetaData = **pMetaData;
+						if
+							(
+								MetaData.m_CacheControl.f_Get("") == PutInfo.m_CacheControl.f_Get("")
+								&& MetaData.m_ContentEncoding.f_Get("") == PutInfo.m_ContentEncoding.f_Get("")
+								&& MetaData.m_ContentType.f_Get("") == PutInfo.m_ContentType.f_Get("")
+							)
+						{
+							continue; // Already up to date
+						}
+
+						if (bVerbose)
+						{
+							DMibLogWithCategory
+								(
+									S3Upload
+									, Info
+									, "Metadata differs: {}\n"
+									"   Cache Control: {} <=> {}"
+									"   Content Encoding: {} <=> {}"
+									"   Content Type: {} <=> {}"
+									, FileName
+									, MetaData.m_CacheControl.f_Get("")
+									, PutInfo.m_CacheControl.f_Get("")
+									, MetaData.m_ContentEncoding.f_Get("")
+									, PutInfo.m_ContentEncoding.f_Get("")
+									, MetaData.m_ContentType.f_Get("")
+									, PutInfo.m_ContentType.f_Get("")
+								)
+							;
+						}
+					}
+					else
+					{
+						DMibLogWithCategory
+							(
+								S3Upload
+								, Info
+								, "Meta data query failed so will re-upload: {}\n"
+								"   Error: {}"
+								, FileName
+								, pMetaData->f_GetExceptionStr()
+							)
+						;
 					}
 				}
 			}
@@ -1112,6 +1155,9 @@ exports.handler = async (event) => {
 		TCActorResultVector<void> DeleteFilesResults;
 		for (auto &File : FilesToDelete)
 		{
+			if (bVerbose)
+				DMibLogWithCategory(S3Upload, Info, "Delete - Does not exist in source: {}", File);
+
 			mp_S3DeleteSequencer / [=]() -> TCFuture<void>
 				{
 					co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_DeleteObject, BucketName, File);
