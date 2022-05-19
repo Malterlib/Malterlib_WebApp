@@ -44,6 +44,14 @@ Type
 		WebAppManagerMongoDatabaseSetupScript define string?
 		WebAppManagerMongoDefaultReplicaName define string?
 		WebAppManagerMongoDefaultDatabase define string?
+		WebAppManagerMongoBinariesPath define string?
+		WebAppManagerMongoDefaultVersion define string = "4.4"
+
+		WebAppManagerMongoDirectory "mongo"
+		{
+			!WebAppManagerMongoBinariesPath undefined
+		}
+
 		WebAppManagerCopySources define [type(CFileCopyOptions)] = []
 
 		WebAppManagerLoopbackPrefix define int?
@@ -368,6 +376,10 @@ Type
 	{
 		Dependency.Indirect true
 	}
+	%Dependency "Lib_Malterlib_Mongo"
+	{
+		Dependency.Indirect true
+	}
 	%Dependency "Lib_Malterlib_WebApp"
 	{
 		Dependency.Indirect true
@@ -456,12 +468,12 @@ Property
 	}
 
 	WebAppManagerEnvironment =+ {
-		EnvVar: "MONGO_OPLOG_URL="
+		EnvVar: "MONGO_OPLOG_URL"
 		, ConfigVar: "MongoOplogURL"
 	}
 
 	WebAppManagerEnvironment =+ {
-		EnvVar: "MONGO_SSL_CA_FILE="
+		EnvVar: "MONGO_SSL_CA_FILE"
 		, ConfigVar: "MongoSSLCaFile"
 	}
 
@@ -471,7 +483,12 @@ Property
 	}
 
 	WebAppManagerEnvironment =+ {
-		EnvVar: "MONGO_SELF_ID="
+		EnvVar: "MONGO_SSL_CLIENT_KEY_FILE"
+		, ConfigVar: "MongoSSLClientKeyFile"
+	}
+
+	WebAppManagerEnvironment =+ {
+		EnvVar: "MONGO_SELF_ID"
 		, ConfigVar: "MongoSelfID"
 	}
 
@@ -595,7 +612,10 @@ Property
 		{
 			!WebAppManagerMongoDatabaseSetupScript undefined
 		}
-
+		WebAppManagerCopySources =+ {Pattern: WebAppManagerMongoBinariesPath / "*", Destination: "mongo", Recursive: true}
+		{
+			!WebAppManagerMongoBinariesPath undefined
+		}
 		MalterlibExeFSExtraFiles =+ WebAppManagerCopySources
 		{
 			!WebAppManagerCopySources undefined
@@ -939,6 +959,10 @@ Property
 				WebAppSettingsMongo =+ {DefaultDatabase: WebAppManagerMongoDefaultDatabase}
 				{
 					!WebAppManagerMongoDefaultDatabase undefined
+				}
+				WebAppSettingsMongo =+ {DefaultMongoVersion: WebAppManagerMongoDefaultVersion}
+				{
+					!WebAppManagerMongoDefaultVersion undefined
 				}
 				WebAppSettingsMongo =+ Error("You need to specify WebAppManagerMongoDefaultDatabase when MeteorBuilds are defined")
 				{

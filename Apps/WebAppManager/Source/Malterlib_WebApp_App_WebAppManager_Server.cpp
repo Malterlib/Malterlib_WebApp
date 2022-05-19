@@ -130,11 +130,17 @@ namespace NMib::NWebApp::NWebAppManager
 
 		TCActorResultVector<void> Destroys;
 
+		if (mp_CertificateDeploySubscription)
+			fg_Exchange(mp_CertificateDeploySubscription, nullptr)->f_Destroy() > Destroys.f_AddResult();
+
 		if (mp_CertificateDeployActor)
 			fg_Move(mp_CertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
 
-		if (mp_CertificateDeploySubscription)
-			fg_Exchange(mp_CertificateDeploySubscription, nullptr)->f_Destroy() > Destroys.f_AddResult();
+		if (mp_MongoCertificateDeploySubscription_Admin)
+			fg_Exchange(mp_MongoCertificateDeploySubscription_Admin, nullptr)->f_Destroy() > Destroys.f_AddResult();
+
+		if (mp_MongoCertificateDeployActor)
+			fg_Move(mp_MongoCertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
 
 		for (auto &ToolLaunch : mp_ToolLaunches)
 			ToolLaunch.m_ProcessLaunch.f_Destroy() > Destroys.f_AddResult();
@@ -180,6 +186,24 @@ namespace NMib::NWebApp::NWebAppManager
 		co_await mp_FileActors.f_Destroy();
 
 		co_return {};
+	}
+
+	CWebAppManagerImpl CWebAppManagerActor::fp_GetImpl()
+	{
+		CWebAppManagerImpl Return;
+		Return.m_pThis = this;
+
+		return Return;
+	}
+
+	CEJSON CWebAppManagerImpl::f_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const
+	{
+		return m_pThis->fp_GetConfigValue(_Name, _Default);
+	}
+
+	NWeb::NHTTP::CURL CWebAppManagerImpl::f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const
+	{
+		return m_pThis->fp_GetDBAddressURL(_Database, _HomePath);
 	}
 
 #ifdef DPlatformFamily_Windows
@@ -355,12 +379,6 @@ namespace NMib::NWebApp::NWebAppManager
 		: m_ManagerName(_ManagerName)
 		, m_ManagerDescription(_ManagerDescription)
 	{
-	}
-
-	void CWebAppManagerOptions::CMongo::f_SetDefaults(CWebAppManagerOptions const &_Options)
-	{
-		m_ToolsUser = _Options.m_UserNamePrefix + "mongo";
-		m_ToolsGroup = _Options.m_UserNamePrefix + "mongo";
 	}
 
 	void CWebAppManagerOptions::f_ParseSettings(CStr const &_Settings, CStr const &_FileName)
@@ -625,8 +643,6 @@ namespace NMib::NWebApp::NWebAppManager
 		if (auto *pValue = Settings.f_GetMember("SaveUserPasswords"))
 			m_bSaveUserPasswords = pValue->f_Boolean();
 
-		m_Mongo.f_SetDefaults(*this);
-
 		auto &MongoJSON = Settings["Mongo"].f_Object();
 		if (auto *pValue = MongoJSON.f_GetMember("Directory"))
 			m_Mongo.m_Directory = pValue->f_String();
@@ -644,6 +660,8 @@ namespace NMib::NWebApp::NWebAppManager
 			m_Mongo.m_DatabaseSetupScript = pValue->f_String();
 		if (auto *pValue = MongoJSON.f_GetMember("DefaultDatabase"))
 			m_Mongo.m_DefaultDatabase = pValue->f_String();
+		if (auto *pValue = MongoJSON.f_GetMember("DefaultMongoVersion"))
+			m_Mongo.m_DefaultMongoVersion = pValue->f_String();
 		if (auto *pValue = MongoJSON.f_GetMember("DefaultReplicaName"))
 			m_Mongo.m_DefaultReplicaName = pValue->f_String();
 
@@ -763,7 +781,7 @@ namespace NMib::NWebApp::NWebAppManager
 			, CDistributedAppState const &_AppState
 			, CWebAppManagerOptions const &_Options
 			, CWebAppManagerOptions::CPackage const &_PackageOptions
-			, TCFunction<CEJSON (CStr const &_Name, CEJSON const &_Default)> const &_fGetConfigValue
+			, ICWebAppManager const &_WebAppManager
 		)
 	{
 	}
@@ -773,10 +791,10 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr &o_Config
 			, CDistributedAppState const &_AppState
 			, CWebAppManagerOptions const &_Options
-			, TCFunction<CEJSON (CStr const &_Name, CEJSON const &_Default)> const &_fGetConfigValue
 			, TCSet<CStr> const &_Tags
 			, CStr const &_FastCGIFile
 		 	, TCMap<CStr, CStr> const &_PackageIPs
+			, ICWebAppManager const &_WebAppManager
 		)
 	{
 	}

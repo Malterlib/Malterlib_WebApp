@@ -29,6 +29,8 @@ namespace NMib::NWebApp::NWebAppManager
 				}
 				, [this] (NEncoding::CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine) -> TCFuture<uint32>
 				{
+					co_await fp_WaitForAppStartup();
+
 					*_pCommandLine %= "Invalidating\n";
 
 					co_await mp_pManager(&CWebAppManagerActor::f_InvalidateCloudFrontCaches);

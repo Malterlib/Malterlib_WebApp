@@ -7,7 +7,7 @@
 namespace NMib::NWebApp::NWebAppManager
 {
 	CWebAppManagerDaemonActor::CWebAppManagerDaemonActor(CWebAppManagerOptions const &_Options)
-		: CDistributedAppActor(CDistributedAppActor_Settings{_Options.m_FullManagerName})
+		: CDistributedAppActor(CDistributedAppActor_Settings{_Options.m_FullManagerName}.f_CommandLineBeforeAppStart(true))
 		, mp_Options(_Options)
 	{
 #ifdef DPlatformFamily_OSX

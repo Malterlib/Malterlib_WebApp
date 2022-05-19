@@ -247,6 +247,9 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		o_Arguments.f_Insert(fg_Format("--max_old_space_size={}", (_PackageOptions.m_MemoryPerNode*1024.0).f_ToInt()));
 
+		o_Arguments.f_Insert("--trace-deprecation");
+		o_Arguments.f_Insert("--trace-warnings");
+
 		if (fp_GetConfigValue("NodeDebug", false).f_Boolean())
 			o_Arguments.f_Insert("--inspect={}:5599"_f << fp_GetAppIPAddress(_AppLaunch));
 		else
@@ -650,48 +653,15 @@ namespace NMib::NWebApp::NWebAppManager
 				CalculatedSettings[fg_Format("LocalURL_{}", Package.f_GetName())] = fp_GetPackageLocalURL(Package.f_GetName());
 			}
 
+			CalculatedSettings["MongoURL"] = fp_GetDBAddress(mp_MongoDatabase, LaunchHomePath / "certificates");
+			CalculatedSettings["MongoOplogURL"] = fp_GetDBAddress("local", LaunchHomePath / "certificates");
+
 			CStr MongoSSLDirectory = fp_GetMongoSSLDirectory();
 			if (!MongoSSLDirectory.f_IsEmpty())
 			{
-				CalculatedSettings["IsMultiHost"] = "true";
-				CalculatedSettings["DDPSelf"] = mp_DDPSelf;
-
-				CStr CaCertificatePath = LaunchHomePath + "/certificates/MongoCA.crt";
-				CStr ClientCertificatePath = LaunchHomePath + "/certificates/admin.pem";
-				CStr UserNameEncoded;
-
-				NHTTP::CURL::fs_PercentEncode(UserNameEncoded, mp_MongoAdminUserName, nullptr, EEncodeFlag_UpperCasePercentEncode);
-
-				CalculatedSettings["MongoHost"] = mp_MongoHost;
-				CalculatedSettings["MongoURL"] = fg_Format
-					(
-						"mongodb://{}@{}:{}/{}?replicaSet={}&authMechanism=MONGODB-X509"
-						, UserNameEncoded
-						, mp_MongoHost
-						, mp_MongoPort
-						, mp_MongoDatabase
-						, mp_MongoReplicaName
-					)
-				;
-
-				CalculatedSettings["MongoOplogURL"] = fg_Format
-					(
-						"mongodb://{}@{}:{}/local?authMechanism=MONGODB-X509"
-						, UserNameEncoded
-						, mp_MongoHost
-						, mp_MongoPort
-					)
-				;
-
-				CalculatedSettings["MongoSSLCaFile"] = CaCertificatePath;
-				CalculatedSettings["MongoSSLClientCertFile"] = ClientCertificatePath;
-				CalculatedSettings["MongoSelfID"] = fg_Format("{}_{}", mp_MongoHost, mp_MongoPort).f_ReplaceChar('.', '_');
-			}
-			else
-			{
-				CalculatedSettings["MongoHost"] = "localhost";
-				CalculatedSettings["MongoURL"] = fg_Format("mongodb://localhost:{}/{}", mp_MongoPort, mp_MongoDatabase);
-				CalculatedSettings["MongoOplogURL"] = fg_Format("mongodb://localhost:{}/local", mp_MongoPort);
+				CalculatedSettings["MongoSSLCaFile"] = LaunchHomePath / "certificates/MongoCA.crt";
+				CalculatedSettings["MongoSSLClientCertFile"] = LaunchHomePath / "certificates/admin.crt";
+				CalculatedSettings["MongoSSLClientKeyFile"] = LaunchHomePath / "certificates/admin.key";
 			}
 
 			CJSON MeteorSettings;
@@ -731,10 +701,7 @@ namespace NMib::NWebApp::NWebAppManager
 						, mp_AppState
 						, mp_Options
 						, PackageOptions
-						, [&](CStr const &_Name, CEJSON const &_Default) -> CEJSON
-						{
-							return fp_GetConfigValue(_Name, _Default);
-						}
+						, fp_GetImpl()
 					)
 				;
 			}

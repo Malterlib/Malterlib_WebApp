@@ -13,6 +13,7 @@
 #include <Mib/Process/ProcessLaunch>
 #include <Mib/File/ChangeNotificationActor>
 #include <Mib/Mongo/Client>
+#include <Mib/Mongo/MongoCertificateDeploy>
 #include <Mib/Storage/Optional>
 #include <Mib/Security/UniqueUserGroup>
 #include <Mib/Web/AWS/S3>
@@ -173,6 +174,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_DatabaseSetupScript;
 			CStr m_DefaultDatabase;
 			CStr m_DefaultReplicaName = "DefaultReplica";
+			CStr m_DefaultMongoVersion = "4.4";
 		};
 
 		CWebAppManagerOptions(CStr const &_ManagerName, CStr const &_ManagerDescription);
@@ -225,6 +227,22 @@ namespace NMib::NWebApp::NWebAppManager
 		bool m_bAllowRedirectsOutsideOfDomain = true;
 	};
 
+	struct ICWebAppManager
+	{
+		virtual CEJSON f_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const = 0;
+		virtual NWeb::NHTTP::CURL f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const = 0;
+	};
+
+	struct CWebAppManagerActor;
+
+	struct CWebAppManagerImpl : public ICWebAppManager
+	{
+		CEJSON f_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const;
+		NWeb::NHTTP::CURL f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const;
+
+		CWebAppManagerActor *m_pThis = nullptr;
+	};
+
 	struct ICWebAppManagerCustomization
 	{
 		ICWebAppManagerCustomization();
@@ -238,7 +256,7 @@ namespace NMib::NWebApp::NWebAppManager
 				, CDistributedAppState const &_AppState
 				, CWebAppManagerOptions const &_Options
 				, CWebAppManagerOptions::CPackage const &_PackageOptions
-				, TCFunction<CEJSON (CStr const &_Name, CEJSON const &_Default)> const &_fGetConfigValue
+				, ICWebAppManager const &_WebAppManager
 			)
 		;
 		virtual void f_ManipulateNginxConfig
@@ -246,10 +264,10 @@ namespace NMib::NWebApp::NWebAppManager
 				CStr &o_Config
 				, CDistributedAppState const &_AppState
 				, CWebAppManagerOptions const &_Options
-				, TCFunction<CEJSON (CStr const &_Name, CEJSON const &_Default)> const &_fGetConfigValue
 				, TCSet<CStr> const &_Tags
 				, CStr const &_FastCGIFile
 			 	, TCMap<CStr, CStr> const &_PackageIPs
+				, ICWebAppManager const &_WebAppManager
 			)
 		;
 	};
@@ -260,6 +278,8 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 	public:
 		using CActorHolder = CDelegatedActorHolder;
+
+		friend struct CWebAppManagerImpl;
 
 		enum ELogVerbosity
 		{
@@ -339,6 +359,8 @@ namespace NMib::NWebApp::NWebAppManager
 			bool m_bMalterlibDistributedApp = false;
 		};
 
+		CWebAppManagerImpl fp_GetImpl();
+
 		TCFuture<void> fp_Destroy() override;
 
 		void fp_ParseConfig_DDPSelf();
@@ -407,6 +429,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
 		CStr fp_GetMongoSSLDirectory() const;
+		NWeb::NHTTP::CURL fp_GetDBAddressURL(CStr _Database, CStr _HomePath);
+		CStr fp_GetDBAddress(CStr _Database, CStr _HomePath);
 		TCFuture<void> fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout);
 
 		TCFuture<void> fp_SetupMongo();
@@ -525,6 +549,15 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr mp_MongoDatabase;
 		CStr mp_MongoReplicaName;
 		CStr mp_MongoAdminUserName;
+		CStr mp_MongoVersion = "4.4";
+		bool mp_bConnectToExternalMongo = false;
+		TCVector<CMongoServerHost> mp_ExternalMongoHosts;
+		CStr mp_MongoReplicaNameExternal;
+
+		// Mongo certificate deploy
+		TCActor<CMongoCertificateDeployActor> mp_MongoCertificateDeployActor;
+		CActorSubscription mp_MongoCertificateDeploySubscription_Admin;
+
 		CStr mp_BindTo;
 
 		uint64 mp_WebPort = 3000;

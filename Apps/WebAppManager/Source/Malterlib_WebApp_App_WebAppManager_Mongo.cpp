@@ -11,7 +11,7 @@ namespace NMib::NWebApp::NWebAppManager
 	CStr CWebAppManagerActor::fp_GetMongoExecutable(CStr const &_ExecutableName) const
 	{
 		if (!mp_MongoDirectory.f_IsEmpty())
-			return CFile::fs_AppendPath(CFile::fs_GetExpandedPath(mp_MongoDirectory, CFile::fs_GetProgramDirectory()), _ExecutableName);
+			return CFile::fs_GetExpandedPath(mp_MongoDirectory, CFile::fs_GetProgramDirectory()) / mp_MongoVersion / "bin" / _ExecutableName;
 		return _ExecutableName;
 	}
 
@@ -35,52 +35,89 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_Mongo()
 	{
-		TCPromise<void> Promise;
-
 		struct CSetupResult
 		{
 			CStr m_MongoAdminUserName;
 		};
 
-		g_Dispatch(*mp_FileActors) / [=, MongoSSLDirectory = fp_GetMongoSSLDirectory()]() -> CSetupResult
-			{
-				CSetupResult SetupResult;
+		mp_MongoCertificateDeployActor = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager, *mp_FileActors);
 
-				if (!MongoSSLDirectory.f_IsEmpty())
+		CStr CertificateAuthority = mp_AppState.m_ConfigDatabase.m_Data.f_GetMemberValue("MongoCertificateAuthority", "MongoCA").f_String();
+		auto MongoSSLDirectory = fp_GetMongoSSLDirectory();
+		{
+			CMongoCertificateDeployActor::CUserSettings UserSettings;
+			UserSettings.f_InitUser
+				(
+					CertificateAuthority
+					, "admin"
+					,
+					{
+						{
+							.m_BasePath = MongoSSLDirectory
+							, .m_FileUser = mp_MongoToolsUser
+							, .m_FileGroup = mp_MongoToolsGroup
+						}
+					}
+				)
+			;
+
+			UserSettings.m_fOnStatusChange = g_ActorFunctor / [](CHostInfo &&_HostInfo, CMongoCertificateDeployActor::CUserStatus &&_Status) -> TCFuture<void>
 				{
-					if (CFile::fs_FileExists(MongoSSLDirectory) && MongoSSLDirectory.f_StartsWith(CFile::fs_GetProgramDirectory() + "/"))
-					{
-						CFile::fs_SetUnixAttributesRecursive
-							(
-								MongoSSLDirectory
-								, EFileAttrib_UserRead
-								, EFileAttrib_UserRead | EFileAttrib_UserExecute
-							)
-						;
-					}
+					if (_Status.m_Severity == CMongoCertificateDeployActor::EStatusSeverity_Error)
+						DMibLogWithCategory(Certificate, Error, "Mongo admin certificate: {}", _Status.m_Description);
+					else if (_Status.m_Severity == CMongoCertificateDeployActor::EStatusSeverity_Warning)
+						DMibLogWithCategory(Certificate, Warning, "Mongo admin certificate: {}", _Status.m_Description);
+					else
+						DMibLogWithCategory(Certificate, Info, "Mongo admin certificate: {}", _Status.m_Description);
 
-					CStr ClientCertificatePath = MongoSSLDirectory / "admin.pem";
-
-					try
-					{
-						SetupResult.m_MongoAdminUserName = CCertificate::fs_GetCertificateDistinguishedName_RFC2253(CFile::fs_ReadFile(ClientCertificatePath));
-					}
-					catch (CException const &_Error)
-					{
-						DMibError("Failed to read certificate file for admin user: {}"_f << _Error);
-					}
+					co_return {};
 				}
+			;
 
-				return SetupResult;
-			}
-			> Promise / [=](CSetupResult &&_SetupResult)
-			{
-				mp_MongoAdminUserName = _SetupResult.m_MongoAdminUserName;
-				Promise.f_SetResult();
-			}
+			mp_MongoCertificateDeploySubscription_Admin = co_await mp_MongoCertificateDeployActor(&CMongoCertificateDeployActor::f_AddUser, fg_Move(UserSettings));
+		}
+
+		co_await mp_MongoCertificateDeployActor(&CMongoCertificateDeployActor::f_Start);
+
+		auto SetupResult = co_await
+			(
+				mp_FileActors.f_Dispatch() / [=]() -> CSetupResult
+				{
+					CSetupResult SetupResult;
+
+					if (!MongoSSLDirectory.f_IsEmpty())
+					{
+						if (CFile::fs_FileExists(MongoSSLDirectory) && MongoSSLDirectory.f_StartsWith(CFile::fs_GetProgramDirectory() + "/"))
+						{
+							CFile::fs_SetUnixAttributesRecursive
+								(
+									MongoSSLDirectory
+									, EFileAttrib_UserRead
+									, EFileAttrib_UserRead | EFileAttrib_UserExecute
+								)
+							;
+						}
+
+						CStr ClientCertificatePath = MongoSSLDirectory / "admin.pem";
+
+						try
+						{
+							SetupResult.m_MongoAdminUserName = CCertificate::fs_GetCertificateDistinguishedName_RFC2253(CFile::fs_ReadFile(ClientCertificatePath));
+						}
+						catch (CException const &_Error)
+						{
+							DMibError("Failed to read certificate file for admin user: {}"_f << _Error);
+						}
+					}
+
+					return SetupResult;
+				}
+			)
 		;
 
-		return Promise.f_MoveFuture();
+		mp_MongoAdminUserName = SetupResult.m_MongoAdminUserName;
+
+		co_return {};
 	}
 
 	CStr CWebAppManagerActor::fp_GetMongoSSLDirectory() const
@@ -88,9 +125,63 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr MongoSSLDirectory = mp_MongoSSLDirectory;
 
 		if (!MongoSSLDirectory.f_IsEmpty())
-			MongoSSLDirectory = CFile::fs_GetExpandedPath(MongoSSLDirectory, CFile::fs_GetProgramDirectory());
+			return CFile::fs_GetExpandedPath(MongoSSLDirectory, CFile::fs_GetProgramDirectory());
+		else if (mp_bConnectToExternalMongo)
+			return CFile::fs_GetProgramDirectory() / "mongo/certificates";
 
 		return MongoSSLDirectory;
+	}
+
+	NWeb::NHTTP::CURL CWebAppManagerActor::fp_GetDBAddressURL(CStr _Database, CStr _HomePath)
+	{
+		if (mp_bConnectToExternalMongo)
+		{
+			CStr CaCertificatePath = _HomePath / "MongoCA.crt";
+			CStr ClientCertificatePath = _HomePath / "admin.pem";
+
+			NWeb::NHTTP::CURL Url;
+			Url.f_SetScheme("mongodb");
+			Url.f_SetUsername(mp_MongoAdminUserName);
+			Url.f_SetHost(CMongoConnectionSettings::fs_GetConnectionString(mp_ExternalMongoHosts), true);
+			Url.f_SetPath({_Database});
+
+			NContainer::TCVector<NWeb::NHTTP::CURL::CQueryEntry> Query
+				{
+					{
+						{"authMechanism", "MONGODB-X509"}
+						, {"retryWrites", "true"}
+						, {"w", "majority"}
+						, {"authSource", "$external"}
+						, {"tls", "true"}
+						, {"tlsCertificateKeyFile", ClientCertificatePath}
+					}
+				}
+			;
+
+			Query.f_Insert({"replicaSet", mp_MongoReplicaNameExternal});
+
+			if (CFile::fs_FileExists(CaCertificatePath))
+				Query.f_Insert({"tlsCAFile", CaCertificatePath});
+
+			Url.f_SetQuery(Query);
+
+			return Url;
+		}
+		else
+		{
+			NWeb::NHTTP::CURL Url;
+			Url.f_SetScheme("mongodb");
+			Url.f_SetHost(mp_MongoHost);
+			Url.f_SetPort(mp_MongoPort);
+			Url.f_SetPath({_Database});
+
+			return Url;
+		}
+	}
+
+	CStr CWebAppManagerActor::fp_GetDBAddress(CStr _Database, CStr _HomePath)
+	{
+		return fp_GetDBAddressURL(_Database, _HomePath).f_Encode();
 	}
 
 	TCFuture<void> CWebAppManagerActor::fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout)
@@ -98,6 +189,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCPromise<void> Promise;
 
 		CStr ScriptName = CFile::fs_GetFile(_Script);
+		CStr MongoSSLDirectory = fp_GetMongoSSLDirectory();
 
 		CProcessLaunchParams Params;
 		fs_SetupEnvironment(Params);
@@ -105,45 +197,63 @@ namespace NMib::NWebApp::NWebAppManager
 		Params.m_bMergeEnvironment = true;
 		Params.m_RunAsUser = mp_MongoToolsUser;
 #ifdef DPlatformFamily_Windows
-		Params.m_RunAsUser = fp_GetUserPassword(mp_MongoToolsUser);
+		if (mp_MongoToolsUser)
+			Params.m_RunAsUser = fp_GetUserPassword(mp_MongoToolsUser);
 #endif
 		Params.m_RunAsGroup = mp_MongoToolsGroup;
 
 		CStr MongoHost = mp_MongoHost;
 		int64 MongoPort = mp_MongoPort;
 
+		CStr Address = fp_GetDBAddress(_Database, MongoSSLDirectory);
+
+		if (mp_bConnectToExternalMongo)
+			MongoHost = CMongoConnectionSettings::fs_GetConnectionString(mp_ExternalMongoHosts);
+
 		if (MongoHost.f_IsEmpty())
-			return Promise <<= DMibErrorInstance(fg_Format("Failed to launch mongo for running {}: {}", ScriptName, "Hostname is empty"));
+			co_return DMibErrorInstance(fg_Format("Failed to launch mongo for running {}: Hostname is empty", ScriptName));
 
-		TCVector<CStr> CommandLineArgs = fg_CreateVector<CStr>
-			(
-				"--host"
-				, MongoHost
-				, "--port"
-				, CStr::fs_ToStr(MongoPort)
-			)
-		;
-
-		CStr MongoSSLDirectory = fp_GetMongoSSLDirectory();
+		TCVector<CStr> CommandLineArgs;
 
 		if (!MongoSSLDirectory.f_IsEmpty())
 		{
-			CStr CACertificatePath = MongoSSLDirectory + "/MongoCA.crt";
+			CStr CaCertificatePath = MongoSSLDirectory + "/MongoCA.crt";
 			CStr ClientCertificatePath = MongoSSLDirectory + "/admin.pem";
 
-			CommandLineArgs << fg_CreateVector<NStr::CStr>
+			CommandLineArgs.f_Insert
 				(
-					"--ssl"
-					, "--authenticationMechanism"
-					, "MONGODB-X509"
-					, "--authenticationDatabase"
-					, "$external"
-					, "--sslCAFile"
-					, CACertificatePath
-					, "--sslPEMKeyFile"
-					, ClientCertificatePath
-					, "-u"
-					, mp_MongoAdminUserName
+					{
+						"--tls"
+						, "--tlsCertificateKeyFile"
+						, ClientCertificatePath
+					}
+				)
+			;
+
+			if (CFile::fs_FileExists(CaCertificatePath))
+			{
+				CommandLineArgs.f_Insert
+					(
+						{
+							"--tlsCAFile"
+							, CaCertificatePath
+						}
+					)
+				;
+			}
+		}
+
+		if (!mp_bConnectToExternalMongo)
+		{
+			CommandLineArgs << fg_CreateVector<CStr>
+				(
+					"--eval"
+					, fg_Format
+					(
+						"var WebAppManagerMongoHostName='{}'; var WebAppManagerMongoPort='{}'"
+						, MongoHost
+						, MongoPort
+					)
 				)
 			;
 		}
@@ -151,86 +261,54 @@ namespace NMib::NWebApp::NWebAppManager
 		CommandLineArgs << fg_CreateVector<CStr>
 			(
 				"--quiet"
-				, "--eval"
-				, fg_Format
-				(
-					"var WebAppManagerMongoHostName='{}'; var WebAppManagerMongoPort='{}'"
-					, MongoHost
-					, MongoPort
-				)
-				, _Database
+				, Address
 				, _Script
 			)
 		;
 
 		CStr MongoExecutable = fp_GetMongoExecutable("mongo");
 
-		TCSharedPointer<TCFunctionMutable<void (TCPromise<void> const &_Promise)>> pDoLaunch = fg_Construct();
+		auto Clock = CClock{true};
 
-		*pDoLaunch =
-			[
-				Clock = CClock{true}
-				, MongoExecutable
-				, CommandLineArgs
-				, ScriptName
-				, this
-				, _Timeout
-				, pDoLaunch
-			]
-			(TCPromise<void> const &_Promise) mutable
+		while (true)
+		{
+			auto StdOutResult = co_await f_LaunchTool
+				(
+					MongoExecutable
+					, CFile::fs_GetPath(MongoExecutable)
+					, CommandLineArgs
+					, ScriptName
+					, ELogVerbosity_None
+					, {}
+					, true
+				)
+				.f_Wrap()
+			;
+
+			if (!StdOutResult)
 			{
-				if (_Promise.f_IsSet())
-				{
-					pDoLaunch.f_Clear();
-					return;
-				}
-				f_LaunchTool
+				if
 					(
-						MongoExecutable
-						, CFile::fs_GetPath(MongoExecutable)
-						, CommandLineArgs
-						, ScriptName
-						, ELogVerbosity_None
-						, {}
-						, true
+						(
+							StdOutResult.f_GetExceptionStr().f_Find("exception: connect failed") >= 0
+							|| StdOutResult.f_GetExceptionStr().f_Find("The OS returned an error from execve") >= 0
+							|| StdOutResult.f_GetExceptionStr().f_Find("not master and slaveOk=false") >= 0
+						)
+						&& _Timeout != 0.0f
+						&& Clock.f_GetTime() < _Timeout
 					)
-					> [ScriptName, _Promise, Clock, _Timeout, pDoLaunch](TCAsyncResult<CStr> const &_StdOut)
-					{
-						if (!_StdOut)
-						{
-							if
-								(
-									(
-										_StdOut.f_GetExceptionStr().f_Find("exception: connect failed") >= 0
-										|| _StdOut.f_GetExceptionStr().f_Find("The OS returned an error from execve") >= 0
-										|| _StdOut.f_GetExceptionStr().f_Find("not master and slaveOk=false") >= 0
-									)
-									&& _Timeout != 0.0f
-									&& Clock.f_GetTime() < _Timeout
-								)
-							{
-								fg_Timeout(0.1) > _Promise / [pDoLaunch, _Promise]
-									{
-										(*pDoLaunch)(_Promise);
-									}
-								;
-								return;
-							}
-							_Promise.f_SetException(_StdOut);
-							(*pDoLaunch)(_Promise);
-							return;
-						}
-						auto StdOut = (*_StdOut).f_Trim();
-						DLog(Info, "{}:{}{}", ScriptName, StdOut.f_IsEmpty() ? "" : "\n", StdOut);
-						_Promise.f_SetResult();
-						(*pDoLaunch)(_Promise);
-					}
-				;
+				{
+					co_await fg_Timeout(0.1);
+					continue;
+				}
+				co_return StdOutResult.f_GetException();
 			}
-		;
 
-		(*pDoLaunch)(Promise);
+			auto StdOut = (*StdOutResult).f_Trim();
+			DLog(Info, "{}:{}{}", ScriptName, StdOut.f_IsEmpty() ? "" : "\n", StdOut);
+			break;
+		}
 
-		return Promise.f_MoveFuture();
+		co_return {};
 	}
 }

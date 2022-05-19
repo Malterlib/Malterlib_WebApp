@@ -1088,13 +1088,10 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					ConfigContents
 					, mp_AppState
 					, mp_Options
-					, [&](CStr const &_Name, CEJSON const &_Default) -> CEJSON
-					{
-						return fp_GetConfigValue(_Name, _Default);
-					}
 					, mp_Tags
 					, FastCGIFile
 					, PackageIPs
+					, fp_GetImpl()
 				)
 			;
 		}

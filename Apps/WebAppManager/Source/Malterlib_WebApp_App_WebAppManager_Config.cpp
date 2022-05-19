@@ -56,6 +56,8 @@ namespace NMib::NWebApp::NWebAppManager
 			DMibLog(Info, "URL for {}: {}", Package.f_GetName(), fp_GetRootURL(Hostname, Package.m_SubPath));
 		}
 
+		mp_bConnectToExternalMongo = fp_GetConfigValue("ConnectToExternalMongo", false).f_Boolean();
+
 		mp_MongoDirectory = fp_GetConfigValue("MongoDirectory", mp_Options.m_Mongo.m_Directory).f_String();
 		mp_MongoHost = fp_GetConfigValue("MongoHost", mp_Options.m_Mongo.m_Host).f_String();
 		mp_MongoPort = fp_GetConfigValue("MongoPort", mp_Options.m_Mongo.m_Port).f_Integer();
@@ -64,6 +66,30 @@ namespace NMib::NWebApp::NWebAppManager
 		mp_MongoSSLDirectory = fp_GetConfigValue("MongoSSLDirectory", mp_Options.m_Mongo.m_SSLDirectory).f_String();
 		mp_MongoDatabase = fp_GetConfigValue("MongoDatabase", mp_Options.m_Mongo.m_DefaultDatabase).f_String();
 		mp_MongoReplicaName = fp_GetConfigValue("MongoReplicaName", mp_Options.m_Mongo.m_DefaultReplicaName).f_String();
+		if (mp_bConnectToExternalMongo)
+			mp_MongoVersion = fp_GetConfigValue("MongoVersion", mp_Options.m_Mongo.m_DefaultMongoVersion).f_String();
+		else
+			mp_MongoVersion = fp_GetConfigValue("MongoVersionLocal", mp_Options.m_Mongo.m_DefaultMongoVersion).f_String();
+		mp_MongoReplicaNameExternal = fp_GetConfigValue("MongoReplicaNameExternal", "DefaultReplica").f_String();
+
+		{
+			auto Hosts = fp_GetConfigValue("ExternalMongoHosts", EJSONType_Array);
+			for (auto &Host : Hosts.f_Array())
+			{
+				if (!Host.f_IsString())
+					continue;
+
+				auto HostPorts = Host.f_String().f_Split(":");
+				if (HostPorts.f_GetLen() < 1)
+					continue;
+
+				if (HostPorts.f_GetLen() < 2)
+					mp_ExternalMongoHosts.f_Insert({HostPorts[0]});
+				else
+					mp_ExternalMongoHosts.f_Insert({HostPorts[0], HostPorts[1].f_ToInt(CMongoServerHost::mc_DefaultPort)});
+			}
+		}
+
 		mp_LoopbackPrefix = fp_GetConfigValue("LoopbackPrefix", mp_Options.m_LoopbackPrefix).f_Integer();
 		mp_LocalPort = fp_GetConfigValue("LocalPort", 8080).f_Integer();
 		mp_BindTo = fp_GetConfigValue("BindTo", "").f_String();
