@@ -588,7 +588,7 @@ namespace NMib::NWebApp::NWebAppManager
 		Params.m_bMergeEnvironment = true;
 		Params.m_Environment["HOME"] = LaunchHomePath;
 		Params.m_Environment["TMPDIR"] = LaunchHomePath + "/.tmp";
-#ifdef DPlatformFamily_OSX
+#ifdef DPlatformFamily_macOS
 		Params.m_Environment["MalterlibOverrideHome"] = "true";
 #endif
 #ifdef DPlatformFamily_Windows

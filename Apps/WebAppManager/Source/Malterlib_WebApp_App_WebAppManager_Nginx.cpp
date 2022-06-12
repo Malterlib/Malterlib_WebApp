@@ -1374,7 +1374,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		Params.m_Environment["HOME"] = NginxDirectory;
 		Params.m_Environment["TMPDIR"] = NginxDirectory + "/.tmp";
-#ifdef DPlatformFamily_OSX
+#ifdef DPlatformFamily_macOS
 		Params.m_Environment["MalterlibOverrideHome"] = "true";
 #endif
 #ifdef DPlatformFamily_Windows

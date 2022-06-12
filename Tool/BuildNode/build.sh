@@ -20,9 +20,9 @@ ProcessorArch=$(uname -m)
 
 if [[ $SysName ==  Darwin* ]] ; then
 	NodePlatform=darwin
-	OutputPlatform=OSX
+	OutputPlatform=macOS
 	NumCPUs=`getconf _NPROCESSORS_ONLN`
-	BuildPlatform=OSX10.7
+	BuildPlatform=macOS
 	StripCommand="strip -u -r"
 	function RunMD5()
 	{
@@ -33,7 +33,7 @@ elif [[ $SysName ==  Linux* ]] ; then
 	OutputPlatform=Linux
 	NumCPUs=`getconf _NPROCESSORS_ONLN`
 	ExtraBoringSSLFlags="-fPIC"
-	BuildPlatform=Linux2.6
+	BuildPlatform=Linux
 	StripCommand="strip --strip-unneeded"
 	function RunMD5()
 	{

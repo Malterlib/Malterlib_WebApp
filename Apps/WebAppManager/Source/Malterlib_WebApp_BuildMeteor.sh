@@ -83,7 +83,7 @@ elif [[ "$PlatformFamily" == "Linux" ]]; then
 		echo "Unknown meteor arch for PlatformFamily: $PlatformFamily and Architecture: $Architecture"
 		exit 1
 	fi
-elif [[ "$PlatformFamily" == "OSX" ]]; then
+elif [[ "$PlatformFamily" == "macOS" ]]; then
 	if [[ "$Architecture" == "x64" ]]; then
 		METEOR_ARCH="os.osx.x86_64"
 	elif [[ "$Architecture" == "arm64" ]]; then

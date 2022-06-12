@@ -2,7 +2,7 @@
 
 set -e
 
-if [ "$PlatformFamily" == "OSX" ]; then
+if [ "$PlatformFamily" == "macOS" ]; then
 
 	COUNTER=0
 	while [ $COUNTER -lt $NumNodeServers ]; do

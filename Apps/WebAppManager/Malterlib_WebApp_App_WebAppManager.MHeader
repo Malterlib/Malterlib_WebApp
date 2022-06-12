@@ -205,7 +205,7 @@ Type
 		MeteorOverridePath define bool = false
 		MeteorOverridePath true
 		{
-			!!HostPlatformFamily "OSX"
+			!!HostPlatformFamily "macOS"
 		}
 		
 		MalterlibExportEnvironmentMinGW true

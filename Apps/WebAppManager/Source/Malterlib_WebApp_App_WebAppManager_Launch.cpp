@@ -124,7 +124,7 @@ namespace NMib::NWebApp::NWebAppManager
 		{
 			LaunchParams.m_Environment["HOME"] = _Home;
 			LaunchParams.m_Environment["TMPDIR"] = _Home + "/.tmp";
-#ifdef DPlatformFamily_OSX
+#ifdef DPlatformFamily_macOS
 			LaunchParams.m_Environment["MalterlibOverrideHome"] = "true";
 #endif
 #ifdef DPlatformFamily_Windows

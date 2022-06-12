@@ -10,7 +10,7 @@ namespace NMib::NWebApp::NWebAppManager
 		: CDistributedAppActor(CDistributedAppActor_Settings{_Options.m_FullManagerName}.f_CommandLineBeforeAppStart(true))
 		, mp_Options(_Options)
 	{
-#ifdef DPlatformFamily_OSX
+#ifdef DPlatformFamily_macOS
 		CStr Path = fg_GetSys()->f_GetEnvironmentVariable("PATH");
 
 		CStr OriginalPath = Path;
