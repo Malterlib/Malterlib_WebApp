@@ -24,6 +24,9 @@ namespace NMib::NWebApp
 		if (DomainNames.f_IsEmpty())
 			co_return {};
 
+		if (m_SecretsManagerSubscription.m_Actors.f_IsEmpty())
+			co_return {};
+
 		DMibLogWithCategory(Mib/WebApp/WebCertificateDeploy, Info, "Updating out of date domains: {vs}", DomainNames);
 
 		TCActorResultVector<void> Results;
