@@ -287,7 +287,7 @@ namespace NMib::NWebApp::NAcmeManager
 			}
 		}
 
-		TCActorResultVector<void> StoreResults;
+		TCActorResultVector<CSecretsManager::CSetSecretPropertiesResult> StoreResults;
 		CStr CertificatesSecretFolder = pDomain->f_GetSecretFolder() / "Certificates" / _CertificateType;
 
 		auto fStoreSecret = [&](CStr const &_Key, CStrSecure const &_Data)

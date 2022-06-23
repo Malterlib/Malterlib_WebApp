@@ -58,7 +58,10 @@ namespace NMib::NWebApp::NAcmeManager
 			, NStr::CStr const &_CreatePrivateKeyForDomain
 		)
 	{
-		auto Secrets = co_await _SecretsManager.f_CallActor(&CSecretsManager::f_EnumerateSecrets)(CStrSecure("org.malterlib.certificate#*"), TCSet<CStrSecure>{});
+		CSecretsManager::CEnumerateSecrets EnumerateSecrets;
+		EnumerateSecrets.m_SemanticID = "org.malterlib.certificate#*";
+
+		auto Secrets = co_await _SecretsManager.f_CallActor(&CSecretsManager::f_EnumerateSecrets)(EnumerateSecrets);
 
 		TCActorResultMap<CStr, void> UpdateResults;
 
