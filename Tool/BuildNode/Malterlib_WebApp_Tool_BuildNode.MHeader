@@ -14,5 +14,6 @@ Property
 	{
 		Type "External"
 		Remotes =+ {Name: "upstream", URL: "https://github.com/nodejs/node.git"}
+		DefaultUpstreamBranch "main"
 	}
 }
