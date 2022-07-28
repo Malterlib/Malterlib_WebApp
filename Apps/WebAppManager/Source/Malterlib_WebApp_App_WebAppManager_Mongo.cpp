@@ -250,7 +250,7 @@ namespace NMib::NWebApp::NWebAppManager
 					"--eval"
 					, fg_Format
 					(
-						"var WebAppManagerMongoHostName='{}'; var WebAppManagerMongoPort='{}'"
+						"let WebAppManagerMongoHostName='{}'; let WebAppManagerMongoPort='{}'"
 						, MongoHost
 						, MongoPort
 					)

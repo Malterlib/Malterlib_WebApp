@@ -69,7 +69,7 @@ namespace NMib::NWebApp::NWebAppManager
 		if (mp_bConnectToExternalMongo)
 			mp_MongoVersion = fp_GetConfigValue("MongoVersion", mp_Options.m_Mongo.m_DefaultMongoVersion).f_String();
 		else
-			mp_MongoVersion = fp_GetConfigValue("MongoVersionLocal", mp_Options.m_Mongo.m_DefaultMongoVersion).f_String();
+			mp_MongoVersion = fp_GetConfigValue("MongoVersionLocal", "4.0").f_String();
 		mp_MongoReplicaNameExternal = fp_GetConfigValue("MongoReplicaNameExternal", "DefaultReplica").f_String();
 
 		{

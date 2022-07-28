@@ -174,7 +174,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_DatabaseSetupScript;
 			CStr m_DefaultDatabase;
 			CStr m_DefaultReplicaName = "DefaultReplica";
-			CStr m_DefaultMongoVersion = "4.4";
+			CStr m_DefaultMongoVersion = "6.0";
 		};
 
 		CWebAppManagerOptions(CStr const &_ManagerName, CStr const &_ManagerDescription);
@@ -549,7 +549,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr mp_MongoDatabase;
 		CStr mp_MongoReplicaName;
 		CStr mp_MongoAdminUserName;
-		CStr mp_MongoVersion = "4.4";
+		CStr mp_MongoVersion = "6.0";
 		bool mp_bConnectToExternalMongo = false;
 		TCVector<CMongoServerHost> mp_ExternalMongoHosts;
 		CStr mp_MongoReplicaNameExternal;

@@ -45,7 +45,7 @@ Type
 		WebAppManagerMongoDefaultReplicaName define string?
 		WebAppManagerMongoDefaultDatabase define string?
 		WebAppManagerMongoBinariesPath define string?
-		WebAppManagerMongoDefaultVersion define string = "4.4"
+		WebAppManagerMongoDefaultVersion define string = "6.0"
 
 		WebAppManagerMongoDirectory "mongo"
 		{
