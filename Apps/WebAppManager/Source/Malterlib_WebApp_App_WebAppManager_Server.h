@@ -437,7 +437,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		static CStr fsp_GetVersionString();
 		TCFuture<void> fp_UpdateVersionHistory();
-
+		TCFuture<void> fp_InvalidateCloudfrontDistributionsWithRetry(TCSet<CStr> _Distributions);
 		TCFuture<void> fp_InvalidateCloudfrontDistributions();
 
 		CStr fp_GetPackageRoot(CStr const &_PackageName) const;
