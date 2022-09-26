@@ -52,7 +52,7 @@ chmod -R u+w .
 
 export NPM_CONFIG_PROGRESS=false
 
-if ! $MeteorCommand npm install &>"$TempDirectory/npmerror.log" ; then
+if ! npm install &>"$TempDirectory/npmerror.log" ; then
 	cat "$TempDirectory/npmerror.log"
 	exit 1
 fi
