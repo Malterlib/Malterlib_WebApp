@@ -126,10 +126,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 		if (!MongoSSLDirectory.f_IsEmpty())
 			return CFile::fs_GetExpandedPath(MongoSSLDirectory, CFile::fs_GetProgramDirectory());
-		else if (mp_bConnectToExternalMongo)
-			return CFile::fs_GetProgramDirectory() / "mongo/certificates";
 
-		return MongoSSLDirectory;
+		return CFile::fs_GetProgramDirectory() / "mongo/certificates";
 	}
 
 	NWeb::NHTTP::CURL CWebAppManagerActor::fp_GetDBAddressURL(CStr _Database, CStr _HomePath)

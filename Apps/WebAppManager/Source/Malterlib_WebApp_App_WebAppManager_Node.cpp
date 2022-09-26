@@ -656,8 +656,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CalculatedSettings["MongoURL"] = fp_GetDBAddress(mp_MongoDatabase, LaunchHomePath / "certificates");
 			CalculatedSettings["MongoOplogURL"] = fp_GetDBAddress("local", LaunchHomePath / "certificates");
 
-			CStr MongoSSLDirectory = fp_GetMongoSSLDirectory();
-			if (!MongoSSLDirectory.f_IsEmpty())
+			if (mp_bConnectToExternalMongo)
 			{
 				CalculatedSettings["MongoSSLCaFile"] = LaunchHomePath / "certificates/MongoCA.crt";
 				CalculatedSettings["MongoSSLClientCertFile"] = LaunchHomePath / "certificates/admin.crt";
