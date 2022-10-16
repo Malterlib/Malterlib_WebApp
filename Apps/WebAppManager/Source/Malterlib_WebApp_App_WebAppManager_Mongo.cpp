@@ -81,33 +81,33 @@ namespace NMib::NWebApp::NWebAppManager
 
 		auto SetupResult = co_await
 			(
-				mp_FileActors.f_Dispatch() / [=]() -> CSetupResult
+				mp_FileActors.f_Dispatch() / [=, bConnectToExternalMongo = mp_bConnectToExternalMongo]() -> CSetupResult
 				{
 					CSetupResult SetupResult;
 
-					if (!MongoSSLDirectory.f_IsEmpty())
+					if (MongoSSLDirectory.f_IsEmpty() || !bConnectToExternalMongo)
+						return SetupResult;
+
+					if (CFile::fs_FileExists(MongoSSLDirectory) && MongoSSLDirectory.f_StartsWith(CFile::fs_GetProgramDirectory() + "/"))
 					{
-						if (CFile::fs_FileExists(MongoSSLDirectory) && MongoSSLDirectory.f_StartsWith(CFile::fs_GetProgramDirectory() + "/"))
-						{
-							CFile::fs_SetUnixAttributesRecursive
-								(
-									MongoSSLDirectory
-									, EFileAttrib_UserRead
-									, EFileAttrib_UserRead | EFileAttrib_UserExecute
-								)
-							;
-						}
+						CFile::fs_SetUnixAttributesRecursive
+							(
+								MongoSSLDirectory
+								, EFileAttrib_UserRead
+								, EFileAttrib_UserRead | EFileAttrib_UserExecute
+							)
+						;
+					}
 
-						CStr ClientCertificatePath = MongoSSLDirectory / "admin.pem";
+					CStr ClientCertificatePath = MongoSSLDirectory / "admin.pem";
 
-						try
-						{
-							SetupResult.m_MongoAdminUserName = CCertificate::fs_GetCertificateDistinguishedName_RFC2253(CFile::fs_ReadFile(ClientCertificatePath));
-						}
-						catch (CException const &_Error)
-						{
-							DMibError("Failed to read certificate file for admin user: {}"_f << _Error);
-						}
+					try
+					{
+						SetupResult.m_MongoAdminUserName = CCertificate::fs_GetCertificateDistinguishedName_RFC2253(CFile::fs_ReadFile(ClientCertificatePath));
+					}
+					catch (CException const &_Error)
+					{
+						DMibError("Failed to read certificate file for admin user: {}"_f << _Error);
 					}
 
 					return SetupResult;
@@ -213,7 +213,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		TCVector<CStr> CommandLineArgs;
 
-		if (!MongoSSLDirectory.f_IsEmpty())
+		if (!MongoSSLDirectory.f_IsEmpty() && mp_bConnectToExternalMongo)
 		{
 			CStr CaCertificatePath = MongoSSLDirectory + "/MongoCA.crt";
 			CStr ClientCertificatePath = MongoSSLDirectory + "/admin.pem";
