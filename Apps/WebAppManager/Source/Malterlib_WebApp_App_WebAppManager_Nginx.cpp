@@ -47,6 +47,9 @@ R"---(
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+			proxy_buffer_size 128k;
+			proxy_buffers 4 256k;
+			proxy_busy_buffers_size 256k;
 		}
 		location @{PackageName}_Fallback
 		{
@@ -56,6 +59,9 @@ R"---(
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+			proxy_buffer_size 128k;
+			proxy_buffers 4 256k;
+			proxy_busy_buffers_size 256k;
 		}
 )---"
 , R"---(
@@ -110,6 +116,9 @@ R"---(
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+			proxy_buffer_size 128k;
+			proxy_buffers 4 256k;
+			proxy_busy_buffers_size 256k;
 		}
 		location @{PackageName}_Fallback
 		{
@@ -119,6 +128,9 @@ R"---(
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+			proxy_buffer_size 128k;
+			proxy_buffers 4 256k;
+			proxy_busy_buffers_size 256k;
 		}
 {AlternateSources}
 	}
@@ -317,6 +329,9 @@ R"---(
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+			proxy_buffer_size 128k;
+			proxy_buffers 4 256k;
+			proxy_busy_buffers_size 256k;
 		}
 		location @{PackageName}_Fallback
 		{
@@ -326,6 +341,9 @@ R"---(
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+			proxy_buffer_size 128k;
+			proxy_buffers 4 256k;
+			proxy_busy_buffers_size 256k;
 		}
 
 {AlternateSources}
@@ -372,6 +390,9 @@ R"---(
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+			proxy_buffer_size 128k;
+			proxy_buffers 4 256k;
+			proxy_busy_buffers_size 256k;
 		}
 		location @{PackageName}_Fallback
 		{
@@ -381,6 +402,9 @@ R"---(
 			proxy_set_header Upgrade $http_upgrade; # allow websockets
 			proxy_set_header Connection $connection_upgrade;
 			proxy_set_header X-Forwarded-For $remote_addr; # preserve client IP
+			proxy_buffer_size 128k;
+			proxy_buffers 4 256k;
+			proxy_busy_buffers_size 256k;
 		}
 
 {AlternateSources}
@@ -538,6 +562,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						"			resolver 8.8.8.8;\n"
 						"			proxy_ssl_server_name on;\n"
 						"			proxy_pass https://{}$1$is_args$args;\n"
+						"			proxy_buffer_size 128k;\n"
+						"			proxy_buffers 4 256k;\n"
+						"			proxy_busy_buffers_size 256k;\n"
 						"{}"
 						"		}\n"
 						, AlternateSource.m_Pattern
