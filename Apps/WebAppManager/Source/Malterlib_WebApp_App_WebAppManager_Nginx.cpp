@@ -1208,7 +1208,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				ContentSecurityPolicy += " report-uri {} ;"_f << ContentSecurityReportURI;
 			}
 
-			SecurityHeaders += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload;\" always;\n";
+			SecurityHeaders += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload\" always;\n";
 			SecurityHeaders += "			add_header Content-Security-Policy \"{}\" always;\n"_f << ContentSecurityPolicy;
 			SecurityHeaders += "			add_header X-Content-Type-Options \"nosniff\" always;\n";
 			SecurityHeaders += "			add_header X-XSS-Protection \"1; mode=block\" always;\n";
