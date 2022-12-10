@@ -282,6 +282,7 @@ Type
 		CommandLine_Build `@(BashScriptPrefix)@(BuildScript) Build`
 		CommandLine_ReBuild `@(BashScriptPrefix)@(BuildScript) Rebuild`
 		CommandLine_Clean `@(BashScriptPrefix)@(BuildScript) Clean`
+		CommandLine_Outputs =+ ScriptDependencyFile
 
 		ExportScriptEnvironment =+ "MeteorCommand"
 		ExportScriptEnvironment =+ "OutputDirectory"
