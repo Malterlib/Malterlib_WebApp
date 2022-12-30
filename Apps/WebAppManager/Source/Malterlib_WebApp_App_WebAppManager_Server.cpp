@@ -503,13 +503,29 @@ namespace NMib::NWebApp::NWebAppManager
 			{
 				for (auto &Redirect : pValue->f_Array())
 				{
+					TCVector<CPackage::CSearchReplace> SearchReplace;
+
+					if (auto *pSearchReplace = Redirect.f_GetMember("SearchReplace"))
+					{
+						for (auto &SearchReplaceJson : pSearchReplace->f_Array())
+						{
+							SearchReplace.f_Insert
+								(
+									{
+										.m_Search = SearchReplaceJson["Search"].f_String()
+										, .m_Replace = SearchReplaceJson["Replace"].f_String()
+									}
+								)
+							;
+						}
+					}
+
 					Package.m_AlternateSources.f_Insert
 						(
 							{
-								Redirect["Pattern"].f_String()
-								, Redirect["Destination"].f_String()
-								, Redirect.f_GetMemberValue("Search", "").f_String()
-								, Redirect.f_GetMemberValue("Replace", "").f_String()
+								.m_Pattern = Redirect["Pattern"].f_String()
+								, .m_Destination = Redirect["Destination"].f_String()
+								, .m_SearchReplace = fg_Move(SearchReplace)
 							}
 						)
 					;

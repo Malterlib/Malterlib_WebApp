@@ -114,6 +114,19 @@ namespace NMib::NWebApp::NWebAppManager
 				CStr m_To;
 			};
 
+			struct CSearchReplace
+			{
+				template <typename tf_CStream>
+				void f_Stream(tf_CStream &_Stream)
+				{
+					_Stream % m_Search;
+					_Stream % m_Replace;
+				}
+
+				CStr m_Search;
+				CStr m_Replace;
+			};
+
 			struct CAlternateSource
 			{
 				template <typename tf_CStream>
@@ -121,14 +134,12 @@ namespace NMib::NWebApp::NWebAppManager
 				{
 					_Stream % m_Pattern;
 					_Stream % m_Destination;
-					_Stream % m_Search;
-					_Stream % m_Replace;
+					_Stream % m_SearchReplace;
 				}
 
 				CStr m_Pattern;
 				CStr m_Destination;
-				CStr m_Search;
-				CStr m_Replace;
+				TCVector<CSearchReplace> m_SearchReplace;
 			};
 
 			TCVector<CStr> m_StartupDependencies;

@@ -14,11 +14,14 @@ Type
 		From: string
 		, To: string
 	}
+	CWebAppManagerAlternateSourceSearchReplace define {
+		Search: string
+		, Replace: string
+	}
 	CWebAppManagerAlternateSource define {
 		Pattern: string
 		, Destination: string
-		, Search?: string
-		, Replace?: string
+		, SearchReplace?: [type(CWebAppManagerAlternateSourceSearchReplace)]
 	}
 }
 

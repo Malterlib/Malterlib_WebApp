@@ -541,17 +541,22 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 				CStr SubFilters;
 
-				if (AlternateSource.m_Search)
+				if (!AlternateSource.m_SearchReplace.f_IsEmpty())
 				{
-					SubFilters = fg_Format
-						(
-							"			sub_filter '{}' '{}';\n"
-							"			sub_filter_once off;\n"
-							"			sub_filter_types *;\n"
-							"			proxy_set_header Accept-Encoding \"\";\n"
-							, fp_DoCustomStringReplacements(AlternateSource.m_Search.f_Replace("{DomainName}", mp_Domain))
-							, fp_DoCustomStringReplacements(AlternateSource.m_Replace.f_Replace("{DomainName}", mp_Domain))
-						)
+					for (auto &SearchReplace : AlternateSource.m_SearchReplace)
+					{
+						SubFilters += fg_Format
+							(
+								"			sub_filter '{}' '{}';\n"
+								, fp_DoCustomStringReplacements(SearchReplace.m_Search.f_Replace("{DomainName}", mp_Domain))
+								, fp_DoCustomStringReplacements(SearchReplace.m_Replace.f_Replace("{DomainName}", mp_Domain))
+							)
+						;
+					}
+					SubFilters +=
+						"			sub_filter_once off;\n"
+						"			sub_filter_types *;\n"
+						"			proxy_set_header Accept-Encoding \"\";\n"
 					;
 				}
 				AlternateSourcesContents += fg_Format

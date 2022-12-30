@@ -12,7 +12,7 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 38;
+		uint32 gc_UpdateVersion = 39;
 	}
 
 	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
@@ -44,7 +44,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		for (auto &AlternateSource : _AlternateSources)
 		{
-			if (AlternateSource.m_Search.f_IsEmpty() || AlternateSource.m_Destination == "Default")
+			if (AlternateSource.m_SearchReplace.f_IsEmpty() || AlternateSource.m_Destination == "Default")
 				continue;
 
 			CStr AlternateSourceConfigName = "AlternateSource_{}"_f << AlternateSource.m_Destination;
@@ -55,12 +55,18 @@ namespace NMib::NWebApp::NWebAppManager
 				return false;
 			}
 
-			o_Str += "	{{ pattern: new RegExp({}), destination: {}, search: new RegExp(escapeRegExp({}), \"g\"), replace: {} },\n"_f
+			o_Str += "	{{ pattern: new RegExp({}), destination: {}, searchReplace: [\n"_f
 				<< CJSON("^" + AlternateSource.m_Pattern + "$").f_ToString(nullptr)
 				<< CJSON(Destination).f_ToString(nullptr)
-				<< CJSON(fp_DoCustomStringReplacements(AlternateSource.m_Search.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
-				<< CJSON(fp_DoCustomStringReplacements(AlternateSource.m_Replace.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
 			;
+			for (auto &SearchReplace : AlternateSource.m_SearchReplace)
+			{
+				o_Str += "		{{ search: new RegExp(escapeRegExp({}), \"g\"), replace: {} },\n"_f
+					<< CJSON(fp_DoCustomStringReplacements(SearchReplace.m_Search.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
+					<< CJSON(fp_DoCustomStringReplacements(SearchReplace.m_Replace.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
+				;
+			}
+			o_Str += "	]},\n";
 		}
 
 		return true;
@@ -385,8 +391,13 @@ exports.handler = async (event) => {
 	if (response.status == 200) {
 		for (let alternate of alternateSources) {
 			if (alternate.pattern.test(request.uri)) {
-				let originalBody = await getContent("https://" + alternate.destination + request.uri);
-				response.body = originalBody.replace(alternate.search, alternate.replace);
+				let body = await getContent("https://" + alternate.destination + request.uri);
+
+				for (let entry of alternate.searchReplace)
+					body = body.replace(entry.search, entry.replace);
+
+				response.body = body;
+
 				if (headers["content-encoding"]) {
 					if (headers["content-encoding"][0] && headers["content-encoding"][0].value == "gzip") {
 						response.body = (await zlibGzip(response.body)).toString("base64");
