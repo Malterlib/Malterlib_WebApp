@@ -785,6 +785,14 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 	}
 
+	CStr CWebAppManagerActor::fp_DoCustomStringReplacements(CStr const &_String)
+	{
+		if (!mp_pCustomization)
+			return _String;
+
+		return mp_pCustomization->f_DoStringReplacements(_String, fp_GetImpl());
+	}
+
 	ICWebAppManagerCustomization::ICWebAppManagerCustomization() = default;
 	ICWebAppManagerCustomization::~ICWebAppManagerCustomization() = default;
 
@@ -811,5 +819,10 @@ namespace NMib::NWebApp::NWebAppManager
 
 	void ICWebAppManagerCustomization::f_SetupPrerequisites(TCSet<CStr> const &_Tags, TCMap<CStr, CUser> const &_Users)
 	{
+	}
+
+	CStr ICWebAppManagerCustomization::f_DoStringReplacements(CStr const &_Headers, ICWebAppManager const &_WebAppManager)
+	{
+		return _Headers;
 	}
 }

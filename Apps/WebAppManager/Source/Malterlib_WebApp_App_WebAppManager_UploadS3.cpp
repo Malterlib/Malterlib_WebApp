@@ -58,8 +58,8 @@ namespace NMib::NWebApp::NWebAppManager
 			o_Str += "	{{ pattern: new RegExp({}), destination: {}, search: new RegExp(escapeRegExp({}), \"g\"), replace: {} },\n"_f
 				<< CJSON("^" + AlternateSource.m_Pattern + "$").f_ToString(nullptr)
 				<< CJSON(Destination).f_ToString(nullptr)
-				<< CJSON(AlternateSource.m_Search.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr)
-				<< CJSON(AlternateSource.m_Replace.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr)
+				<< CJSON(fp_DoCustomStringReplacements(AlternateSource.m_Search.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
+				<< CJSON(fp_DoCustomStringReplacements(AlternateSource.m_Replace.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
 			;
 		}
 
@@ -243,10 +243,12 @@ exports.handler = (event, context, callback) => {
 			if (mp_Options.m_ContentSecurity_ReportURI)
 			{
 				CStr ContentSecurityReportURI = mp_Options.m_ContentSecurity_ReportURI;
-				ContentSecurityReportURI = ContentSecurityReportURI.f_Replace("{DomainName}", mp_Domain);
-				ContentSecurityReportURI = ContentSecurityReportURI.f_Replace("{SSLPortRewrite}", "");
 				ContentSecurityPolicy += " report-uri {} ;"_f << ContentSecurityReportURI;
 			}
+
+			ContentSecurityPolicy = ContentSecurityPolicy.f_Replace("{DomainName}", mp_Domain);
+			ContentSecurityPolicy = ContentSecurityPolicy.f_Replace("{SSLPortRewrite}", "");
+			ContentSecurityPolicy = fp_DoCustomStringReplacements(ContentSecurityPolicy);
 
 			CStr AccessControl;
 			if (!mp_Options.m_AccessControl_AllowMethods.f_IsEmpty())
@@ -267,7 +269,7 @@ exports.handler = (event, context, callback) => {
 					"    if (uri.startsWith({}))\n"
 					"		return doRedirect({}, true);\n"_f
 					<< NEncoding::CJSON(Redirect.m_From).f_ToString(nullptr)
-					<< NEncoding::CJSON(Redirect.m_To.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr)
+					<< NEncoding::CJSON(fp_DoCustomStringReplacements(Redirect.m_To.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
 				;
 			}
 
@@ -277,14 +279,18 @@ exports.handler = (event, context, callback) => {
 					"    if (uri.startsWith({}))\n"
 					"		return doRedirect({}, false);\n"_f
 					<< NEncoding::CJSON(Redirect.m_From).f_ToString(nullptr)
-					<< NEncoding::CJSON(Redirect.m_To.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr)
+					<< NEncoding::CJSON(fp_DoCustomStringReplacements(Redirect.m_To.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
 				;
 			}
 
 			CStr AllowRedirectsOutsideOfDomainPatternsString;
 
 			for (auto &Pattern : mp_Options.m_AllowRedirectsOutsideOfDomainPatterns)
-				AllowRedirectsOutsideOfDomainPatternsString += "	new RegExp({}),\n"_f << CJSON(Pattern.f_Replace("{DomainName}", mp_Domain)).f_ToString(nullptr);
+			{
+				AllowRedirectsOutsideOfDomainPatternsString
+					+= "	new RegExp({}),\n"_f << CJSON(fp_DoCustomStringReplacements(Pattern.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
+				;
+			}
 
 			OriginResponseFiles["index.js"] = CStr(R"----(
 

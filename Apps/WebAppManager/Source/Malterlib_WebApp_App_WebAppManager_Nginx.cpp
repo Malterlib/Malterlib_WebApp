@@ -469,7 +469,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			Text += "Allow: {}\n"_f << Allow;
 
 		if (mp_Options.m_RobotsSitemap)
-			Text += "Sitemap: {}\n"_f << mp_Options.m_RobotsSitemap.f_Replace("{DomainName}", mp_Domain);
+			Text += "Sitemap: {}\n"_f << fp_DoCustomStringReplacements(mp_Options.m_RobotsSitemap.f_Replace("{DomainName}", mp_Domain));
 
 		return Text;
 	}
@@ -549,8 +549,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							"			sub_filter_once off;\n"
 							"			sub_filter_types *;\n"
 							"			proxy_set_header Accept-Encoding \"\";\n"
-							, AlternateSource.m_Search.f_Replace("{DomainName}", mp_Domain)
-							, AlternateSource.m_Replace.f_Replace("{DomainName}", mp_Domain)
+							, fp_DoCustomStringReplacements(AlternateSource.m_Search.f_Replace("{DomainName}", mp_Domain))
+							, fp_DoCustomStringReplacements(AlternateSource.m_Replace.f_Replace("{DomainName}", mp_Domain))
 						)
 					;
 				}
@@ -1200,10 +1200,12 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			if (mp_Options.m_ContentSecurity_ReportURI)
 			{
 				CStr ContentSecurityReportURI = mp_Options.m_ContentSecurity_ReportURI;
-				ContentSecurityReportURI = ContentSecurityReportURI.f_Replace("{DomainName}", mp_Domain);
-				ContentSecurityReportURI = ContentSecurityReportURI.f_Replace("{SSLPortRewrite}", "");
 				ContentSecurityPolicy += " report-uri {} ;"_f << ContentSecurityReportURI;
 			}
+
+			ContentSecurityPolicy = ContentSecurityPolicy.f_Replace("{DomainName}", mp_Domain);
+			ContentSecurityPolicy = ContentSecurityPolicy.f_Replace("{SSLPortRewrite}", "");
+			ContentSecurityPolicy = fp_DoCustomStringReplacements(ContentSecurityPolicy);
 
 			SecurityHeaders += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload\" always;\n";
 			SecurityHeaders += "			add_header Content-Security-Policy \"{}\" always;\n"_f << ContentSecurityPolicy;

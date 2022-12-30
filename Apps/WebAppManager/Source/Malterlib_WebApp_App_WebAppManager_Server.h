@@ -275,6 +275,7 @@ namespace NMib::NWebApp::NWebAppManager
 				, ICWebAppManager const &_WebAppManager
 			)
 		;
+		virtual CStr f_DoStringReplacements(CStr const &_Headers, ICWebAppManager const &_WebAppManager);
 	};
 
 	TCSharedPointer<ICWebAppManagerCustomization> fg_CreateWebAppManagerCustomization();
@@ -473,6 +474,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 		static TCMap<CStr, TCVector<CStr>> fsp_GetContentTypes();
 		static CStr fsp_GetContentTypeForExtension(CStr const &_Extension);
+
+		CStr fp_DoCustomStringReplacements(CStr const &_String);
 
 		TCSharedPointer<CUniqueUserGroup> mp_pUniqueUserGroup;
 
