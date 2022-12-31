@@ -1113,9 +1113,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			mp_pCustomization->f_ManipulateNginxConfig
 				(
 					ConfigContents
-					, mp_AppState
-					, mp_Options
-					, mp_Tags
 					, FastCGIFile
 					, PackageIPs
 					, fp_GetImpl()

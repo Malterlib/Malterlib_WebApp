@@ -188,22 +188,37 @@ namespace NMib::NWebApp::NWebAppManager
 		co_return {};
 	}
 
-	CWebAppManagerImpl CWebAppManagerActor::fp_GetImpl()
+	ICWebAppManager const &CWebAppManagerActor::fp_GetImpl()
 	{
-		CWebAppManagerImpl Return;
-		Return.m_pThis = this;
+		if (!mp_pWebAppManangerImpl)
+			mp_pWebAppManangerImpl = fg_Construct<CWebAppManagerImpl>(this);
 
-		return Return;
+		return *mp_pWebAppManangerImpl;
+	}
+
+	ICWebAppManager::ICWebAppManager(CDistributedAppState const &_AppState, CWebAppManagerOptions const &_Options, TCSet<CStr> const &_Tags)
+		: m_AppState(_AppState)
+		, m_Options(_Options)
+		, m_Tags(_Tags)
+	{
+	}
+
+	ICWebAppManager::~ICWebAppManager() = default;
+
+	CWebAppManagerImpl::CWebAppManagerImpl(CWebAppManagerActor *_pThis)
+		: ICWebAppManager(_pThis->mp_AppState, _pThis->mp_Options, _pThis->mp_Tags)
+		, mp_pThis(_pThis)
+	{
 	}
 
 	CEJSON CWebAppManagerImpl::f_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const
 	{
-		return m_pThis->fp_GetConfigValue(_Name, _Default);
+		return mp_pThis->fp_GetConfigValue(_Name, _Default);
 	}
 
 	NWeb::NHTTP::CURL CWebAppManagerImpl::f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const
 	{
-		return m_pThis->fp_GetDBAddressURL(_Database, _HomePath);
+		return mp_pThis->fp_GetDBAddressURL(_Database, _HomePath);
 	}
 
 #ifdef DPlatformFamily_Windows
@@ -778,8 +793,6 @@ namespace NMib::NWebApp::NWebAppManager
 			TCMap<CStr, CStr> &o_Settings
 			, CJSON &o_MeteorSettings
 			, CStr const &_PackageName
-			, CDistributedAppState const &_AppState
-			, CWebAppManagerOptions const &_Options
 			, CWebAppManagerOptions::CPackage const &_PackageOptions
 			, ICWebAppManager const &_WebAppManager
 		)
@@ -789,9 +802,6 @@ namespace NMib::NWebApp::NWebAppManager
 	void ICWebAppManagerCustomization::f_ManipulateNginxConfig
 		(
 			CStr &o_Config
-			, CDistributedAppState const &_AppState
-			, CWebAppManagerOptions const &_Options
-			, TCSet<CStr> const &_Tags
 			, CStr const &_FastCGIFile
 		 	, TCMap<CStr, CStr> const &_PackageIPs
 			, ICWebAppManager const &_WebAppManager

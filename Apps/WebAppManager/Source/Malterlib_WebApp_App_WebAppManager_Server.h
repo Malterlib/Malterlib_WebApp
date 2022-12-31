@@ -229,18 +229,28 @@ namespace NMib::NWebApp::NWebAppManager
 
 	struct ICWebAppManager
 	{
+		ICWebAppManager(CDistributedAppState const &_AppState, CWebAppManagerOptions const &_Options, TCSet<CStr> const &_Tags);
+		virtual ~ICWebAppManager();
+
 		virtual CEJSON f_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const = 0;
 		virtual NWeb::NHTTP::CURL f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const = 0;
+
+		CDistributedAppState const &m_AppState;
+		CWebAppManagerOptions const &m_Options;
+		TCSet<CStr> const &m_Tags;
 	};
 
 	struct CWebAppManagerActor;
 
 	struct CWebAppManagerImpl : public ICWebAppManager
 	{
+		CWebAppManagerImpl(CWebAppManagerActor *_pThis);
+
 		CEJSON f_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const;
 		NWeb::NHTTP::CURL f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const;
 
-		CWebAppManagerActor *m_pThis = nullptr;
+	private:
+		CWebAppManagerActor *mp_pThis = nullptr;
 	};
 
 	struct ICWebAppManagerCustomization
@@ -253,8 +263,6 @@ namespace NMib::NWebApp::NWebAppManager
 				TCMap<CStr, CStr> &o_Settings
 				, CJSON &o_MeteorSettings
 				, CStr const &_PackageName
-				, CDistributedAppState const &_AppState
-				, CWebAppManagerOptions const &_Options
 				, CWebAppManagerOptions::CPackage const &_PackageOptions
 				, ICWebAppManager const &_WebAppManager
 			)
@@ -262,9 +270,6 @@ namespace NMib::NWebApp::NWebAppManager
 		virtual void f_ManipulateNginxConfig
 			(
 				CStr &o_Config
-				, CDistributedAppState const &_AppState
-				, CWebAppManagerOptions const &_Options
-				, TCSet<CStr> const &_Tags
 				, CStr const &_FastCGIFile
 			 	, TCMap<CStr, CStr> const &_PackageIPs
 				, ICWebAppManager const &_WebAppManager
@@ -359,7 +364,7 @@ namespace NMib::NWebApp::NWebAppManager
 			bool m_bMalterlibDistributedApp = false;
 		};
 
-		CWebAppManagerImpl fp_GetImpl();
+		ICWebAppManager const &fp_GetImpl();
 
 		TCFuture<void> fp_Destroy() override;
 
@@ -559,6 +564,8 @@ namespace NMib::NWebApp::NWebAppManager
 		CActorSubscription mp_MongoCertificateDeploySubscription_Admin;
 
 		CStr mp_BindTo;
+
+		TCUniquePointer<CWebAppManagerImpl> mp_pWebAppManangerImpl;
 
 		uint64 mp_WebPort = 3000;
 		uint64 mp_WebSSLPort = 3443;

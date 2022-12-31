@@ -697,8 +697,6 @@ namespace NMib::NWebApp::NWebAppManager
 						CalculatedSettings
 						, MeteorSettings
 						, _AppLaunch.f_GetKey().m_PackageName
-						, mp_AppState
-						, mp_Options
 						, PackageOptions
 						, fp_GetImpl()
 					)
