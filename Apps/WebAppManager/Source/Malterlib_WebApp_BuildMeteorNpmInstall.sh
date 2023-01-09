@@ -5,7 +5,7 @@ set -e
 ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 unset TOOLCHAINS
-export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+export PATH="$HOME/.meteor:/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 unset MACOSX_DEPLOYMENT_TARGET
 unset SDKROOT
 unset PRODUCT_SPECIFIC_LDFLAGS
@@ -32,11 +32,14 @@ fi
 
 OldPath="$PATH"
 if [[ "$MeteorOverridePath" == "true" ]]; then
-	export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+	export PATH="$HOME/.meteor:/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 fi
+
+NpmCommand="$MeteorCommand npm"
 
 if [[ "$NodePackage" != "" ]]; then
 	pushd "$NodeDirectory" > /dev/null
+	NpmCommand=npm
 	tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$NodePackage"
 	export PATH="$PWD/bin:$PWD:$PATH"
 	popd > /dev/null
@@ -52,7 +55,7 @@ chmod -R u+w .
 
 export NPM_CONFIG_PROGRESS=false
 
-if ! npm install &>"$TempDirectory/npmerror.log" ; then
+if ! $NpmCommand install &>"$TempDirectory/npmerror.log" ; then
 	cat "$TempDirectory/npmerror.log"
 	exit 1
 fi
