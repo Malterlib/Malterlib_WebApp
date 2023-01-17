@@ -759,7 +759,7 @@ exports.handler = async (event) => {
 
 					auto fAddChecksum = [&](CHashDigest_MD5 const &_Checksum)
 						{
-							Checksum.f_AddData(_Checksum.f_GetData(), _Checksum.fs_GetSize());
+							Checksum.f_AddData(_Checksum.f_GetData(), _Checksum.mc_Size);
 						}
 					;
 

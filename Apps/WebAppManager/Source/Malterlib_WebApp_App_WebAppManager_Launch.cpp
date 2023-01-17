@@ -134,7 +134,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 
 		TCSharedPointer<bool> pDestroyed = pToolLaunch->m_pDestroyed;
-		auto pCleanup = g_OnScopeExitActor > [this, pDestroyed, pToolLaunch]
+		auto pCleanup = g_OnScopeExitActor / [this, pDestroyed, pToolLaunch]
 			{
 				if (!*pDestroyed)
 					mp_ToolLaunches.f_Remove(*pToolLaunch);
