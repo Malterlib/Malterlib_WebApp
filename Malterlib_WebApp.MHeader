@@ -136,6 +136,9 @@ Property.Malterlib_WebApp_App_Targets: [type(CEntity)] = []
 	Property
 	{
 		MalterlibCloud_EnableVersionUpload true
+		{
+			!!TargetIsExecutable true
+		}
 		MalterlibWebAppEnableWebAppManagerTestInAppsWorkspace true
 		MalterlibPostCopyProject "Malterlib_WebApp"
 		{
