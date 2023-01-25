@@ -1186,20 +1186,24 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			}
 			ConfigContents = ConfigContents.f_Replace("{ContentTypes}", ContentTypesContents);
 		}
+		CStr CspSelfHost = mp_Domain;
+		if (mp_WebSSLPort != 443)
+			CspSelfHost = "{}:{}"_f << mp_Domain << mp_WebSSLPort;
+
 		{
 			CStr SecurityHeaders;
 			CStr ContentSecurityPolicy = "default-src 'none' {};"_f << mp_Options.m_ContentSecurity_DefaultSrc;
-			ContentSecurityPolicy += " prefetch-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_PrefetchSrc;
-			ContentSecurityPolicy += " img-src 'self' data: https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ImgSrc;
-			ContentSecurityPolicy += " font-src 'self' data: https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FontSrc;
-			ContentSecurityPolicy += " media-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_MediaSrc;
-			ContentSecurityPolicy += " script-src 'self' https://*.{0} https://{0} {1};"_f << mp_Domain << mp_Options.m_ContentSecurity_ScriptSrc;
-			ContentSecurityPolicy += " style-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_StyleSrc;
-			ContentSecurityPolicy += " frame-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FrameSrc;
-			ContentSecurityPolicy += " connect-src 'self' https://*.{0} https://{0} wss://*.{0} wss://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ConnectSrc;
-			ContentSecurityPolicy += " child-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ChildSrc;
-			ContentSecurityPolicy += " manifest-src 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ManifestSrc;
-			ContentSecurityPolicy += " form-action 'self' https://*.{0} https://{0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FormAction;
+			ContentSecurityPolicy += " prefetch-src 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_PrefetchSrc;
+			ContentSecurityPolicy += " img-src 'self' data: https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_ImgSrc;
+			ContentSecurityPolicy += " font-src 'self' data: https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_FontSrc;
+			ContentSecurityPolicy += " media-src 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_MediaSrc;
+			ContentSecurityPolicy += " script-src 'self' https://*.{0} https://{0} {1};"_f << CspSelfHost << mp_Options.m_ContentSecurity_ScriptSrc;
+			ContentSecurityPolicy += " style-src 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_StyleSrc;
+			ContentSecurityPolicy += " frame-src 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_FrameSrc;
+			ContentSecurityPolicy += " connect-src 'self' https://*.{0} https://{0} wss://*.{0} wss://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_ConnectSrc;
+			ContentSecurityPolicy += " child-src 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_ChildSrc;
+			ContentSecurityPolicy += " manifest-src 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_ManifestSrc;
+			ContentSecurityPolicy += " form-action 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_FormAction;
 			ContentSecurityPolicy += " object-src 'none' {} ;"_f << mp_Options.m_ContentSecurity_ObjectSrc;
 
 			if (mp_Options.m_ContentSecurity_ReportURI)
