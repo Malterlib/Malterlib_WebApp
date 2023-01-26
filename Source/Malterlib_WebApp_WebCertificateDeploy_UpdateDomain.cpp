@@ -290,9 +290,9 @@ namespace NMib::NWebApp
 								CFile::fs_RenameFile(fg_Get<0>(ToCommit), fg_Get<1>(ToCommit));
 						}
 					}
-					catch (CException const &_Exception)
+					catch (CException const &)
 					{
-						co_return _Exception.f_ExceptionPointer();
+						co_return NException::fg_CurrentException();
 					}
 
 					co_return bChanged;
