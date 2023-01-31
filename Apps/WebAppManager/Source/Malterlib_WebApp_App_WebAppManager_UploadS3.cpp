@@ -12,7 +12,7 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 39;
+		uint32 gc_UpdateVersion = 40;
 	}
 
 	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
@@ -167,7 +167,8 @@ exports.handler = (event, context, callback) => {
 		uriWithoutPrefix = uriWithoutPrefix.substr(requestPrefix.length);
 
 	for (let alternate of alternateSources) {
-		if (alternate.pattern.test(uriWithoutPrefix)) {
+		let result = uriWithoutPrefix.match(alternate.pattern);
+		if (result) {
 			if (!alternate.isDefault) {
 				request.origin = {
 					custom: {
@@ -182,7 +183,10 @@ exports.handler = (event, context, callback) => {
 					}
 				};
 				request.headers["host"] = [{ key: "host", value: alternate.destination }];
-				request.uri = uriWithoutPrefix;
+				if (result.length >= 2)
+					request.uri = result[1];
+				else
+					request.uri = uriWithoutPrefix;
 
 				return callback(null, request);
 			}
