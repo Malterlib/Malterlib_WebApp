@@ -561,7 +561,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				}
 				AlternateSourcesContents += fg_Format
 					(
-						"		location ~ ({})\n"
+						"		location ~ {}\n"
 						"		{{\n"
 						"{{SecurityHeaders}\n"
 						"			resolver 8.8.8.8;\n"
