@@ -74,8 +74,10 @@ Property
 		WebAppManagerMongoDefaultDatabase "MeteorTestApp"
 
 		WebAppManagerDefaultDomain "webappmanagertest.malterlib.org"
-		WebAppManagerDefaultWebPort 5000
-		WebAppManagerDefaultWebSSLPort 5443
+		WebAppManagerDefaultWebPort 6000
+		WebAppManagerDefaultWebSSLPort 6443
+
+		ContentSecurity_ScriptSrc ["'unsafe-inline'"]
 
 		MeteorBuilds [{Name: "Meteor", BuildDir: "Meteor"}]
 
