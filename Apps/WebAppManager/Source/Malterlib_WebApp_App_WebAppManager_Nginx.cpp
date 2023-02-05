@@ -20,6 +20,25 @@ namespace NMib::NWebApp::NWebAppManager
 		return fs_GetNginxWorkerFileLimits() * _nNodes + 8192;
 	}
 
+ch8 const *g_pCheckServerName = R"---(
+		set $invalid_host "true";
+
+		if ($host ~ "^{DomainNameEscaped}$" )
+		{
+			set $invalid_host "false";
+		}
+
+		if ($host ~ "^[a-z0-9-]*\.{DomainNameEscaped}$" )
+		{
+			set $invalid_host "false";
+		}
+
+		if ($invalid_host = "true")
+		{
+			return 444;
+		}
+)---";
+
 ch8 const *g_pServerTemplate[2] =
 	{
 R"---(
@@ -61,8 +80,8 @@ R"---(
 , R"---(
 	server
 	{
-		listen {BindTo}{SSLPort};
-		{DisableIPV6} listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort} {DefaultServer};
+		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -147,8 +166,8 @@ R"---(
 , R"---(
 	server
 	{
-		listen {BindTo}{SSLPort};
-		{DisableIPV6} listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort} {DefaultServer};
+		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -235,8 +254,8 @@ R"---(
 , R"---(
 	server
 	{
-		listen {BindTo}{SSLPort};
-		{DisableIPV6} listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort} {DefaultServer};
+		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -333,8 +352,8 @@ R"---(
 , R"---(
 	server
 	{
-		listen {BindTo}{SSLPort};
-		{DisableIPV6} listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort} {DefaultServer};
+		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -392,8 +411,8 @@ R"---(
 ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 	server
 	{
-		listen {BindTo}{SSLPort};
-		{DisableIPV6} listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort} {DefaultServer};
+		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
 		server_name {ServerNameStatic} {ServerNameStaticSource};
 		access_log logs/static_access_{PackageName}.log;
 		client_max_body_size 10M;
@@ -905,6 +924,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		CStr Servers;
 		TCMap<CStr, CStr> VariablesToReplace;
+		bool bHasDefaultServer = false;
 		{
 			TCMap<CStr, CStr> SubPathServers;
 			for (int i = 0; i < 2; ++i)
@@ -951,29 +971,16 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 					Server = Server.f_Replace("{AllowRobots}", fp_GetAllowRobots((Package.m_bAllowRobots || mp_Options.m_bAllowRobots) && mp_bAllowRobots).f_Replace("\n", "\\n"));
 
-					if (bIsMainServer)
+					if (Package.m_bDefaultServer && !mp_bCheckForInvalidHost)
 					{
-						CStr Section = R"---(
-		set $invalid_host "true";
-
-		if ($host ~ "^{DomainNameEscaped}$" )
-		{
-			set $invalid_host "false";
-		}
-
-		if ($host ~ "^[a-z0-9-]*\.{DomainNameEscaped}$" )
-		{
-			set $invalid_host "false";
-		}
-
-		if ($invalid_host = "true")
-		{
-			return 444;
-		}
-)---";
-
-						Server = Server.f_Replace("{CheckServerNameLogic}", Section);
+						bHasDefaultServer = true;
+						Server = Server.f_Replace("{DefaultServer}", "default_server");
 					}
+					else
+						Server = Server.f_Replace("{DefaultServer}", "");
+
+					if (bIsMainServer && mp_bCheckForInvalidHost)
+						Server = Server.f_Replace("{CheckServerNameLogic}", g_pCheckServerName);
 					else
 						Server = Server.f_Replace("{CheckServerNameLogic}", "");
 
@@ -1046,8 +1053,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						Server += R"---(
 	server
 	{
-		listen {BindTo}{SSLPort};
-		{DisableIPV6} listen [::]:{SSLPort};
+		listen {BindTo}{SSLPort} {DefaultServer};
+		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
 		server_name www.{DomainName};
 
 {HTTPSDefaultServerLocations_www}
@@ -1115,6 +1122,11 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		for (auto &ReplaceWith : VariablesToReplace)
 			ConfigContents = ConfigContents.f_Replace(VariablesToReplace.fs_GetKey(ReplaceWith), ReplaceWith);
 
+		if (mp_bCheckForInvalidHost)
+			ConfigContents = ConfigContents.f_Replace("{CheckServerNameLogicPort80}", g_pCheckServerName);
+		else
+			ConfigContents = ConfigContents.f_Replace("{CheckServerNameLogicPort80}", "");
+		
 		ConfigContents = ConfigContents.f_Replace("{DomainName}", mp_Domain);
 		ConfigContents = ConfigContents.f_Replace("{DomainNameCookie}", mp_DomainCookie);
 		ConfigContents = ConfigContents.f_Replace("{DomainNameEscaped}", mp_Domain.f_Replace(".", "\\."));
@@ -1221,6 +1233,22 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			ConfigContents = ConfigContents.f_Replace("{DisableIPV6}", "");
 		else
 			ConfigContents = ConfigContents.f_Replace("{DisableIPV6}", "#");
+
+		if (mp_bCheckForInvalidHost)
+			ConfigContents = ConfigContents.f_Replace("{DisableSSLRejectHandshake}", "");
+		else
+			ConfigContents = ConfigContents.f_Replace("{DisableSSLRejectHandshake}", "#");
+
+		if (bHasDefaultServer)
+		{
+			ConfigContents = ConfigContents.f_Replace("{DefaultServer}", "default_server");
+			ConfigContents = ConfigContents.f_Replace("{DefaultServerWhenNoDefault}", "");
+		}
+		else
+		{
+			ConfigContents = ConfigContents.f_Replace("{DefaultServer}", "");
+			ConfigContents = ConfigContents.f_Replace("{DefaultServerWhenNoDefault}", "default_server");
+		}
 
 		co_await
 			(
