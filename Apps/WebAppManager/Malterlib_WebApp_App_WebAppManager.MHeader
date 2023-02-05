@@ -857,6 +857,11 @@ Property
 					!!true IsDefined(`AllowRobots_@(_PackageName)`)
 				}
 
+				PackageSettings	=+ {DefaultServer: CheckIsBool(DefaultServer_@(_PackageName))}
+				{
+					!!true IsDefined(`DefaultServer_@(_PackageName)`)
+				}
+
 				PackageSettings	=+ {NpmBuildType: NpmBuildType_@(_PackageName)}
 				{
 					!!true IsDefined(`NpmBuildType_@(_PackageName)`)

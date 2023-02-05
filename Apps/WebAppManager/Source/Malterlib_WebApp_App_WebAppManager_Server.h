@@ -170,6 +170,7 @@ namespace NMib::NWebApp::NWebAppManager
 			bool m_bAllowRobots = true;
 			bool m_bUploadS3 = false;
 			bool m_bMalterlibDistributedApp = false;
+			bool m_bDefaultServer = false;
 		};
 
 		struct CMongo
@@ -589,6 +590,7 @@ namespace NMib::NWebApp::NWebAppManager
 		bool mp_bAllowRobots = true;
 		bool mp_bStartNginx = true;
 		bool mp_bEnableIPV6 = true;
+		bool mp_bCheckForInvalidHost = true;
 	};
 }
 

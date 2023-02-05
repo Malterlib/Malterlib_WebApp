@@ -555,6 +555,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("ExternalRoot"))
 				Package.m_ExternalRoot = pValue->f_String();
+
+			if (auto *pValue = PackageSettings.f_GetMember("DefaultServer"))
+				Package.m_bDefaultServer = pValue->f_Boolean();
 		}
 
 		if (auto pValue = Settings.f_GetMember("AllowRobots"))

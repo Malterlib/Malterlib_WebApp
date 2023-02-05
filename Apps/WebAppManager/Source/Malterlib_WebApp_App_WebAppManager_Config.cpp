@@ -94,6 +94,7 @@ namespace NMib::NWebApp::NWebAppManager
 		mp_LocalPort = fp_GetConfigValue("LocalPort", 8080).f_Integer();
 		mp_BindTo = fp_GetConfigValue("BindTo", "").f_String();
 		mp_bEnableIPV6 = fp_GetConfigValue("EnableIPV6", true).f_Boolean();
+		mp_bCheckForInvalidHost = fp_GetConfigValue("CheckForInvalidHost", true).f_Boolean();
 
 		fp_ParseConfig_DDPSelf();
 	}
