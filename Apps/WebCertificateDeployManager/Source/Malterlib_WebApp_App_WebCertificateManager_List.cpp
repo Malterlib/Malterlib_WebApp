@@ -104,18 +104,18 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 			TableRenderer.f_AddRow
 				(
-				 	Name
-				 	, fFormatLocation(Domain.m_Settings.m_Location_Ec)
-				 	, fFormatLocation(Domain.m_Settings.m_Location_Rsa)
-				 	, Domain.m_Settings.m_Location_NginxPid ? *Domain.m_Settings.m_Location_NginxPid : CStr("DISABLED")
+					Name
+					, fFormatLocation(Domain.m_Settings.m_Location_Ec)
+					, fFormatLocation(Domain.m_Settings.m_Location_Rsa)
+					, Domain.m_Settings.m_Location_NginxPid ? *Domain.m_Settings.m_Location_NginxPid : CStr("DISABLED")
 					, fFormatFileSettings(Domain.m_Settings.m_FileSettings_Certificate)
 					, fFormatFileSettings(Domain.m_Settings.m_FileSettings_Key)
-				 	, Status
+					, Status
 				)
 			;
 		}
 
- 		if (!bVerbose)
+		if (!bVerbose)
 		{
 			while (auto pLargest = VerboseHeadings.f_FindLargest())
 			{

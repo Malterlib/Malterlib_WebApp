@@ -663,9 +663,9 @@ namespace NMib::NWebApp::NWebAppManager
 				DMibError
 					(
 						"Package '{0}' and '{1}' resolves to the same hostname '{2}'. Set DomainPrefix_{0}, DomainPrefix_{1}, SubPath_{0} or SubPath_{1}"_f
-					 	<< PackageName
-					 	<< Package.f_GetName()
-					 	<< Hostname
+						<< PackageName
+						<< Package.f_GetName()
+						<< Hostname
 					)
 				;
 			}
@@ -785,7 +785,7 @@ namespace NMib::NWebApp::NWebAppManager
 									DMibError
 										(
 											"You cannot specify forbidden tags `{}` in a tag set"_f
-										 	<< Tag
+											<< Tag
 										)
 									;
 								}
@@ -830,7 +830,7 @@ namespace NMib::NWebApp::NWebAppManager
 		(
 			CStr &o_Config
 			, CStr const &_FastCGIFile
-		 	, TCMap<CStr, CStr> const &_PackageIPs
+			, TCMap<CStr, CStr> const &_PackageIPs
 			, ICWebAppManager const &_WebAppManager
 		)
 	{

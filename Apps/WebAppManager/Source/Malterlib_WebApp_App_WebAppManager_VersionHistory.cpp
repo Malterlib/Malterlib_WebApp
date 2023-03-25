@@ -14,7 +14,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		return fg_Format
 			(
-			 	"{} {}.{}.{} {} {} {} {}"
+				"{} {}.{}.{} {} {} {} {}"
 				, VersionInfo.m_Branch
 				, VersionInfo.m_Major
 				, VersionInfo.m_Minor

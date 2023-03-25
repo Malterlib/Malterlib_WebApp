@@ -1220,7 +1220,7 @@ exports.handler = async (event) => {
 		fg_Timeout(60.0) > [this, CloudFrontDistributions = CloudFrontDistributions, Clock]() mutable
 			{
 				Clock.f_Start();
- 				DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
+				DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
 				fp_InvalidateCloudfrontDistributionsWithRetry(CloudFrontDistributions) > [=](TCAsyncResult<void> &&_Result)
 					{
 						if (!_Result)

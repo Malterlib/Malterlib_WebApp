@@ -15,8 +15,8 @@ namespace NMib::NWebApp
 	{
 		CWebCertificateDeployActor
 			(
-			 	NConcurrency::TCActor<NConcurrency::CActorDistributionManager> const &_DistributionManager
-			 	, NConcurrency::TCActor<NConcurrency::CDistributedActorTrustManager> const &_TrustManager
+				NConcurrency::TCActor<NConcurrency::CActorDistributionManager> const &_DistributionManager
+				, NConcurrency::TCActor<NConcurrency::CDistributedActorTrustManager> const &_TrustManager
 				, NConcurrency::TCActor<NConcurrency::CSeparateThreadActor> const &_FileActor = {}
 			)
 		;

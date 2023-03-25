@@ -53,10 +53,10 @@ namespace NMib::NWebApp::NAcmeManager
 
 		TCVector<CEJSON> const &AccountEmails = AccountEmailsJSON.f_Array();
 		if (AccountEmails.f_IsEmpty())
- 			co_return DMibErrorInstance("ACMEAccountEmails value must be specified in config");
+			co_return DMibErrorInstance("ACMEAccountEmails value must be specified in config");
 
 		if (!AccountEmailsJSON.f_IsStringArray())
- 			co_return DMibErrorInstance("ACMEAccountEmails is expected to be a string array");
+			co_return DMibErrorInstance("ACMEAccountEmails is expected to be a string array");
 
 		mp_AcmeAccountEmails = AccountEmailsJSON.f_StringArray();
 
@@ -110,7 +110,7 @@ namespace NMib::NWebApp::NAcmeManager
 		if (mp_Route53Actor)
 			mp_Route53Actor.f_Destroy() > Destroys.f_AddResult();
 
- 		mp_CurlActors.f_Destroy() > Destroys.f_AddResult();
+		mp_CurlActors.f_Destroy() > Destroys.f_AddResult();
 
 		for (auto &Domain : mp_Domains)
 		{

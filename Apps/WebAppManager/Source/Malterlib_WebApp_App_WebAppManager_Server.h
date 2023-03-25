@@ -283,7 +283,7 @@ namespace NMib::NWebApp::NWebAppManager
 			(
 				CStr &o_Config
 				, CStr const &_FastCGIFile
-			 	, TCMap<CStr, CStr> const &_PackageIPs
+				, TCMap<CStr, CStr> const &_PackageIPs
 				, ICWebAppManager const &_WebAppManager
 			)
 		;
@@ -324,7 +324,7 @@ namespace NMib::NWebApp::NWebAppManager
 				, CStr const &_WorkingDir
 				, TCVector<CStr> const &_Params
 				, CStr const &_LogCategory
- 				, ELogVerbosity _LogVerbosity
+				, ELogVerbosity _LogVerbosity
 				, TCMap<CStr, CStr> const &_Environment = {}
 				, bool _bSeparateStdErr = true
 				, CStr const &_Home = {}

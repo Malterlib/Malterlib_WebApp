@@ -135,9 +135,9 @@ namespace NMib::NWebApp::NWebAppManager
 		{
 			if
 				(
-				 	Package.m_Type != CWebAppManagerOptions::EPackageType_FastCGI
-				 	&& Package.m_Type != CWebAppManagerOptions::EPackageType_Websocket
-				 	&& !Package.f_IsStatic()
+					Package.m_Type != CWebAppManagerOptions::EPackageType_FastCGI
+					&& Package.m_Type != CWebAppManagerOptions::EPackageType_Websocket
+					&& !Package.f_IsStatic()
 				)
 			{
 				bNeedNode = true;
@@ -330,20 +330,20 @@ namespace NMib::NWebApp::NWebAppManager
 				, _Type
 				, ProgramDirectory
 				, ThisActor = fg_ThisActor(this)
-			 	, DefaultUser
+				, DefaultUser
 				, PackageUser
 #ifdef DPlatformFamily_Windows
-			 	, PackagePassword = fp_GetUserPassword(PackageUser.m_UserName)
-			 	, DefaultPassword = fp_GetUserPassword(DefaultUser.m_UserName)
+				, PackagePassword = fp_GetUserPassword(PackageUser.m_UserName)
+				, DefaultPassword = fp_GetUserPassword(DefaultUser.m_UserName)
 #endif
 				, PackageHomeDirectory = fg_Format("{}/Home_{}", ProgramDirectory, _PackageName)
 				, MongoSSLDirectory = fp_GetMongoSSLDirectory()
 				, bSeparateUser
 				, bOwnPackageDirectory = PackageOptions.m_bOwnPackageDirectory
-			 	, bIsStatic = PackageOptions.f_IsStatic()
+				, bIsStatic = PackageOptions.f_IsStatic()
 				, ExcludeGzipPatterns = PackageOptions.m_ExcludeGzipPatterns
 				, bForceAppsReinstall = mp_bForceAppsReinstall
-			 	, FileActors = mp_FileActors
+				, FileActors = mp_FileActors
 				, NpmExecutable = fp_GetNodeExecutable("npm")
 			]
 			() mutable -> TCFuture<CPackageInfo>
@@ -365,9 +365,9 @@ namespace NMib::NWebApp::NWebAppManager
 					CStr UserHomePath = ProgramDirectory
 						/
 						(
-						 	_Type == CWebAppManagerOptions::EPackageType_FastCGI
-						 	? "FastCGIHome"
-						 	: (_Type == CWebAppManagerOptions::EPackageType_Websocket ? "WebsocketHome" : "node")
+							_Type == CWebAppManagerOptions::EPackageType_FastCGI
+							? "FastCGIHome"
+							: (_Type == CWebAppManagerOptions::EPackageType_Websocket ? "WebsocketHome" : "node")
 						)
 					;
 
@@ -557,9 +557,9 @@ namespace NMib::NWebApp::NWebAppManager
 											{
 												CFile::fs_SetOwnerAndGroupRecursive
 													(
-													 	PackageDirectory
-													 	, NSys::fg_UserManagement_GetProcessRealUserName()
-													 	, NSys::fg_UserManagement_GetProcessRealGroupName()
+														PackageDirectory
+														, NSys::fg_UserManagement_GetProcessRealUserName()
+														, NSys::fg_UserManagement_GetProcessRealGroupName()
 													)
 												;
 											}

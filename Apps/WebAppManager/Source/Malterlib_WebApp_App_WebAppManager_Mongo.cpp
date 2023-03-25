@@ -22,8 +22,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 		co_await fg_CallSafe
 			(
-			 	this
-			 	, &CWebAppManagerActor::fp_RunMongoScript
+				this
+				, &CWebAppManagerActor::fp_RunMongoScript
 				, fg_Format("{}/Source/{}", CFile::fs_GetProgramDirectory(), mp_Options.m_Mongo.m_DatabaseSetupScript)
 				, mp_MongoDatabase
 				, 120.0

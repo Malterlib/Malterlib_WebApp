@@ -96,22 +96,22 @@ namespace NMib::NWebApp::NAcmeManager
 
 			TableRenderer.f_AddRow
 				(
-				 	Name
-				 	, Domain.m_Settings.m_bGenerateEC ? "true" : "false"
-				 	, Domain.m_Settings.m_bGenerateRSA ? "true" : "false"
-				 	, fsp_EllipticCurveTypeToStr(Domain.m_Settings.m_EllipticCurveType)
-				 	, "{}"_f << Domain.m_Settings.m_RSASettings.m_KeyLength
-				 	, Domain.m_Settings.m_bIncludeWildcard ? "true" : "false"
-				 	, Domain.m_Settings.m_bManualDNSChallenge ? "true" : "false"
-				 	, Domain.m_Settings.m_AlternateChain
+					Name
+					, Domain.m_Settings.m_bGenerateEC ? "true" : "false"
+					, Domain.m_Settings.m_bGenerateRSA ? "true" : "false"
+					, fsp_EllipticCurveTypeToStr(Domain.m_Settings.m_EllipticCurveType)
+					, "{}"_f << Domain.m_Settings.m_RSASettings.m_KeyLength
+					, Domain.m_Settings.m_bIncludeWildcard ? "true" : "false"
+					, Domain.m_Settings.m_bManualDNSChallenge ? "true" : "false"
+					, Domain.m_Settings.m_AlternateChain
 					, AcmeDirectory
 					, AccountKeyType
-				 	, Status
+					, Status
 				)
 			;
 		}
 
- 		if (!bVerbose)
+		if (!bVerbose)
 		{
 			while (auto pLargest = VerboseHeadings.f_FindLargest())
 			{

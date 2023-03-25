@@ -3,7 +3,7 @@
 
 Property
 {
- 	MalterlibWebAppBuildNode: bool = false // User(Node)=true: Support building mongo and mongo-tools binaries
+	MalterlibWebAppBuildNode: bool = false // User(Node)=true: Support building mongo and mongo-tools binaries
 }
 
 %Repository "node"

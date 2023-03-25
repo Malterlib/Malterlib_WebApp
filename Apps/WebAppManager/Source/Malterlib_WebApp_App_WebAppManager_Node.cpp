@@ -706,9 +706,9 @@ namespace NMib::NWebApp::NWebAppManager
 			fp_PopulateNodeEnvironment(Params.m_Environment, CalculatedSettings, _AppLaunch, PackageOptions);
 
 			if (PackageOptions.m_Type == CWebAppManagerOptions::EPackageType_Meteor)
- 				Params.m_Environment["METEOR_SETTINGS"] = MeteorSettings.f_ToString();
+				Params.m_Environment["METEOR_SETTINGS"] = MeteorSettings.f_ToString();
 			else
- 				Params.m_Environment["APPLICATION_SETTINGS"] = MeteorSettings.f_ToString();
+				Params.m_Environment["APPLICATION_SETTINGS"] = MeteorSettings.f_ToString();
 		}
 		catch (NException::CException const &_Exception)
 		{

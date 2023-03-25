@@ -474,7 +474,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 	{
 		if (!_bAllow)
 		{
-			return 	"User-agent: *\n"
+			return	"User-agent: *\n"
 					"Disallow: /"
 			;
 		}
@@ -1335,7 +1335,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						co_return {};
 
 #ifndef DPlatformFamily_Windows
- 					co_await mp_NginxLaunch(&CProcessLaunchActor::f_Signal, 1); // SIGHUP
+					co_await mp_NginxLaunch(&CProcessLaunchActor::f_Signal, 1); // SIGHUP
 #endif
 					co_return {};
 				}

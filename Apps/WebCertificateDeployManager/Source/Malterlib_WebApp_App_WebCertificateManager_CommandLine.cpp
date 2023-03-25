@@ -124,7 +124,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 				, "Description"_= "File location to deploy EC key to"
 			}
 		;
- 		auto SettingsOption_LocationNginxPid = "LocationNginxPid?"_=
+		auto SettingsOption_LocationNginxPid = "LocationNginxPid?"_=
 			{
 				"Names"_= {"--location-nginx-pid"}
 				, "Default"_= nullptr

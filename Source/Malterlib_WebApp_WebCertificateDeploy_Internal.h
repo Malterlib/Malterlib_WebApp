@@ -24,9 +24,9 @@ namespace NMib::NWebApp
 	{
 		CInternal
 			(
-			 	CWebCertificateDeployActor *_pThis
-			 	, TCActor<CActorDistributionManager> const &_DistributionManager
-			 	, TCActor<CDistributedActorTrustManager> const &_TrustManager
+				CWebCertificateDeployActor *_pThis
+				, TCActor<CActorDistributionManager> const &_DistributionManager
+				, TCActor<CDistributedActorTrustManager> const &_TrustManager
 				, TCActor<CSeparateThreadActor> const &_FileActor
 			)
 		;

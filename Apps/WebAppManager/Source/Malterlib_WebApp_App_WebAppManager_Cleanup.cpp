@@ -47,7 +47,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		co_await
 			(
-			 	g_Dispatch(*mp_FileActors) / [Executables = fg_Move(Executables)]
+				g_Dispatch(*mp_FileActors) / [Executables = fg_Move(Executables)]
 				{
 					fg_CleanupOldProcesses(Executables);
 				}

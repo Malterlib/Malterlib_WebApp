@@ -28,8 +28,8 @@ namespace NMib::NWebApp
 
 	CWebCertificateDeployActor::CWebCertificateDeployActor
 		(
-		 	TCActor<CActorDistributionManager> const &_DistributionManager
-		 	, TCActor<CDistributedActorTrustManager> const &_TrustManager
+			TCActor<CActorDistributionManager> const &_DistributionManager
+			, TCActor<CDistributedActorTrustManager> const &_TrustManager
 			, TCActor<CSeparateThreadActor> const &_FileActor
 		)
 		: mp_pInternal(fg_Construct(this, _DistributionManager, _TrustManager, _FileActor))
