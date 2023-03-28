@@ -57,7 +57,7 @@ namespace NMib::NWebApp
 		TCFuture<void> f_SecretsManagerAddedWithRetry(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info);
 		TCFuture<void> f_SecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info);
 		TCFuture<void> f_SecretsManagerRemoved(TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo);
-		void f_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState);
+		CExceptionPointer f_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState);
 		TCFuture<void> f_UpdateDomainForSecretsManager(CStr const &_DomainName, TCDistributedActor<CSecretsManager> const &_SecretsManager, CHostInfo const &_SecretsManagerHostInfo);
 		TCFuture<void> f_UpdateDomainForAllSecretsManagers(CStr const &_DomainName);
 		TCFuture<void> f_UpdateAllDomainsForAllSecretsManagers();

@@ -110,7 +110,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		CEJSON fp_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const;
 
-		void fp_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState);
+		[[nodiscard]] NException::CExceptionPointer fp_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState);
 		TCFuture<bool> fp_UpdateDomain_HandleChallenge
 			(
 				CStr const &_DomainName

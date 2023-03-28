@@ -25,18 +25,21 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return {};
 	}
 
-	void CAcmeManagerActor::fp_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState)
+	[[nodiscard]] NException::CExceptionPointer CAcmeManagerActor::fp_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState)
 	{
 		if (f_IsDestroyed())
-			DMibError("Shutting down");
+			return DMibErrorInstance("Shutting down");
 
 		o_pDomain = mp_Domains.f_FindEqual(_DomainName);
 		if (!o_pDomain)
-			DMibError("Domain no longer exists");
+			return DMibErrorInstance("Domain no longer exists");
 
 		if (!o_pDomain->m_DomainState)
-			DMibError("Domain no longer connected to secrets manager");
+			return DMibErrorInstance("Domain no longer connected to secrets manager");
+
 		o_pDomainState = &*o_pDomain->m_DomainState;
+
+		return {};
 	}
 
 	TCFuture<bool> CAcmeManagerActor::fp_UpdateDomain_HandleChallenge
@@ -49,10 +52,13 @@ namespace NMib::NWebApp::NAcmeManager
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
 
-		auto OnResume = g_OnResume / [&]
-			{
-				fp_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
-			}
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> NException::CExceptionPointer
+				{
+					return fp_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
+				}
+			)
 		;
 
 		if (_Challenge.m_Type != CAcmeClientActor::EChallengeType_Dns01)
@@ -219,10 +225,13 @@ namespace NMib::NWebApp::NAcmeManager
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
 
-		auto OnResume = g_OnResume / [&]
-			{
-				fp_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
-			}
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> NException::CExceptionPointer
+				{
+					return fp_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
+				}
+			)
 		;
 
 		fp_UpdateDomainStatus(*pDomain, pDomainState->m_SecretsManagerHostInfo, EStatusSeverity_Info, "Issuing {} certificate"_f << _CertificateType);
@@ -335,10 +344,13 @@ namespace NMib::NWebApp::NAcmeManager
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
 
-		auto OnResume = g_OnResume / [&]
-			{
-				fp_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
-			}
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> NException::CExceptionPointer
+				{
+					return fp_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
+				}
+			)
 		;
 
 		CSecretsManager::CSecretID SecretID;
@@ -381,10 +393,13 @@ namespace NMib::NWebApp::NAcmeManager
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
 
-		auto OnResume = g_OnResume / [&]
-			{
-				fp_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
-			}
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> NException::CExceptionPointer
+				{
+					return fp_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
+				}
+			)
 		;
 
 		fp_UpdateDomainStatus(*pDomain, pDomainState->m_SecretsManagerHostInfo, EStatusSeverity_Info, "Secrets manager connected");

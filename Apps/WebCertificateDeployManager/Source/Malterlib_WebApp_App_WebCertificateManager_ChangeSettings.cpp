@@ -16,15 +16,20 @@ namespace NMib::NWebApp::NWebCertificateManager
 	TCFuture<void> CWebCertificateManagerActor::fp_UpdateDomainSettings(CStr const &_DomainName)
 	{
 		CDomain *pDomain;
-		auto OnResume = g_OnResume / [&]
-			{
-				if (f_IsDestroyed())
-					DMibError("Shutting down");
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> NException::CExceptionPointer
+				{
+					if (f_IsDestroyed())
+						return DMibErrorInstance("Shutting down");
 
-				pDomain = mp_Domains.f_FindEqual(_DomainName);
-				if (!pDomain)
-					DMibError("Domain removed");
-			}
+					pDomain = mp_Domains.f_FindEqual(_DomainName);
+					if (!pDomain)
+						return DMibErrorInstance("Domain removed");
+
+					return {};
+				}
+			)
 		;
 
 		if (pDomain->m_CertificateDeploySubscription)
@@ -119,14 +124,19 @@ namespace NMib::NWebApp::NWebCertificateManager
 		if (!mp_Domains.f_FindEqual(Name))
 			co_return Auditor.f_Exception("Domain '{}' does not exist"_f << Name);
 
-		auto OnResume = g_OnResume / [&]
-			{
-				if (f_IsDestroyed())
-					DMibError("Shutting down");
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> NException::CExceptionPointer
+				{
+					if (f_IsDestroyed())
+						return DMibErrorInstance("Shutting down");
 
-				if (!mp_Domains.f_FindEqual(Name))
-					DMibError("Domain removed");
-			}
+					if (!mp_Domains.f_FindEqual(Name))
+						return DMibErrorInstance("Domain removed");
+
+					return {};
+				}
+			)
 		;
 
 		auto &Domain = mp_Domains[Name];

@@ -74,11 +74,15 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials, CStr const &_Prefix)
 	{
-		auto OnResume = g_OnResume / [&]
-			{
-				if (f_IsDestroyed())
-					DMibError("Shutting down");
-			}
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> NException::CExceptionPointer
+				{
+					if (f_IsDestroyed())
+						return DMibErrorInstance("Shutting down");
+					return {};
+				}
+			)
 		;
 
 		TCVector<CWebAppManagerOptions::CPackage::CRedirect> RedirectsTemporary;
@@ -612,11 +616,15 @@ exports.handler = async (event) => {
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UploadS3Perform()
 	{
-		auto OnResume = g_OnResume / [&]
-			{
-				if (f_IsDestroyed())
-					DMibError("Shutting down");
-			}
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> NException::CExceptionPointer
+				{
+					if (f_IsDestroyed())
+						return DMibErrorInstance("Shutting down");
+					return {};
+				}
+			)
 		;
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
@@ -1098,11 +1106,15 @@ exports.handler = async (event) => {
 				(
 					[=, ExpectedChecksum = NewFile.m_Digest]() -> TCFuture<void>
 					{
-						auto OnResume = g_OnResume / [&]
-							{
-								if (f_IsDestroyed())
-									DMibError("Shutting down");
-							}
+						auto OnResume = co_await fg_OnResume
+							(
+								[&]() -> NException::CExceptionPointer
+								{
+									if (f_IsDestroyed())
+										return DMibErrorInstance("Shutting down");
+									return {};
+								}
+							)
 						;
 
 						DMibLogWithCategory(S3Upload, Info, "Uploading file with priority {}: '{}'", Priority, FileName);
@@ -1143,11 +1155,15 @@ exports.handler = async (event) => {
 		{
 			mp_S3PrioritySequencer / [=]() mutable -> TCFuture<void>
 				{
-					auto OnResume = g_OnResume / [&]
-						{
-							if (f_IsDestroyed())
-								DMibError("Shutting down");
-						}
+					auto OnResume = co_await fg_OnResume
+						(
+							[&]() -> NException::CExceptionPointer
+							{
+								if (f_IsDestroyed())
+									return DMibErrorInstance("Shutting down");
+								return {};
+							}
+						)
 					;
 
 					TCActorResultVector<void> UploadResults;
@@ -1256,11 +1272,15 @@ exports.handler = async (event) => {
 
 	TCFuture<void> CWebAppManagerActor::fp_InvalidateCloudfrontDistributionsWithRetry(TCSet<CStr> _Distributions)
 	{
-		auto OnResume = g_OnResume / [&]
-			{
-				if (f_IsDestroyed())
-					DMibError("Shutting down");
-			}
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> NException::CExceptionPointer
+				{
+					if (f_IsDestroyed())
+						return DMibErrorInstance("Shutting down");
+					return {};
+				}
+			)
 		;
 
 		TCVector<CStr> PathsToInvalidate = {"/*"};

@@ -48,18 +48,23 @@ namespace NMib::NWebApp
 	{
 		CDomain *pDomain = nullptr;
 
-		auto OnResume = g_OnResume / [&]
-			{
-				if (m_pThis->f_IsDestroyed())
-					DMibError("Shutting down");
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> CExceptionPointer
+				{
+					if (m_pThis->f_IsDestroyed())
+						return DMibErrorInstance("Shutting down");
 
-				pDomain = m_Domains.f_FindEqual(_DomainName);
-				if (!pDomain)
-					DMibError("Domain no longer exists");
+					pDomain = m_Domains.f_FindEqual(_DomainName);
+					if (!pDomain)
+						return DMibErrorInstance("Domain no longer exists");
 
-				if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
-					DMibError("Secret manager no longer exists");
-			}
+					if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
+						return DMibErrorInstance("Secret manager no longer exists");
+
+					return {};
+				}
+			)
 		;
 
 		CDomainState DomainState;
@@ -120,15 +125,20 @@ namespace NMib::NWebApp
 	{
 		CDomain *pDomain = nullptr;
 
-		auto OnResume = g_OnResume / [&]
-			{
-				if (m_pThis->f_IsDestroyed())
-					DMibError("Shutting down");
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> CExceptionPointer
+				{
+					if (m_pThis->f_IsDestroyed())
+						return DMibErrorInstance("Shutting down");
 
-				pDomain = m_Domains.f_FindEqual(_DomainName);
-				if (!pDomain)
-					DMibError("Domain no longer exists");
-			}
+					pDomain = m_Domains.f_FindEqual(_DomainName);
+					if (!pDomain)
+						return DMibErrorInstance("Domain no longer exists");
+
+					return {};
+				}
+			)
 		;
 
 		TCActorResultVector<void> UpdateResults;
@@ -140,19 +150,21 @@ namespace NMib::NWebApp
 		co_return {};
 	}
 
-	void CWebCertificateDeployActor::CInternal::f_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState)
+	CExceptionPointer CWebCertificateDeployActor::CInternal::f_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState)
 	{
 		if (m_pThis->f_IsDestroyed())
-			DMibError("Shutting down");
+			return DMibErrorInstance("Shutting down");
 
 		o_pDomain = m_Domains.f_FindEqual(_DomainName);
 		if (!o_pDomain)
-			DMibError("Domain no longer exists");
+			return DMibErrorInstance("Domain no longer exists");
 
 		if (!o_pDomain->m_DomainState)
-			DMibError("Domain no longer connected to secrets manager");
+			return DMibErrorInstance("Domain no longer connected to secrets manager");
 
 		o_pDomainState = &*o_pDomain->m_DomainState;
+
+		return {};
 	}
 
 	CExceptionPointer CWebCertificateDeployActor::CInternal::f_UpdateDomain_CheckSecret
@@ -199,10 +211,13 @@ namespace NMib::NWebApp
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
 
-		auto OnResume = g_OnResume / [&]
-			{
-				f_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
-			}
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> CExceptionPointer
+				{
+					return f_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
+				}
+			)
 		;
 
 		CSecretsManager::CSecretID PrivateKeySecretID;
@@ -311,10 +326,13 @@ namespace NMib::NWebApp
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
 
-		auto OnResume = g_OnResume / [&]
-			{
-				f_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
-			}
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> CExceptionPointer
+				{
+					return f_UpdateDomain_CheckPreconditions(_DomainName, pDomain, pDomainState);
+				}
+			)
 		;
 
 		f_UpdateDomainStatus(*pDomain, pDomainState->m_SecretsManagerHostInfo, EStatusSeverity_Info, "Secrets manager connected, updating files");

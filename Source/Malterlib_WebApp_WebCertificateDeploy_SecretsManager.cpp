@@ -62,14 +62,19 @@ namespace NMib::NWebApp
 	{
 		TCActorResultMap<CStr, void> UpdateResults;
 
-		auto OnResume = g_OnResume / [&]
-			{
-				if (m_pThis->f_IsDestroyed())
-					DMibError("Shutting down");
+		auto OnResume = co_await fg_OnResume
+			(
+				[&]() -> CExceptionPointer
+				{
+					if (m_pThis->f_IsDestroyed())
+						return DMibErrorInstance("Shutting down");
 
-				if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
-					DMibError("Secrets manager removed");
-			}
+					if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
+						return DMibErrorInstance("Secrets manager removed");
+
+					return {};
+				}
+			)
 		;
 
 		CSecretsManager::CSubscribeToChanges SubscribeToChanges;
