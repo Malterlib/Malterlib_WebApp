@@ -20,7 +20,7 @@ namespace NMib::NWebApp::NAcmeManager
 		for (auto &SecretsManager : mp_SecretsManagerSubscription.m_Actors)
 			self(&CAcmeManagerActor::fp_SecretsManagerAdded, SecretsManager.m_Actor, SecretsManager.m_TrustInfo, _CreateAccountForDomainName) > Results.f_AddResult();
 
-		co_await Results.f_GetResults() | g_Unwrap;
+		co_await (co_await Results.f_GetResults() | g_Unwrap);
 
 		co_return {};
 	}
@@ -321,7 +321,7 @@ namespace NMib::NWebApp::NAcmeManager
 		fStoreSecret("Root", Certificates.m_Root);
 		fStoreSecret("Other", CStr::fs_Join(Certificates.m_Other, "\n"));
 
-		co_await StoreResults.f_GetResults() | g_Unwrap;
+		co_await (co_await StoreResults.f_GetResults() | g_Unwrap);
 
 		DMibLogWithCategory
 			(

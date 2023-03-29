@@ -178,7 +178,7 @@ namespace NMib::NWebApp
 				f_UpdateDomainStatus(Domain, _ActorInfo.m_HostInfo, EStatusSeverity_Warning, "Lost secrets manager");
 		}
 
-		co_await UpdateDomainResults.f_GetResults() | g_Unwrap;
+		co_await (co_await UpdateDomainResults.f_GetResults() | g_Unwrap);
 
 		co_return {};
 	}

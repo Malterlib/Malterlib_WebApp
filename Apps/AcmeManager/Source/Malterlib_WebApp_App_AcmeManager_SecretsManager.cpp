@@ -139,7 +139,7 @@ namespace NMib::NWebApp::NAcmeManager
 			}
 		}
 
-		fg_Move(Results) | g_Unwrap;
+		co_await (fg_Move(Results) | g_Unwrap);
 
 		co_return {};
 	}

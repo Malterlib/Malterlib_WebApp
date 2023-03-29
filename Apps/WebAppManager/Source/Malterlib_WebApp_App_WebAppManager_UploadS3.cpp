@@ -573,7 +573,7 @@ exports.handler = async (event) => {
 			> Results.f_AddResult();
 		}
 
-		co_await Results.f_GetResults() | g_Unwrap;
+		co_await (co_await Results.f_GetResults() | g_Unwrap);
 
 		co_return {};
 	}
@@ -1171,7 +1171,7 @@ exports.handler = async (event) => {
 					for (auto &fUpload : PriorityUploadList)
 						mp_S3FileReadSequencer / fg_Move(fUpload) > UploadResults.f_AddResult();
 
-					co_await UploadResults.f_GetResults() | g_Unwrap;
+					co_await (co_await UploadResults.f_GetResults() | g_Unwrap);
 
 					co_return {};
 				}
@@ -1183,7 +1183,7 @@ exports.handler = async (event) => {
 		if (bUploadFiles)
 			DMibLogWithCategory(S3Upload, Info, "Reading files and uploading");
 
-		co_await UploadResults.f_GetResults() | g_Unwrap;
+		co_await (co_await UploadResults.f_GetResults() | g_Unwrap);
 
 		if (bUploadFiles)
 			DMibLogWithCategory(S3Upload, Info, "Reading files and uploading {fe2} s", Clock.f_GetTime());
@@ -1226,8 +1226,8 @@ exports.handler = async (event) => {
 			DMibLogWithCategory(S3Upload, Info, "Updating Lambda@Edge {fe2} s", Clock.f_GetTime());
 		Clock.f_Start();
 
-		fg_Move(Results) | g_Unwrap;
-		fg_Move(LambdaUpdateResults) | g_Unwrap;
+		co_await (fg_Move(Results) | g_Unwrap);
+		co_await (fg_Move(LambdaUpdateResults) | g_Unwrap);
 
 		DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache");
 		co_await fp_InvalidateCloudfrontDistributionsWithRetry(CloudFrontDistributions);
@@ -1298,7 +1298,7 @@ exports.handler = async (event) => {
 
 			if (iRetry == 0)
 			{
-				fg_Move(ResultsMap) | g_Unwrap;
+				co_await (fg_Move(ResultsMap) | g_Unwrap);
 				break;
 			}
 
@@ -1323,7 +1323,7 @@ exports.handler = async (event) => {
 			DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache retry due to 503: ServiceUnavailable for: {vs}", ToInvalidate);
 		}
 
-		fg_Move(Errors) | g_Unwrap;
+		co_await (fg_Move(Errors) | g_Unwrap);
 
 		co_return {};
 	}

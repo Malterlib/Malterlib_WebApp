@@ -34,7 +34,7 @@ namespace NMib::NWebApp
 		for (auto &DomainName : DomainNames)
 			fg_CallSafe(this, &CInternal::f_UpdateDomainForAllSecretsManagers, DomainName) > Results.f_AddResult();
 
-		co_await Results.f_GetResults() | g_Unwrap;
+		co_await (co_await Results.f_GetResults() | g_Unwrap);
 
 		co_return {};
 	}
@@ -145,7 +145,7 @@ namespace NMib::NWebApp
 		for (auto &SecretsManager : m_SecretsManagerSubscription.m_Actors)
 			fg_CallSafe(this, &CInternal::f_UpdateDomainForSecretsManager, _DomainName, SecretsManager.m_Actor, SecretsManager.m_TrustInfo.m_HostInfo) > UpdateResults.f_AddResult();
 
-		co_await UpdateResults.f_GetResults() | g_Unwrap;
+		co_await (co_await UpdateResults.f_GetResults() | g_Unwrap);
 
 		co_return {};
 	}
@@ -345,7 +345,7 @@ namespace NMib::NWebApp
 		if (pDomain->m_Settings.m_FileSettings_Rsa)
 			fg_CallSafe(this, &CInternal::f_UpdateDomain_UpdateFiles, _DomainName, CStr("RSA"), *pDomain->m_Settings.m_FileSettings_Rsa) > UpdateFilesResults.f_AddResult();
 
-		co_await UpdateFilesResults.f_GetResults() | g_Unwrap;
+		co_await (co_await UpdateFilesResults.f_GetResults() | g_Unwrap);
 
 		f_UpdateDomainStatus(*pDomain, pDomainState->m_SecretsManagerHostInfo, EStatusSeverity_Success, "All certificates deployed and up to date");
 
