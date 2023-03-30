@@ -409,7 +409,7 @@ namespace NMib::NWebApp::NWebAppManager
 			if (PackageOptions.m_CustomExecutable.f_IsEmpty())
 			{
 				if (_bInitialLaunch)
-					fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Missing executable for custom launch: {}", LaunchKey.m_PackageName))));
+					fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance(fg_Format("Missing executable for custom launch: {}", LaunchKey.m_PackageName))));
 				return;
 			}
 			LaunchExecutable = ProgramDirectory / LaunchKey.m_PackageName / PackageOptions.m_CustomExecutable;
@@ -420,7 +420,7 @@ namespace NMib::NWebApp::NWebAppManager
 			if (PackageOptions.m_CustomExecutable.f_IsEmpty())
 			{
 				if (_bInitialLaunch)
-					fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Missing executable for FastCGI launch: {}", LaunchKey.m_PackageName))));
+					fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance(fg_Format("Missing executable for FastCGI launch: {}", LaunchKey.m_PackageName))));
 				return;
 			}
 			LaunchExecutable = ProgramDirectory / LaunchKey.m_PackageName / PackageOptions.m_CustomExecutable;
@@ -431,7 +431,7 @@ namespace NMib::NWebApp::NWebAppManager
 			if (PackageOptions.m_CustomExecutable.f_IsEmpty())
 			{
 				if (_bInitialLaunch)
-					fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Missing executable for Websocket launch: {}", LaunchKey.m_PackageName))));
+					fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance(fg_Format("Missing executable for Websocket launch: {}", LaunchKey.m_PackageName))));
 				return;
 			}
 			LaunchExecutable = ProgramDirectory / LaunchKey.m_PackageName / PackageOptions.m_CustomExecutable;
@@ -440,7 +440,7 @@ namespace NMib::NWebApp::NWebAppManager
 		else
 		{
 			if (_bInitialLaunch)
-				fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance("Invalid package type")));
+				fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance("Invalid package type")));
 			return;
 		}
 
@@ -467,7 +467,7 @@ namespace NMib::NWebApp::NWebAppManager
 									NormalLaunch.m_Launch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
 								}
 								if (_bInitialLaunch)
-									fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance("Application is being destroyed")));
+									fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance("Application is being destroyed")));
 							}
 							else
 							{
@@ -487,7 +487,7 @@ namespace NMib::NWebApp::NWebAppManager
 							if (!f_IsDestroyed() && !mp_bStopped)
 							{
 								if (_bInitialLaunch)
-									fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Unexpected exit {}", _Change.f_Get<EProcessLaunchState_Exited>()))));
+									fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance(fg_Format("Unexpected exit {}", _Change.f_Get<EProcessLaunchState_Exited>()))));
 
 								DLog(Info, "Unexpected exit {}, scheduling relaunch in 10 seconds", _Change.f_Get<EProcessLaunchState_Exited>());
 								fg_Timeout(10.0) > [this, pAppLaunch]
@@ -506,7 +506,7 @@ namespace NMib::NWebApp::NWebAppManager
 								AppLaunch.m_DestroyPromise->f_SetResult();
 							AppLaunch.m_Launch.f_Set<0>();
 							if (_bInitialLaunch)
-								fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Launch failed: {}", _Change.f_Get<EProcessLaunchState_LaunchFailed>()))));
+								fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance(fg_Format("Launch failed: {}", _Change.f_Get<EProcessLaunchState_LaunchFailed>()))));
 						}
 						break;
 					}
@@ -713,7 +713,7 @@ namespace NMib::NWebApp::NWebAppManager
 		catch (NException::CException const &_Exception)
 		{
 			if (_bInitialLaunch)
-				fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Failed to setup node launch environment: {}", _Exception))));
+				fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance(fg_Format("Failed to setup node launch environment: {}", _Exception))));
 			return;
 		}
 
@@ -738,7 +738,7 @@ namespace NMib::NWebApp::NWebAppManager
 					if (!_LaunchInfo)
 					{
 						if (_bInitialLaunch)
-							fp_UpdateAppLaunch(fg_ExceptionPointer(DMibErrorInstance(fg_Format("Launch failed: {}", _LaunchInfo.f_GetExceptionStr()))));
+							fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance(fg_Format("Launch failed: {}", _LaunchInfo.f_GetExceptionStr()))));
 
 						if (AppLaunch.m_DestroyPromise)
 							AppLaunch.m_DestroyPromise.f_Get().f_SetResult();
