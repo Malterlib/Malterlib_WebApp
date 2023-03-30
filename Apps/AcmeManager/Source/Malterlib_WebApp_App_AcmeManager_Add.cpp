@@ -12,13 +12,9 @@ namespace NMib::NWebApp::NAcmeManager
 
 		CDomainSettings Settings;
 
-		try
 		{
+			auto CaptureScope = co_await (g_CaptureExceptions % Auditor);
 			fp_ParseSettings(_Params, Settings);
-		}
-		catch (CException const &_Exception)
-		{
-			co_return Auditor.f_Exception(_Exception.f_GetErrorStr());
 		}
 
 		CStr Name = _Params["Domain"].f_String();

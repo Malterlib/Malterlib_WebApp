@@ -62,13 +62,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 		mp_FileActors.f_Construct(fg_Construct(fg_Construct<CSeparateThreadActor>(), "File actor"));
 
-		try
 		{
+			auto CaptureScope = co_await (g_CaptureExceptions % "Failed to parse config");
 			fp_ParseConfig();
-		}
-		catch (NException::CException const &_Exception)
-		{
-			co_return DMibErrorInstance(fg_Format("Failed to parse config: ", _Exception));
 		}
 
 		fp_CreateAppLaunches();

@@ -25,13 +25,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		CDomainSettings Settings;
 
-		try
 		{
+			auto CaptureScope = co_await (g_CaptureExceptions % Auditor);
 			fp_ParseCommandLineSettings(_Params, Settings);
-		}
-		catch (CException const &_Exception)
-		{
-			co_return Auditor.f_Exception(_Exception.f_GetErrorStr());
 		}
 
 		if (!fg_IsValidHostname(Name))

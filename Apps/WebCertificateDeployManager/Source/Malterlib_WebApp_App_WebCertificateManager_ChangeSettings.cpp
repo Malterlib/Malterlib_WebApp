@@ -143,13 +143,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		CDomainSettings Settings = Domain.m_Settings;
 
-		try
 		{
+			auto CaptureScope = co_await (g_CaptureExceptions % Auditor);
 			fp_ParseCommandLineSettings(_Params, Settings);
-		}
-		catch (CException const &_Exception)
-		{
-			co_return Auditor.f_Exception(_Exception.f_GetErrorStr());
 		}
 
 		if (Domain.m_Settings == Settings)

@@ -292,8 +292,9 @@ namespace NMib::NWebApp
 						}
 					;
 
-					try
 					{
+						auto CaptureScope = co_await g_CaptureExceptions;
+
 						fUpdateFile(PrivateKeySecret.m_Secret->f_GetAsType<NStr::CStrSecure>(), _FileSettings.m_Key);
 						fUpdateFile(FullChainSecret.m_Secret->f_GetAsType<NStr::CStrSecure>(), _FileSettings.m_FullChain);
 
@@ -304,10 +305,6 @@ namespace NMib::NWebApp
 							else
 								CFile::fs_RenameFile(fg_Get<0>(ToCommit), fg_Get<1>(ToCommit));
 						}
-					}
-					catch (CException const &)
-					{
-						co_return NException::fg_CurrentException();
 					}
 
 					co_return bChanged;

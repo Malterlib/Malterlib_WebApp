@@ -256,23 +256,18 @@ namespace NMib::NWebApp::NAcmeManager
 			TCVector<CStr> AlternateNames;
 			for (auto &AlternateChain : CertificatesResults.m_AlternateChains)
 			{
-				try
-				{
-					NContainer::CByteVector Root;
-					Root.f_Insert((uint8 const *)AlternateChain.m_Root.f_GetStr(), AlternateChain.m_Root.f_GetLen());
-					auto CommonName = CCertificate::fs_GetCertificateName(Root);
-					AlternateNames.f_Insert(CommonName);
+				auto CaptureScope = co_await g_CaptureExceptions;
 
-					if (CommonName == _DomainSettings.m_AlternateChain)
-					{
-						Certificates = AlternateChain;
-						bFoundCert = true;
-						break;
-					}
-				}
-				catch (CException const &_Exception)
+				NContainer::CByteVector Root;
+				Root.f_Insert((uint8 const *)AlternateChain.m_Root.f_GetStr(), AlternateChain.m_Root.f_GetLen());
+				auto CommonName = CCertificate::fs_GetCertificateName(Root);
+				AlternateNames.f_Insert(CommonName);
+
+				if (CommonName == _DomainSettings.m_AlternateChain)
 				{
-					co_return _Exception.f_ExceptionPointer();
+					Certificates = AlternateChain;
+					bFoundCert = true;
+					break;
 				}
 			}
 
@@ -282,18 +277,12 @@ namespace NMib::NWebApp::NAcmeManager
 
 		CStr CertificateDescription;
 		{
-			try
-			{
-				CertificateDescription = CCertificate::fs_GetCertificateDescription
-					(
-						CByteVector((uint8 const *)Certificates.m_EndEntity.f_GetStr(), Certificates.m_EndEntity.f_GetLen())
-					)
-				;
-			}
-			catch (CException const &_Exception)
-			{
-				co_return DMibErrorInstance("Exception getting certificate description: {}"_f << _Exception);
-			}
+			auto CaptureScope = co_await (g_CaptureExceptions % "Exception getting certificate description");
+			CertificateDescription = CCertificate::fs_GetCertificateDescription
+				(
+					CByteVector((uint8 const *)Certificates.m_EndEntity.f_GetStr(), Certificates.m_EndEntity.f_GetLen())
+				)
+			;
 		}
 
 		TCActorResultVector<CSecretsManager::CSetSecretPropertiesResult> StoreResults;
@@ -434,27 +423,22 @@ namespace NMib::NWebApp::NAcmeManager
 			{
 				fp_UpdateDomainStatus(*pDomain, pDomainState->m_SecretsManagerHostInfo, EStatusSeverity_Info, "Creating account");
 
-				try
-				{
-					NContainer::CSecureByteVector PublicKeyData;
-					NContainer::CSecureByteVector PrivateKeyData;
-					CPublicCrypto::fs_GenerateKeys(PrivateKeyData, PublicKeyData, DomainSettings.m_AccountKeySettings);
+				auto CaptureScope = co_await g_CaptureExceptions;
 
-					CSecretsManager::CSecretProperties Properties;
+				NContainer::CSecureByteVector PublicKeyData;
+				NContainer::CSecureByteVector PrivateKeyData;
+				CPublicCrypto::fs_GenerateKeys(PrivateKeyData, PublicKeyData, DomainSettings.m_AccountKeySettings);
 
-					Properties.f_SetSecret(fg_Move(PrivateKeyData));
-					Properties.f_SetSemanticID(CStrSecure::CFormat("org.malterlib.certificate#acme#{}") << _DomainName);
+				CSecretsManager::CSecretProperties Properties;
 
-					co_await pDomainState->m_SecretsManager.f_CallActor(&CSecretsManager::f_SetSecretProperties)(SecretID, fg_Move(Properties));
+				Properties.f_SetSecret(fg_Move(PrivateKeyData));
+				Properties.f_SetSemanticID(CStrSecure::CFormat("org.malterlib.certificate#acme#{}") << _DomainName);
 
-					SecretPropertiesResult = co_await pDomainState->m_SecretsManager.f_CallActor(&CSecretsManager::f_GetSecretProperties)(SecretID).f_Wrap();
-					if (!SecretPropertiesResult)
-						co_return SecretPropertiesResult.f_GetException();
-				}
-				catch (NException::CException const &_Exception)
-				{
-					co_return _Exception.f_ExceptionPointer();
-				}
+				co_await pDomainState->m_SecretsManager.f_CallActor(&CSecretsManager::f_SetSecretProperties)(SecretID, fg_Move(Properties));
+
+				SecretPropertiesResult = co_await pDomainState->m_SecretsManager.f_CallActor(&CSecretsManager::f_GetSecretProperties)(SecretID).f_Wrap();
+				if (!SecretPropertiesResult)
+					co_return SecretPropertiesResult.f_GetException();
 			}
 			else
 				co_return SecretPropertiesResult.f_GetException();
