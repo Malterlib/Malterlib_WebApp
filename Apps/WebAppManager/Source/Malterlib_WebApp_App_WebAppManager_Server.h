@@ -8,7 +8,7 @@
 #include <Mib/Core/Core>
 #include <Mib/Concurrency/ConcurrencyManager>
 #include <Mib/Concurrency/DistributedApp>
-#include <Mib/Concurrency/ActorSequencer>
+#include <Mib/Concurrency/ActorSequencerActor>
 #include <Mib/Daemon/Daemon>
 #include <Mib/Process/ProcessLaunch>
 #include <Mib/File/ChangeNotificationActor>
@@ -501,11 +501,11 @@ namespace NMib::NWebApp::NWebAppManager
 		TCActor<CFileChangeNotificationActor> mp_FileChangeNotificationActor = fg_Construct();
 		TCVector<CActorSubscription> mp_S3FileChangeNotificationSubscriptions;
 
-		TCActorSequencer<void> mp_S3UploadSequencer;
-		TCActorSequencer<void> mp_S3FileReadSequencer{8};
-		TCActorSequencer<void> mp_S3PrioritySequencer;
-		TCActorSequencer<void> mp_S3DeleteSequencer{32};
-		TCActorSequencer<CAwsS3Actor::CObjectInfoMetaData> mp_S3MetadataSequencer{32};
+		CSequencer mp_S3UploadSequencer{"WebAppManagerActor S3UploadSequencer"};
+		CSequencer mp_S3FileReadSequencer{"WebAppManagerActor S3FileReadSequencer", 8};
+		CSequencer mp_S3PrioritySequencer{"WebAppManagerActor S3PrioritySequencer"};
+		CSequencer mp_S3DeleteSequencer{"WebAppManagerActor S3DeleteSequencer", 32};
+		TCSequencer<CAwsS3Actor::CObjectInfoMetaData> mp_S3MetadataSequencer{"WebAppManagerActor S3MetadataSequencer", 32};
 
 		CUser mp_NodeUser;
 		CUser mp_FastCGIUser;

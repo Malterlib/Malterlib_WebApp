@@ -542,13 +542,16 @@ exports.handler = async (event) => {
 									co_return {};
 								mp_bPendingS3Upload = true;
 
-								auto Result = co_await
+								auto Result = co_await mp_S3UploadSequencer.f_RunSequenced
 									(
-										mp_S3UploadSequencer / [=]() -> TCFuture<void>
+										g_ActorFunctorWeak / [=](CActorSubscription &&_Subscription) -> TCFuture<void>
 										{
 											mp_bPendingS3Upload = false;
 											DMibLogWithCategory(WebAppManager, Info, "Updating S3 upload due to file changes");
 											co_await self(&CWebAppManagerActor::fp_SetupPrerequisites_UploadS3Perform);
+
+											(void)_Subscription;
+
 											co_return {};
 										}
 									)
@@ -580,12 +583,18 @@ exports.handler = async (event) => {
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UploadS3()
 	{
-		return mp_S3UploadSequencer / [=]() -> TCFuture<void>
-			{
-				mp_bInitialS3UploadDone = true;
-				co_await self(&CWebAppManagerActor::fp_SetupPrerequisites_UploadS3Perform);
-				co_return {};
-			}
+		return mp_S3UploadSequencer.f_RunSequenced
+			(
+				g_ActorFunctorWeak / [=](CActorSubscription &&_Subscription) -> TCFuture<void>
+				{
+					mp_bInitialS3UploadDone = true;
+					co_await self(&CWebAppManagerActor::fp_SetupPrerequisites_UploadS3Perform);
+
+					(void) _Subscription;
+
+					co_return {};
+				}
+			)
 		;
 	}
 
@@ -979,10 +988,14 @@ exports.handler = async (event) => {
 			}
 
 			++nMetaDataQueries;
-			mp_S3MetadataSequencer / [=]() -> TCFuture<CAwsS3Actor::CObjectInfoMetaData>
-				{
-					co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetaData, BucketName, DestinationFileName);
-				}
+			mp_S3MetadataSequencer.f_RunSequenced
+				(
+					g_ActorFunctorWeak / [=](CActorSubscription &&_Subscription) -> TCFuture<CAwsS3Actor::CObjectInfoMetaData>
+					{
+						(void) _Subscription;
+						co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetaData, BucketName, DestinationFileName);
+					}
+				)
 				> MetaDataResults.f_AddResult(DestinationFileName)
 			;
 
@@ -1001,7 +1014,7 @@ exports.handler = async (event) => {
 		for (auto &Object : Bucket.m_Objects)
 			FilesToDelete[Object.m_Key];
 
-		TCMap<int64, TCVector<TCFunctionMutable<TCFuture<void> ()>>> ToUpload;
+		TCMap<int64, TCVector<TCFunctionMutable<TCFuture<void> (CActorSubscription &&_Subscription)>>> ToUpload;
 
 		for (auto &NewFile : SourceCheckResults.m_DirectoryManifest.m_Files)
 		{
@@ -1104,7 +1117,7 @@ exports.handler = async (event) => {
 			// Limit the number of files held in memory to limit memory usage
 			ToUpload[Priority].f_Insert
 				(
-					[=, ExpectedChecksum = NewFile.m_Digest]() -> TCFuture<void>
+					[=, ExpectedChecksum = NewFile.m_Digest](CActorSubscription &&_Subscription) -> TCFuture<void>
 					{
 						auto OnResume = co_await fg_OnResume
 							(
@@ -1143,6 +1156,8 @@ exports.handler = async (event) => {
 
 						co_await ((*mp_S3Actors)(&CAwsS3Actor::f_PutObject, BucketName, FileName, PutInfo, fg_Move(ReadData)) % ("Failed to upload '{}'"_f << FileName));
 
+						(void)_Subscription;
+
 						co_return {};
 					}
 				)
@@ -1153,28 +1168,33 @@ exports.handler = async (event) => {
 
 		for (auto &PriorityUploadList : ToUpload)
 		{
-			mp_S3PrioritySequencer / [=]() mutable -> TCFuture<void>
-				{
-					auto OnResume = co_await fg_OnResume
-						(
-							[&]() -> NException::CExceptionPointer
-							{
-								if (f_IsDestroyed())
-									return DMibErrorInstance("Shutting down");
-								return {};
-							}
-						)
-					;
+			mp_S3PrioritySequencer.f_RunSequenced
+				(
+					g_ActorFunctorWeak / [=](CActorSubscription &&_Subscription) mutable -> TCFuture<void>
+					{
+						auto OnResume = co_await fg_OnResume
+							(
+								[&]() -> NException::CExceptionPointer
+								{
+									if (f_IsDestroyed())
+										return DMibErrorInstance("Shutting down");
+									return {};
+								}
+							)
+						;
 
-					TCActorResultVector<void> UploadResults;
+						TCActorResultVector<void> UploadResults;
 
-					for (auto &fUpload : PriorityUploadList)
-						mp_S3FileReadSequencer / fg_Move(fUpload) > UploadResults.f_AddResult();
+						for (auto &fUpload : PriorityUploadList)
+							mp_S3FileReadSequencer.f_RunSequenced(g_ActorFunctorWeak / fg_Move(fUpload)) > UploadResults.f_AddResult();
 
-					co_await (co_await UploadResults.f_GetResults() | g_Unwrap);
+						co_await (co_await UploadResults.f_GetResults() | g_Unwrap);
 
-					co_return {};
-				}
+						(void)_Subscription;
+
+						co_return {};
+					}
+				)
 				> UploadResults.f_AddResult()
 			;
 		}
@@ -1195,11 +1215,15 @@ exports.handler = async (event) => {
 			if (bVerbose)
 				DMibLogWithCategory(S3Upload, Info, "Delete - Does not exist in source: {}", File);
 
-			mp_S3DeleteSequencer / [=]() -> TCFuture<void>
-				{
-					co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_DeleteObject, BucketName, File);
-				}
-				> DeleteFilesResults.f_AddResult();
+			mp_S3DeleteSequencer.f_RunSequenced
+				(
+					g_ActorFunctorWeak / [=](CActorSubscription &&_Subscription) -> TCFuture<void>
+					{
+						(void)_Subscription;
+						co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_DeleteObject, BucketName, File);
+					}
+				)
+				> DeleteFilesResults.f_AddResult()
 			;
 		}
 
@@ -1336,14 +1360,16 @@ exports.handler = async (event) => {
 		if (!mp_bInitialS3UploadDone)
 			co_return {};
 
-		co_await
+		co_await mp_S3UploadSequencer.f_RunSequenced
 			(
-				mp_S3UploadSequencer / [=]() -> TCFuture<void>
+				g_ActorFunctorWeak / [=](CActorSubscription &&_Subscription) -> TCFuture<void>
 				{
 					NTime::CClock Clock{true};
 					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache out of band");
 					co_await fp_InvalidateCloudfrontDistributionsWithRetry(mp_LastCloudFrontDistributions);
 					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
+
+					(void)_Subscription;
 
 					co_return {};
 				}

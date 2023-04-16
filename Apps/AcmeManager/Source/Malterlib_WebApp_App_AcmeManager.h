@@ -6,7 +6,7 @@
 #include <Mib/Core/Core>
 #include <Mib/Concurrency/ConcurrencyManager>
 #include <Mib/Concurrency/DistributedDaemon>
-#include <Mib/Concurrency/ActorSequencer>
+#include <Mib/Concurrency/ActorSequencerActor>
 #include <Mib/Concurrency/Actor/Timer>
 #include <Mib/Cloud/SecretsManager>
 #include <Mib/Cryptography/Certificate>
@@ -76,7 +76,7 @@ namespace NMib::NWebApp::NAcmeManager
 			TCMap<CHostInfo, CDomainStatus> m_Statuses;
 			TCOptional<CDomainState> m_DomainState;
 			CDomainSettings m_Settings;
-			TCActorSequencer<void> m_UpdateDomainSequencer;
+			CSequencer m_UpdateDomainSequencer{"AcmeManagerActor Domain {}"_f << f_GetName()};
 		};
 
 		void fp_BuildCommandLine(CDistributedAppCommandLineSpecification &o_CommandLine) override;

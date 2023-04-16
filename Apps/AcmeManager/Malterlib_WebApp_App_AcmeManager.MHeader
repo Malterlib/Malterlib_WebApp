@@ -6,14 +6,6 @@
 	Property
 	{
 	}
-	Compile.PrefixHeader undefined
-	{
-		&
-		{
-			PlatformFamily "Windows"
-			CompileDialect "C"
-		}
-	}
 	Target
 	{
 		Type "StaticLibrary"

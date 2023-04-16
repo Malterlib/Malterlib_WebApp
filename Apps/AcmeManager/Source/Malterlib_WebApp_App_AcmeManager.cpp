@@ -118,7 +118,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		for (auto &Domain : mp_Domains)
 		{
-			Domain.m_UpdateDomainSequencer.f_Abort() > Destroys.f_AddResult();
+			fg_Move(Domain.m_UpdateDomainSequencer).f_Destroy() > Destroys.f_AddResult();
 			if (Domain.m_DomainState)
 			{
 				if (Domain.m_DomainState->m_AcmeClientEC)

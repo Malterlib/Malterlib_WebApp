@@ -7,7 +7,7 @@
 
 #include <Mib/Cloud/SecretsManager>
 #include <Mib/Concurrency/ActorSubscription>
-#include <Mib/Concurrency/ActorSequencer>
+#include <Mib/Concurrency/ActorSequencerActor>
 #include <Mib/Concurrency/LogError>
 
 namespace NMib::NWebApp
@@ -45,7 +45,7 @@ namespace NMib::NWebApp
 
 			CDomainSettings m_Settings;
 			TCOptional<CDomainState> m_DomainState;
-			TCActorSequencer<void> m_UpdateDomainSequencer;
+			CSequencer m_UpdateDomainSequencer{"WebCertificateDeployActor Domain {}"_f << f_GetName()};
 			TCMap<CHostInfo, CDomainStatus> m_Statuses;
 		};
 

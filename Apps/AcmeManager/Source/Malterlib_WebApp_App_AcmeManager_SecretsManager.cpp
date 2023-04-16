@@ -85,42 +85,47 @@ namespace NMib::NWebApp::NAcmeManager
 			DomainState.m_SecretsManager = _SecretsManager;
 			DomainState.m_SecretsManagerHostInfo = _Info.m_HostInfo;
 
-			Domain.m_UpdateDomainSequencer /
-				[
-					this
-					, DomainName
-					, DomainState = fg_Move(DomainState)
-					, bCreatePrivateKey = Domain.f_GetName() == _CreatePrivateKeyForDomain
-				]
-				() mutable -> TCFuture<void>
-				{
-					auto *pDomain = mp_Domains.f_FindEqual(DomainName);
-
-					if (!pDomain)
-						co_return {};
-
-					auto &Domain = *pDomain;
-
-					if (auto pCurrentStatus = Domain.f_GetCurrentStatus())
+			Domain.m_UpdateDomainSequencer.f_RunSequenced
+				(
+					g_ActorFunctorWeak /
+					[
+						this
+						, DomainName
+						, DomainState = fg_Move(DomainState)
+						, bCreatePrivateKey = Domain.f_GetName() == _CreatePrivateKeyForDomain
+					]
+					(CActorSubscription &&_Subscription) mutable -> TCFuture<void>
 					{
-						if (pCurrentStatus->m_Severity == EStatusSeverity_Success && DomainState.m_SecretsManager != Domain.m_DomainState->m_SecretsManager)
-						{
-							fp_UpdateDomainStatus(Domain, DomainState.m_SecretsManagerHostInfo, EStatusSeverity_Info, "Aborted, another secrets manager already succeeded");
+						auto *pDomain = mp_Domains.f_FindEqual(DomainName);
+
+						if (!pDomain)
 							co_return {};
+
+						auto &Domain = *pDomain;
+
+						if (auto pCurrentStatus = Domain.f_GetCurrentStatus())
+						{
+							if (pCurrentStatus->m_Severity == EStatusSeverity_Success && DomainState.m_SecretsManager != Domain.m_DomainState->m_SecretsManager)
+							{
+								fp_UpdateDomainStatus(Domain, DomainState.m_SecretsManagerHostInfo, EStatusSeverity_Info, "Aborted, another secrets manager already succeeded");
+								co_return {};
+							}
 						}
+
+						Domain.m_DomainState = fg_Move(DomainState);
+
+						co_await
+							(
+								self(&CAcmeManagerActor::fp_UpdateDomain, Domain.f_GetName(), bCreatePrivateKey)
+								% ("Failed to update domain '{}'"_f << Domain.f_GetName())
+							)
+						;
+
+						(void)_Subscription;
+
+						co_return {};
 					}
-
-					Domain.m_DomainState = fg_Move(DomainState);
-
-					co_await
-						(
-							self(&CAcmeManagerActor::fp_UpdateDomain, Domain.f_GetName(), bCreatePrivateKey)
-							% ("Failed to update domain '{}'"_f << Domain.f_GetName())
-						)
-					;
-
-					co_return {};
-				}
+				)
 				> UpdateResults.f_AddResult(Domain.f_GetName())
 			;
 

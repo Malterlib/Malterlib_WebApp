@@ -71,15 +71,15 @@ namespace NMib::NWebApp
 		DomainState.m_SecretsManager = _SecretsManager;
 		DomainState.m_SecretsManagerHostInfo = _SecretsManagerHostInfo;
 
-		auto UpdateResult = co_await
+		auto UpdateResult = co_await pDomain->m_UpdateDomainSequencer.f_RunSequenced
 			(
-				pDomain->m_UpdateDomainSequencer /
+				g_ActorFunctorWeak /
 				[
 					this
 					, _DomainName
 					, DomainState = fg_Move(DomainState)
 				]
-				() mutable -> TCFuture<void>
+				(CActorSubscription &&_Subscription) mutable -> TCFuture<void>
 				{
 					auto *pDomain = m_Domains.f_FindEqual(_DomainName);
 
@@ -108,6 +108,8 @@ namespace NMib::NWebApp
 							% ("Failed to update domain '{}'"_f << Domain.f_GetName())
 						)
 					;
+
+					(void)_Subscription;
 
 					co_return {};
 				}
