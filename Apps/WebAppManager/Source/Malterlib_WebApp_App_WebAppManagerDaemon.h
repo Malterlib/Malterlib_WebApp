@@ -22,7 +22,13 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_StartApp(NEncoding::CEJSON const &_Params) override;
 		TCFuture<void> fp_StopApp() override;
 		TCFuture<void> fp_PreStop() override;
-		void fp_PopulateAppInterfaceRegisterInfo(CDistributedAppInterfaceServer::CRegisterInfo &o_RegisterInfo, NEncoding::CEJSON const &_Params) override;
+		void fp_PopulateAppInterfaceInfo
+			(
+				CDistributedAppInterfaceServer::CRegisterInfo &o_RegisterInfo
+				, CDistributedAppInterfaceServer::CConfigFiles &o_ConfigFiles
+				, NEncoding::CEJSON const &_Params
+			) override
+		;
 
 		void fp_BuildCommandLine(CDistributedAppCommandLineSpecification &o_CommandLine) override;
 
