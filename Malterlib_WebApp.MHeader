@@ -79,9 +79,9 @@ Property
 
 		ContentSecurity_ScriptSrc ["'unsafe-inline'"]
 
-		MeteorBuilds [{Name: "Meteor", BuildDir: "Meteor"}]
+		StaticBuilds [{Name: "Static", BuildDir: "Static"}]
 
-		AllowRobots_Meteor: bool = false
+		AllowRobots_Static: bool = false
 	}
 
 	Group.HideTargets true
@@ -108,7 +108,7 @@ Property
 
 Property
 {
-	MalterlibWebAppEnableWebAppManagerTest: bool = false // User(Tests)=true: Enable building of web app manager. Requires meteor to be installed on system
+	MalterlibWebAppEnableWebAppManagerTest: bool = true // User(Tests)=true: Enable building of web app manager. Requires meteor to be installed on system
 }
 
 Property
