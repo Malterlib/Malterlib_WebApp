@@ -90,6 +90,8 @@ namespace NMib::NWebApp
 	{
 		auto &Internal = *mp_pInternal;
 
+		CLogError LogError("Mib/WebApp/WebCertificateDeploy");
+
 		TCActorResultVector<void> Results;
 
 		for (auto &State : Internal.m_SecretsManagerStates)
@@ -105,7 +107,7 @@ namespace NMib::NWebApp
 		if (Internal.m_bOwnsFileActor && Internal.m_FileActor)
 			Internal.m_FileActor.f_Destroy() > Results.f_AddResult();
 
-		co_await Results.f_GetResults().f_Wrap();
+		co_await Results.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy certificate deploy actor");
 
 		co_return {};
 	}

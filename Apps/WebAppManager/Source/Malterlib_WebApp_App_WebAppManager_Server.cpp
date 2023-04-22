@@ -7,6 +7,7 @@
 #include <Mib/File/VirtualFS>
 #include <Mib/File/VirtualFSs/MalterlibFS>
 #include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Concurrency/LogError>
 
 namespace NMib::NWebApp::NWebAppManager
 {
@@ -105,15 +106,17 @@ namespace NMib::NWebApp::NWebAppManager
 		DLog(Debug, "Pre-stop server");
 		mp_bStopped = true;
 
+		CLogError LogError("");
+
 		TCActorResultVector<void> Destroys;
 		for (auto &ToolLaunch : mp_ToolLaunches)
 			ToolLaunch.m_ProcessLaunch.f_Destroy() > Destroys.f_AddResult();
 
-		co_await Destroys.f_GetResults();
-		co_await fp_DestroyApps().f_Wrap();
+		co_await Destroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy tool launches");;
+		co_await fp_DestroyApps().f_Wrap() > fg_LogWarning("", "Failed to destroy apps");
 
 		if (mp_NginxLaunch)
-			co_await mp_NginxLaunch.f_Destroy().f_Wrap();
+			co_await mp_NginxLaunch.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy nginx launch");
 
 		DLog(Debug, "Pre-stop server done");
 
@@ -124,39 +127,43 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		DLog(Debug, "Destroy server");
 
-		TCActorResultVector<void> Destroys;
+		CLogError LogError("");
 
-		if (mp_CertificateDeploySubscription)
-			fg_Exchange(mp_CertificateDeploySubscription, nullptr)->f_Destroy() > Destroys.f_AddResult();
+		{
+			TCActorResultVector<void> Destroys;
 
-		if (mp_CertificateDeployActor)
-			fg_Move(mp_CertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
+			if (mp_CertificateDeploySubscription)
+				fg_Exchange(mp_CertificateDeploySubscription, nullptr)->f_Destroy() > Destroys.f_AddResult();
 
-		if (mp_MongoCertificateDeploySubscription_Admin)
-			fg_Exchange(mp_MongoCertificateDeploySubscription_Admin, nullptr)->f_Destroy() > Destroys.f_AddResult();
+			if (mp_CertificateDeployActor)
+				fg_Move(mp_CertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
 
-		if (mp_MongoCertificateDeployActor)
-			fg_Move(mp_MongoCertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
+			if (mp_MongoCertificateDeploySubscription_Admin)
+				fg_Exchange(mp_MongoCertificateDeploySubscription_Admin, nullptr)->f_Destroy() > Destroys.f_AddResult();
 
-		for (auto &ToolLaunch : mp_ToolLaunches)
-			ToolLaunch.m_ProcessLaunch.f_Destroy() > Destroys.f_AddResult();
+			if (mp_MongoCertificateDeployActor)
+				fg_Move(mp_MongoCertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
 
-		mp_S3Actors.f_Destroy() > Destroys.f_AddResult();
+			for (auto &ToolLaunch : mp_ToolLaunches)
+				ToolLaunch.m_ProcessLaunch.f_Destroy() > Destroys.f_AddResult();
 
-		if (mp_CloudFrontActor)
-			mp_CloudFrontActor.f_Destroy() > Destroys.f_AddResult();
-		if (mp_LambdaActor)
-			mp_LambdaActor.f_Destroy() > Destroys.f_AddResult();
+			mp_S3Actors.f_Destroy() > Destroys.f_AddResult();
 
-		mp_CurlActors.f_Destroy()  > Destroys.f_AddResult();
+			if (mp_CloudFrontActor)
+				mp_CloudFrontActor.f_Destroy() > Destroys.f_AddResult();
+			if (mp_LambdaActor)
+				mp_LambdaActor.f_Destroy() > Destroys.f_AddResult();
 
-		co_await Destroys.f_GetResults();
+			mp_CurlActors.f_Destroy()  > Destroys.f_AddResult();
 
-		co_await fp_DestroyApps().f_Wrap();
+			co_await Destroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy web app manager");
+		}
+
+		co_await fp_DestroyApps().f_Wrap() > LogError.f_Warning("Failed to destroy apps");
 		DLog(Debug, "Destroy apps done");
 
 		if (mp_AppLaunchHelper)
-			co_await mp_AppLaunchHelper.f_Destroy();
+			co_await mp_AppLaunchHelper.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy app launch helper");
 
 		{
 			TCActorResultVector<void> Destroys;
@@ -169,17 +176,16 @@ namespace NMib::NWebApp::NWebAppManager
 				}
 			}
 
-			if (mp_NetworkTunnelsServer)
-				mp_NetworkTunnelsServer.f_Destroy() > Destroys.f_AddResult();
-			mp_NetworkTunnelsServer.f_Clear();
-
-			co_await Destroys.f_GetResults();
+			co_await Destroys.f_GetResults().f_Wrap() > LogError.f_Warning("Failed to destroy app launches");
 		}
 
-		if (mp_NginxLaunch)
-			co_await mp_NginxLaunch.f_Destroy();
+		if (mp_NetworkTunnelsServer)
+			co_await fg_Move(mp_NetworkTunnelsServer).f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy network tunnels server");
 
-		co_await mp_FileActors.f_Destroy();
+		if (mp_NginxLaunch)
+			co_await mp_NginxLaunch.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy nginx launch");
+
+		co_await mp_FileActors.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy file actors");
 
 		co_return {};
 	}

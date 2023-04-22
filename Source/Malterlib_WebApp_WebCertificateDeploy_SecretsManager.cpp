@@ -157,7 +157,7 @@ namespace NMib::NWebApp
 
 			m_SecretsManagerStates.f_Remove(pSecretsManagerState);
 
-			co_await Subscription->f_Destroy().f_Wrap();
+			co_await Subscription->f_Destroy().f_Wrap() > fg_LogWarning("", "Failed to destroy secret manager change subscription");
 		}
 
 		TCActorResultVector<void> UpdateDomainResults;

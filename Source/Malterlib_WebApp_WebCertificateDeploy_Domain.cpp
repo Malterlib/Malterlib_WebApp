@@ -26,7 +26,7 @@ namespace NMib::NWebApp
 			{
 				if (auto *pDomain = pInternal->m_Domains.f_FindEqual(DomainName))
 				{
-					co_await fg_Move(pDomain->m_UpdateDomainSequencer).f_Destroy().f_Wrap();
+					co_await fg_Move(pDomain->m_UpdateDomainSequencer).f_Destroy().f_Wrap() > fg_LogWarning("", "Failed to destroy update domain sequencer");
 					pInternal->m_Domains.f_Remove(DomainName);
 				}
 				co_return {};
