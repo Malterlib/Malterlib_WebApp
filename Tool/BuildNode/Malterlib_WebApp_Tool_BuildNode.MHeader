@@ -13,7 +13,7 @@ Property
 	Repository
 	{
 		Type "External"
-		Remotes =+ {Name: "upstream", URL: "https://github.com/nodejs/node.git"}
+		Remotes =+ [{Name: "upstream", URL: "https://github.com/nodejs/node.git"}, {Name: "upstream-meteor", URL: "https://github.com/meteor/node-v14-esm.git"}]
 		DefaultUpstreamBranch "main"
 	}
 }
