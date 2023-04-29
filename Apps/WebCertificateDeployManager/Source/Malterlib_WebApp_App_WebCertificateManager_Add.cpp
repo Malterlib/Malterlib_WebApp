@@ -12,16 +12,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		CStr Name = _Params["Domain"].f_String();
 
-		auto OnResume = co_await fg_OnResume
-			(
-				[&]() -> NException::CExceptionPointer
-				{
-					if (f_IsDestroyed())
-						return DMibErrorInstance("Shutting down");
-					return {};
-				}
-			)
-		;
+		auto OnResume = co_await f_CheckDestroyedOnResume();
 
 		CDomainSettings Settings;
 
