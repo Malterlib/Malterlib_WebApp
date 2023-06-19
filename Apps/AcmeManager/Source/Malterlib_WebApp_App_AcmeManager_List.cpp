@@ -9,7 +9,7 @@
 
 namespace NMib::NWebApp::NAcmeManager
 {
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainList(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainList(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 	{
 		bool bVerbose = _Params["Verbose"].f_Boolean();
 		CStr DomainName = _Params["Domain"].f_String();

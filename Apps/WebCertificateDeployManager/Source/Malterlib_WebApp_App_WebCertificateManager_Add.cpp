@@ -6,7 +6,7 @@
 
 namespace NMib::NWebApp::NWebCertificateManager
 {
-	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainAdd(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainAdd(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 

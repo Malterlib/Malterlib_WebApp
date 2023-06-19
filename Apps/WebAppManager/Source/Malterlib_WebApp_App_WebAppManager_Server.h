@@ -244,7 +244,7 @@ namespace NMib::NWebApp::NWebAppManager
 		ICWebAppManager(CDistributedAppState const &_AppState, CWebAppManagerOptions const &_Options, TCSet<CStr> const &_Tags);
 		virtual ~ICWebAppManager();
 
-		virtual CEJSON f_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const = 0;
+		virtual CEJSONSorted f_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const = 0;
 		virtual NWeb::NHTTP::CURL f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const = 0;
 
 		CDistributedAppState const &m_AppState;
@@ -258,7 +258,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		CWebAppManagerImpl(CWebAppManagerActor *_pThis);
 
-		CEJSON f_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const;
+		CEJSONSorted f_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const;
 		NWeb::NHTTP::CURL f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const;
 
 	private:
@@ -273,7 +273,7 @@ namespace NMib::NWebApp::NWebAppManager
 		virtual void f_CalculateSettings
 			(
 				TCMap<CStr, CStr> &o_Settings
-				, CJSON &o_MeteorSettings
+				, CJSONSorted &o_MeteorSettings
 				, CStr const &_PackageName
 				, CWebAppManagerOptions::CPackage const &_PackageOptions
 				, ICWebAppManager const &_WebAppManager
@@ -409,7 +409,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_CleanupOldProcesses();
 		CStr fp_GetNodeExecutable(CStr const &_Executable);
 
-		CEJSON fp_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const;
+		CEJSONSorted fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const;
 
 		mint fp_GetNumNodes() const;
 

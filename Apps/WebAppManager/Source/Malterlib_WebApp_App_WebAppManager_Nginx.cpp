@@ -752,7 +752,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 								try
 								{
-									CJSON const RedirectJSON = CJSON::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath), RedirectPath);
+									CJSONSorted const RedirectJSON = CJSONSorted::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath), RedirectPath);
 
 									for (auto const &Redirect : RedirectJSON["redirects"].f_Array())
 									{

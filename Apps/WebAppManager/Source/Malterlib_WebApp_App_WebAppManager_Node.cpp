@@ -311,7 +311,7 @@ namespace NMib::NWebApp::NWebAppManager
 				continue;
 			}
 
-			CEJSON Value;
+			CEJSONSorted Value;
 			if (EnvVar.m_Default)
 				Value = fp_GetConfigValue(EnvVar.m_Setting, *EnvVar.m_Default);
 			else
@@ -339,7 +339,7 @@ namespace NMib::NWebApp::NWebAppManager
 			if (nParsed != 3)
 				continue;
 
-			CEJSON MetaData;
+			CEJSONSorted MetaData;
 			MetaData["URLTemplate"] = "{Host}:{Port}";
 
 			TCPromise<void> OldSubscriptionDestroy;
@@ -663,7 +663,7 @@ namespace NMib::NWebApp::NWebAppManager
 				CalculatedSettings["MongoSSLClientKeyFile"] = LaunchHomePath / "certificates/admin.key";
 			}
 
-			CJSON MeteorSettings;
+			CJSONSorted MeteorSettings;
 			{
 				auto &PublicMeteorSettings = MeteorSettings["public"];
 
@@ -683,7 +683,7 @@ namespace NMib::NWebApp::NWebAppManager
 				{
 					auto &VersionHistory = (PublicMeteorSettings["appVersionHistory"] = EJSONType_Array).f_Array();
 					for (auto const &HistoryEntry : mp_VersionHistory)
-						VersionHistory.f_Insert(CJSON(HistoryEntry));
+						VersionHistory.f_Insert(CJSONSorted(HistoryEntry));
 				}
 
 				if (mp_bIsStaging)

@@ -99,7 +99,7 @@ namespace NMib::NWebApp::NWebAppManager
 		fp_ParseConfig_DDPSelf();
 	}
 
-	CEJSON CWebAppManagerActor::fp_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const
+	CEJSONSorted CWebAppManagerActor::fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const
 	{
 		if (_Default.f_IsNull())
 		{

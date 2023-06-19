@@ -9,7 +9,7 @@
 
 namespace NMib::NWebApp::NWebCertificateManager
 {
-	void CWebCertificateManagerActor::fp_ParseCommandLineSettings(CEJSON const &_Params, CDomainSettings &o_Settings)
+	void CWebCertificateManagerActor::fp_ParseCommandLineSettings(CEJSONSorted const &_Params, CDomainSettings &o_Settings)
 	{
 		CDomainSettings NewSettings = o_Settings;
 
@@ -92,97 +92,97 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		auto DomainManagement = o_CommandLine.f_AddSection("Domain Management", "Commands to manage WebCertificateManager domains");
 
-		auto SettingsOption_LocationRsaCertificate = "LocationRsaCertificate?"_=
+		auto SettingsOption_LocationRsaCertificate = "LocationRsaCertificate?"_o=
 			{
-				"Names"_= {"--location-rsa-certificate"}
-				, "Default"_= nullptr
-				, "Type"_= COneOfType{COneOf(nullptr), ""}
-				, "Description"_= "File location to deploy RSA certificate to"
+				"Names"_o= {"--location-rsa-certificate"}
+				, "Default"_o= nullptr
+				, "Type"_o= COneOfType{COneOf(nullptr), ""}
+				, "Description"_o= "File location to deploy RSA certificate to"
 			}
 		;
-		auto SettingsOption_LocationRsaKey = "LocationRsaKey?"_=
+		auto SettingsOption_LocationRsaKey = "LocationRsaKey?"_o=
 			{
-				"Names"_= {"--location-rsa-key"}
-				, "Default"_= nullptr
-				, "Type"_= COneOfType{COneOf(nullptr), ""}
-				, "Description"_= "File location to deploy RSA key to"
+				"Names"_o= {"--location-rsa-key"}
+				, "Default"_o= nullptr
+				, "Type"_o= COneOfType{COneOf(nullptr), ""}
+				, "Description"_o= "File location to deploy RSA key to"
 			}
 		;
-		auto SettingsOption_LocationEcCertificate = "LocationEcCertificate?"_=
+		auto SettingsOption_LocationEcCertificate = "LocationEcCertificate?"_o=
 			{
-				"Names"_= {"--location-ec-certificate"}
-				, "Default"_= nullptr
-				, "Type"_= COneOfType{COneOf(nullptr), ""}
-				, "Description"_= "File location to deploy EC certificate to"
+				"Names"_o= {"--location-ec-certificate"}
+				, "Default"_o= nullptr
+				, "Type"_o= COneOfType{COneOf(nullptr), ""}
+				, "Description"_o= "File location to deploy EC certificate to"
 			}
 		;
-		auto SettingsOption_LocationEcKey = "LocationEcKey?"_=
+		auto SettingsOption_LocationEcKey = "LocationEcKey?"_o=
 			{
-				"Names"_= {"--location-ec-key"}
-				, "Default"_= nullptr
-				, "Type"_= COneOfType{COneOf(nullptr), ""}
-				, "Description"_= "File location to deploy EC key to"
+				"Names"_o= {"--location-ec-key"}
+				, "Default"_o= nullptr
+				, "Type"_o= COneOfType{COneOf(nullptr), ""}
+				, "Description"_o= "File location to deploy EC key to"
 			}
 		;
-		auto SettingsOption_LocationNginxPid = "LocationNginxPid?"_=
+		auto SettingsOption_LocationNginxPid = "LocationNginxPid?"_o=
 			{
-				"Names"_= {"--location-nginx-pid"}
-				, "Default"_= nullptr
-				, "Type"_= COneOfType{COneOf(nullptr), ""}
-				, "Description"_= "File location where nginx pid file lives.\n"
+				"Names"_o= {"--location-nginx-pid"}
+				, "Default"_o= nullptr
+				, "Type"_o= COneOfType{COneOf(nullptr), ""}
+				, "Description"_o= "File location where nginx pid file lives.\n"
 				"After deploying new certificates this location will de used to read the PID to send a HUP signal to make nginx reload the configuration."
 			}
 		;
-		auto SettingsOption_CertificateFileUser = "CertificateFileUser?"_=
+		auto SettingsOption_CertificateFileUser = "CertificateFileUser?"_o=
 			{
-				"Names"_= {"--certificate-file-user"}
-				, "Default"_= ""
-				, "Type"_= ""
-				, "Description"_= "The user that should own the certificate files.\n"
+				"Names"_o= {"--certificate-file-user"}
+				, "Default"_o= ""
+				, "Type"_o= ""
+				, "Description"_o= "The user that should own the certificate files.\n"
 			}
 		;
-		auto SettingsOption_CertificateFileGroup = "CertificateFileGroup?"_=
+		auto SettingsOption_CertificateFileGroup = "CertificateFileGroup?"_o=
 			{
-				"Names"_= {"--certificate-file-group"}
-				, "Default"_= ""
-				, "Type"_= ""
-				, "Description"_= "The group that should own the certificate files.\n"
+				"Names"_o= {"--certificate-file-group"}
+				, "Default"_o= ""
+				, "Type"_o= ""
+				, "Description"_o= "The group that should own the certificate files.\n"
 			}
 		;
 
 		COneOf AllAttributes;
-		AllAttributes.m_Config = fsp_GenerateAttributes(EFileAttrib_AllUnixPermissions);
+		AllAttributes.m_Config = CEJSONOrdered::fs_FromCompatible(fsp_GenerateAttributes(EFileAttrib_AllUnixPermissions));
 
-		auto SettingsOption_CertificateFileAttributes = "CertificateFileAttributes?"_=
+		auto SettingsOption_CertificateFileAttributes = "CertificateFileAttributes?"_o=
 			{
-				"Names"_= {"--certificate-file-attributes"}
-				, "Default"_= CEJSON{"UserRead", "UserWrite", "GroupRead", "EveryoneRead"}
-				, "Type"_= CEJSON{AllAttributes}
-				, "Description"_= "The file attributes that should be used for certificate files.\n"
+				"Names"_o= {"--certificate-file-attributes"}
+				, "Default"_o= CEJSONOrdered{"UserRead", "UserWrite", "GroupRead", "EveryoneRead"}
+				, "Type"_o= CEJSONOrdered{AllAttributes}
+				, "Description"_o= "The file attributes that should be used for certificate files.\n"
 			}
 		;
-		auto SettingsOption_KeyFileUser = "KeyFileUser?"_=
+		auto SettingsOption_KeyFileUser = "KeyFileUser?"_o=
 			{
-				"Names"_= {"--key-file-user"}
-				, "Default"_= ""
-				, "Type"_= ""
-				, "Description"_= "The user that should own the key files.\n"
+				"Names"_o= {"--key-file-user"}
+				, "Default"_o= ""
+				, "Type"_o= ""
+				, "Description"_o= "The user that should own the key files.\n"
 			}
 		;
-		auto SettingsOption_KeyFileGroup = "KeyFileGroup?"_=
+		auto SettingsOption_KeyFileGroup = "KeyFileGroup?"_o=
 			{
-				"Names"_= {"--key-file-group"}
-				, "Default"_= ""
-				, "Type"_= ""
-				, "Description"_= "The group that should own the key files.\n"
+				"Names"_o= {"--key-file-group"}
+				, "Default"_o= ""
+				, "Type"_o= ""
+				, "Description"_o= "The group that should own the key files.\n"
 			}
 		;
-		auto SettingsOption_KeyFileAttributes = "KeyFileAttributes?"_=
+		auto SettingsOption_KeyFileAttributes = "KeyFileAttributes?"_o=
 			{
-				"Names"_= {"--key-file-attributes"}
-				, "Default"_= CEJSON{"UserRead", "UserWrite"}
-				, "Type"_= CEJSON{AllAttributes}
-				, "Description"_= "The file attributes that should be used for key files.\n"
+				"Names"_o= {"--key-file-attributes"}
+				, "Default"_o= CEJSONOrdered{"UserRead", "UserWrite"}
+				, "Type"_o= CEJSONOrdered{AllAttributes}
+				, "Description"_o= "The file attributes that should be used for key files.\n"
 			}
 		;
 
@@ -198,15 +198,15 @@ namespace NMib::NWebApp::NWebCertificateManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--domain-add"}
-					, "Description"_= "Adds an application domain\n"
-					, "Options"_=
+					"Names"_o= {"--domain-add"}
+					, "Description"_o= "Adds an application domain\n"
+					, "Options"_o=
 					{
-						"Domain"_=
+						"Domain"_o=
 						{
-							"Names"_= {"--domain"}
-							, "Type"_= ""
-							, "Description"_= "The domain name"
+							"Names"_o= {"--domain"}
+							, "Type"_o= ""
+							, "Description"_o= "The domain name"
 						}
 						, SettingsOption_LocationRsaCertificate
 						, SettingsOption_LocationRsaKey
@@ -223,7 +223,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 						, SettingsOption_KeyFileAttributes
 					}
 				}
-				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 				{
 					return g_Future <<= self(&CWebCertificateManagerActor::fp_CommandLine_DomainAdd, _Params, _pCommandLine);
 				}
@@ -232,15 +232,15 @@ namespace NMib::NWebApp::NWebCertificateManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--domain-change-settings"}
-					, "Description"_= "Change settings for domain.\n"
-					, "Options"_=
+					"Names"_o= {"--domain-change-settings"}
+					, "Description"_o= "Change settings for domain.\n"
+					, "Options"_o=
 					{
-						"Domain"_=
+						"Domain"_o=
 						{
-							"Names"_= {"--domain"}
-							, "Type"_= ""
-							, "Description"_= "Unique name of the domain to change settings for."
+							"Names"_o= {"--domain"}
+							, "Type"_o= ""
+							, "Description"_o= "Unique name of the domain to change settings for."
 						}
 						, fStripDefault(SettingsOption_LocationRsaCertificate)
 						, fStripDefault(SettingsOption_LocationRsaKey)
@@ -257,7 +257,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 						, fStripDefault(SettingsOption_KeyFileAttributes)
 					}
 				}
-				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 				{
 					return g_Future <<= self(&CWebCertificateManagerActor::fp_CommandLine_DomainChangeSettings, _Params, _pCommandLine);
 				}
@@ -267,26 +267,26 @@ namespace NMib::NWebApp::NWebCertificateManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--domain-list"}
-					, "Description"_= "List domains."
-					, "Options"_=
+					"Names"_o= {"--domain-list"}
+					, "Description"_o= "List domains."
+					, "Options"_o=
 					{
-						"Verbose?"_=
+						"Verbose?"_o=
 						{
-							"Names"_= {"--verbose", "-v"}
-							, "Default"_= false
-							, "Description"_= "Display more extensive information about the domain."
+							"Names"_o= {"--verbose", "-v"}
+							, "Default"_o= false
+							, "Description"_o= "Display more extensive information about the domain."
 						}
-						, "Domain?"_=
+						, "Domain?"_o=
 						{
-							"Names"_= {"--domain"}
-							, "Default"_= ""
-							, "Description"_= "Unique name of the domain to list. Leave empty to list all domains."
+							"Names"_o= {"--domain"}
+							, "Default"_o= ""
+							, "Description"_o= "Unique name of the domain to list. Leave empty to list all domains."
 						}
 						, CTableRenderHelper::fs_OutputTypeOption()
 					}
 				}
-				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 				{
 					return g_Future <<= self(&CWebCertificateManagerActor::fp_CommandLine_DomainList, _Params, _pCommandLine);
 				}
@@ -295,18 +295,18 @@ namespace NMib::NWebApp::NWebCertificateManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--domain-remove"}
-					, "Description"_= "Remove the domain."
-					, "Parameters"_=
+					"Names"_o= {"--domain-remove"}
+					, "Description"_o= "Remove the domain."
+					, "Parameters"_o=
 					{
-						"Domain"_=
+						"Domain"_o=
 						{
-							"Type"_= ""
-							, "Description"_= "The name of the domain to remove."
+							"Type"_o= ""
+							, "Description"_o= "The name of the domain to remove."
 						}
 					}
 				}
-				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 				{
 					return g_Future <<= self(&CWebCertificateManagerActor::fp_CommandLine_DomainRemove, _Params, _pCommandLine);
 				}

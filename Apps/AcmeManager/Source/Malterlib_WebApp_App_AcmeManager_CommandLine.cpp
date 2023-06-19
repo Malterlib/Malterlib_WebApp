@@ -22,75 +22,75 @@ namespace NMib::NWebApp::NAcmeManager
 
 		auto DomainManagement = o_CommandLine.f_AddSection("Domain Management", "Commands to manage AcmeManager domains");
 
-		auto SettingsOption_GenerateRSA = "GenerateRSA?"_=
+		auto SettingsOption_GenerateRSA = "GenerateRSA?"_o=
 			{
-				"Names"_= {"--generate-rsa"}
-				, "Default"_= true
-				, "Type"_= true
-				, "Description"_= "Generate a RSA based certificate"
+				"Names"_o= {"--generate-rsa"}
+				, "Default"_o= true
+				, "Type"_o= true
+				, "Description"_o= "Generate a RSA based certificate"
 			}
 		;
-		auto SettingsOption_GenerateEC = "GenerateEC?"_=
+		auto SettingsOption_GenerateEC = "GenerateEC?"_o=
 			{
-				"Names"_= {"--generate-ec"}
-				, "Default"_= true
-				, "Type"_= true
-				, "Description"_= "Generate a elliptic key based certificate"
+				"Names"_o= {"--generate-ec"}
+				, "Default"_o= true
+				, "Type"_o= true
+				, "Description"_o= "Generate a elliptic key based certificate"
 			}
 		;
-		auto SettingsOption_IncludeWildcard = "IncludeWildcard?"_=
+		auto SettingsOption_IncludeWildcard = "IncludeWildcard?"_o=
 			{
-				"Names"_= {"--include-wildcard"}
-				, "Default"_= true
-				, "Type"_= true
-				, "Description"_= "Generate a certificate with wildcard subdomains"
+				"Names"_o= {"--include-wildcard"}
+				, "Default"_o= true
+				, "Type"_o= true
+				, "Description"_o= "Generate a certificate with wildcard subdomains"
 			}
 		;
-		auto SettingsOption_EllipticCurveType = "EllipticCurveType?"_=
+		auto SettingsOption_EllipticCurveType = "EllipticCurveType?"_o=
 			{
-				"Names"_= {"--elliptic-curve-type"}
-				, "Default"_= "secp384r1"
-				, "Type"_= COneOf{"secp256r1", "secp384r1", "secp521r1", "X25519"}
-				, "Description"_= "The type of elliptic curve to use for the EC certificate."
+				"Names"_o= {"--elliptic-curve-type"}
+				, "Default"_o= "secp384r1"
+				, "Type"_o= COneOf{"secp256r1", "secp384r1", "secp521r1", "X25519"}
+				, "Description"_o= "The type of elliptic curve to use for the EC certificate."
 			}
 		;
-		auto SettingsOption_RSAKeyLength = "RSAKeyLength?"_=
+		auto SettingsOption_RSAKeyLength = "RSAKeyLength?"_o=
 			{
-				"Names"_= {"--rsa-key-length"}
-				, "Default"_= 4096
-				, "Type"_= COneOf{3072, 4096, 6144, 8192, 12288, 16384}
-				, "Description"_= "The number of bits to use for the RSA key"
+				"Names"_o= {"--rsa-key-length"}
+				, "Default"_o= 4096
+				, "Type"_o= COneOf{3072, 4096, 6144, 8192, 12288, 16384}
+				, "Description"_o= "The number of bits to use for the RSA key"
 			}
 		;
-		auto SettingsOption_AcmeDirectory = "AcmeDirectory?"_=
+		auto SettingsOption_AcmeDirectory = "AcmeDirectory?"_o=
 			{
-				"Names"_= {"--acme-directory"}
-				, "Type"_= COneOf{"LetsEncrypt", "LetsEncryptStaging", COneOfType{""}}
-				, "Default"_= "LetsEncryptStaging"
-				, "Description"_= "Generate a elliptic key based certificate"
+				"Names"_o= {"--acme-directory"}
+				, "Type"_o= COneOf{"LetsEncrypt", "LetsEncryptStaging", COneOfType{""}}
+				, "Default"_o= "LetsEncryptStaging"
+				, "Description"_o= "Generate a elliptic key based certificate"
 			}
 		;
-		auto SettingsOption_AccountKeySettings = "AccountKeySettings?"_=
+		auto SettingsOption_AccountKeySettings = "AccountKeySettings?"_o=
 			{
-				"Names"_= {"--account-key-type"}
-				, "Type"_= COneOfType{0, COneOf{"default", "secp256r1", "secp384r1", "secp521r1"}}
-				, "Default"_= "default"
-				, "Description"_= "The key type to use for the account. Default will use secp521r1 or secp384r1 if Let's encrypt directory is used."
+				"Names"_o= {"--account-key-type"}
+				, "Type"_o= COneOfType{0, COneOf{"default", "secp256r1", "secp384r1", "secp521r1"}}
+				, "Default"_o= "default"
+				, "Description"_o= "The key type to use for the account. Default will use secp521r1 or secp384r1 if Let's encrypt directory is used."
 			}
 		;
-		auto SettingsOption_ManualDNSChallenge = "ManualDNSChallenge?"_=
+		auto SettingsOption_ManualDNSChallenge = "ManualDNSChallenge?"_o=
 			{
-				"Names"_= {"--manual-dns-challenge-release"}
-				, "Type"_= false
-				, "Default"_= false
-				, "Description"_= "Wait for DNS challenge to be manually released before continuing."
+				"Names"_o= {"--manual-dns-challenge-release"}
+				, "Type"_o= false
+				, "Default"_o= false
+				, "Description"_o= "Wait for DNS challenge to be manually released before continuing."
 			}
 		;
-		auto SettingsOption_AlternateChain = "AlternateChain?"_=
+		auto SettingsOption_AlternateChain = "AlternateChain?"_o=
 			{
-				"Names"_= {"--alternate-chain"}
-				, "Type"_= ""
-				, "Description"_= "Common name of root for alternate chain to use."
+				"Names"_o= {"--alternate-chain"}
+				, "Type"_o= ""
+				, "Description"_o= "Common name of root for alternate chain to use."
 			}
 		;
 
@@ -105,21 +105,21 @@ namespace NMib::NWebApp::NAcmeManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--domain-add"}
-					, "Description"_= "Adds an application domain\n"
-					, "Options"_=
+					"Names"_o= {"--domain-add"}
+					, "Description"_o= "Adds an application domain\n"
+					, "Options"_o=
 					{
-						"Domain"_=
+						"Domain"_o=
 						{
-							"Names"_= {"--domain"}
-							, "Type"_= ""
-							, "Description"_= "The domain name"
+							"Names"_o= {"--domain"}
+							, "Type"_o= ""
+							, "Description"_o= "The domain name"
 						}
-						, "CreateAccountKey?"_=
+						, "CreateAccountKey?"_o=
 						{
-							"Names"_= {"--create-account-key"}
-							, "Default"_= true
-							, "Description"_= "Create ACME account private key if not already created"
+							"Names"_o= {"--create-account-key"}
+							, "Default"_o= true
+							, "Description"_o= "Create ACME account private key if not already created"
 						}
 						, SettingsOption_AcmeDirectory
 						, SettingsOption_GenerateRSA
@@ -132,7 +132,7 @@ namespace NMib::NWebApp::NAcmeManager
 						, SettingsOption_AlternateChain
 					}
 				}
-				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 				{
 					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainAdd, _Params, _pCommandLine);
 				}
@@ -141,19 +141,19 @@ namespace NMib::NWebApp::NAcmeManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--domain-create-account-key"}
-					, "Description"_= "Creates the account key for the account if it hasn't already been created\n"
-					, "Options"_=
+					"Names"_o= {"--domain-create-account-key"}
+					, "Description"_o= "Creates the account key for the account if it hasn't already been created\n"
+					, "Options"_o=
 					{
-						"Domain"_=
+						"Domain"_o=
 						{
-							"Names"_= {"--domain"}
-							, "Type"_= ""
-							, "Description"_= "The domain name"
+							"Names"_o= {"--domain"}
+							, "Type"_o= ""
+							, "Description"_o= "The domain name"
 						}
 					}
 				}
-				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 				{
 					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainCreateAccountKey, _Params, _pCommandLine);
 				}
@@ -162,19 +162,19 @@ namespace NMib::NWebApp::NAcmeManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--domain-release-dns-challenge"}
-					, "Description"_= "Releases a domain that has manual DNS challenge release enabled\n"
-					, "Options"_=
+					"Names"_o= {"--domain-release-dns-challenge"}
+					, "Description"_o= "Releases a domain that has manual DNS challenge release enabled\n"
+					, "Options"_o=
 					{
-						"Domain"_=
+						"Domain"_o=
 						{
-							"Names"_= {"--domain"}
-							, "Type"_= ""
-							, "Description"_= "The domain name"
+							"Names"_o= {"--domain"}
+							, "Type"_o= ""
+							, "Description"_o= "The domain name"
 						}
 					}
 				}
-				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 				{
 					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainReleaseDNSChallenge, _Params, _pCommandLine);
 				}
@@ -183,15 +183,15 @@ namespace NMib::NWebApp::NAcmeManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--domain-change-settings"}
-					, "Description"_= "Change settings for domain.\n"
-					, "Options"_=
+					"Names"_o= {"--domain-change-settings"}
+					, "Description"_o= "Change settings for domain.\n"
+					, "Options"_o=
 					{
-						"Domain"_=
+						"Domain"_o=
 						{
-							"Names"_= {"--domain"}
-							, "Type"_= ""
-							, "Description"_= "Unique name of the domain to change settings for."
+							"Names"_o= {"--domain"}
+							, "Type"_o= ""
+							, "Description"_o= "Unique name of the domain to change settings for."
 						}
 						, fStripDefault(SettingsOption_AcmeDirectory)
 						, fStripDefault(SettingsOption_GenerateRSA)
@@ -204,7 +204,7 @@ namespace NMib::NWebApp::NAcmeManager
 						, fStripDefault(SettingsOption_AlternateChain)
 					}
 				}
-				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 				{
 					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainChangeSettings, _Params, _pCommandLine);
 				}
@@ -214,26 +214,26 @@ namespace NMib::NWebApp::NAcmeManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--domain-list"}
-					, "Description"_= "List domains."
-					, "Options"_=
+					"Names"_o= {"--domain-list"}
+					, "Description"_o= "List domains."
+					, "Options"_o=
 					{
-						"Verbose?"_=
+						"Verbose?"_o=
 						{
-							"Names"_= {"--verbose", "-v"}
-							, "Default"_= false
-							, "Description"_= "Display more extensive information about the domain."
+							"Names"_o= {"--verbose", "-v"}
+							, "Default"_o= false
+							, "Description"_o= "Display more extensive information about the domain."
 						}
-						, "Domain?"_=
+						, "Domain?"_o=
 						{
-							"Names"_= {"--domain"}
-							, "Default"_= ""
-							, "Description"_= "Unique name of the domain to list. Leave empty to list all domains."
+							"Names"_o= {"--domain"}
+							, "Default"_o= ""
+							, "Description"_o= "Unique name of the domain to list. Leave empty to list all domains."
 						}
 						, CTableRenderHelper::fs_OutputTypeOption()
 					}
 				}
-				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 				{
 					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainList, _Params, _pCommandLine);
 				}
@@ -242,18 +242,18 @@ namespace NMib::NWebApp::NAcmeManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--domain-remove"}
-					, "Description"_= "Remove the domain."
-					, "Parameters"_=
+					"Names"_o= {"--domain-remove"}
+					, "Description"_o= "Remove the domain."
+					, "Parameters"_o=
 					{
-						"Domain"_=
+						"Domain"_o=
 						{
-							"Type"_= ""
-							, "Description"_= "The name of the domain to remove."
+							"Type"_o= ""
+							, "Description"_o= "The name of the domain to remove."
 						}
 					}
 				}
-				, [this](CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 				{
 					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainRemove, _Params, _pCommandLine);
 				}

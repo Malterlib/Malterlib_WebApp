@@ -24,10 +24,10 @@ namespace NMib::NWebApp::NWebAppManager
 		DefaultSection.f_RegisterCommand
 			(
 				{
-					"Names"_= {"--invalidate-cloud-front-caches"}
-					, "Description"_= "Invalidate all CloudFront caches.\n"
+					"Names"_o= {"--invalidate-cloud-front-caches"}
+					, "Description"_o= "Invalidate all CloudFront caches.\n"
 				}
-				, [this] (NEncoding::CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine) -> TCFuture<uint32>
+				, [this] (NEncoding::CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine) -> TCFuture<uint32>
 				{
 					co_await fp_WaitForAppStartup();
 

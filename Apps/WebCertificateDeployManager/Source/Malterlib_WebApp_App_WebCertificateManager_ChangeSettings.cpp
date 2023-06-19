@@ -112,7 +112,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 	}
 
 
-	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainChangeSettings(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainChangeSettings(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 

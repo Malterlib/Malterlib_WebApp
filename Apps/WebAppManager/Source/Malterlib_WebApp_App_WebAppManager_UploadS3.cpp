@@ -31,9 +31,9 @@ namespace NMib::NWebApp::NWebAppManager
 				}
 			}
 			o_Str += "	{{ pattern: new RegExp({}), destination: {}, isDefault: {} },\n"_f
-				<< CJSON("^" + AlternateSource.m_Pattern + "$").f_ToString(nullptr)
-				<< CJSON(Destination).f_ToString(nullptr)
-				<< CJSON(Destination == "Default").f_ToString(nullptr)
+				<< CJSONSorted("^" + AlternateSource.m_Pattern + "$").f_ToString(nullptr)
+				<< CJSONSorted(Destination).f_ToString(nullptr)
+				<< CJSONSorted(Destination == "Default").f_ToString(nullptr)
 			;
 		}
 
@@ -56,14 +56,14 @@ namespace NMib::NWebApp::NWebAppManager
 			}
 
 			o_Str += "	{{ pattern: new RegExp({}), destination: {}, searchReplace: [\n"_f
-				<< CJSON("^" + AlternateSource.m_Pattern + "$").f_ToString(nullptr)
-				<< CJSON(Destination).f_ToString(nullptr)
+				<< CJSONSorted("^" + AlternateSource.m_Pattern + "$").f_ToString(nullptr)
+				<< CJSONSorted(Destination).f_ToString(nullptr)
 			;
 			for (auto &SearchReplace : AlternateSource.m_SearchReplace)
 			{
 				o_Str += "		{{ search: new RegExp(escapeRegExp({}), \"g\"), replace: {} },\n"_f
-					<< CJSON(fp_DoCustomStringReplacements(SearchReplace.m_Search.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
-					<< CJSON(fp_DoCustomStringReplacements(SearchReplace.m_Replace.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
+					<< CJSONSorted(fp_DoCustomStringReplacements(SearchReplace.m_Search.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
+					<< CJSONSorted(fp_DoCustomStringReplacements(SearchReplace.m_Replace.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
 				;
 			}
 			o_Str += "	]},\n";
@@ -209,7 +209,7 @@ exports.handler = (event, context, callback) => {
 };
 )----")
 				.f_Replace("{AlternateSources}", AlternateSourcesString)
-				.f_Replace("{RequestPrefix}", CJSON(CStr("/{}"_f << _Prefix)).f_ToString(nullptr))
+				.f_Replace("{RequestPrefix}", CJSONSorted(CStr("/{}"_f << _Prefix)).f_ToString(nullptr))
 			;
 
 			OriginRequestFiles["index.js"] = RequestHandler;
@@ -273,8 +273,8 @@ exports.handler = (event, context, callback) => {
 				RedirectContents +=
 					"    if (uri.startsWith({}))\n"
 					"		return doRedirect({}, true);\n"_f
-					<< NEncoding::CJSON(Redirect.m_From).f_ToString(nullptr)
-					<< NEncoding::CJSON(fp_DoCustomStringReplacements(Redirect.m_To.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
+					<< NEncoding::CJSONSorted(Redirect.m_From).f_ToString(nullptr)
+					<< NEncoding::CJSONSorted(fp_DoCustomStringReplacements(Redirect.m_To.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
 				;
 			}
 
@@ -283,8 +283,8 @@ exports.handler = (event, context, callback) => {
 				RedirectContents +=
 					"    if (uri.startsWith({}))\n"
 					"		return doRedirect({}, false);\n"_f
-					<< NEncoding::CJSON(Redirect.m_From).f_ToString(nullptr)
-					<< NEncoding::CJSON(fp_DoCustomStringReplacements(Redirect.m_To.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
+					<< NEncoding::CJSONSorted(Redirect.m_From).f_ToString(nullptr)
+					<< NEncoding::CJSONSorted(fp_DoCustomStringReplacements(Redirect.m_To.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
 				;
 			}
 
@@ -293,7 +293,7 @@ exports.handler = (event, context, callback) => {
 			for (auto &Pattern : mp_Options.m_AllowRedirectsOutsideOfDomainPatterns)
 			{
 				AllowRedirectsOutsideOfDomainPatternsString
-					+= "	new RegExp({}),\n"_f << CJSON(fp_DoCustomStringReplacements(Pattern.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
+					+= "	new RegExp({}),\n"_f << CJSONSorted(fp_DoCustomStringReplacements(Pattern.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
 				;
 			}
 
@@ -420,9 +420,9 @@ exports.handler = async (event) => {
 	.f_Replace("{Redirects}", RedirectContents)
 	.f_Replace("{AllowRedirectsOutsideOfDomain}", mp_Options.m_bAllowRedirectsOutsideOfDomain ? "true" : "false")
 	.f_Replace("{AllowRedirectsOutsideOfDomainPatterns}", AllowRedirectsOutsideOfDomainPatternsString)
-	.f_Replace("{DomainName}", NEncoding::CJSON(mp_Domain).f_ToString(nullptr))
-	.f_Replace("{FullDomainName}", NEncoding::CJSON(FullDomainName).f_ToString(nullptr))
-	.f_Replace("{DomainSuffix}", NEncoding::CJSON(".{}"_f << mp_Domain).f_ToString(nullptr))
+	.f_Replace("{DomainName}", NEncoding::CJSONSorted(mp_Domain).f_ToString(nullptr))
+	.f_Replace("{FullDomainName}", NEncoding::CJSONSorted(FullDomainName).f_ToString(nullptr))
+	.f_Replace("{DomainSuffix}", NEncoding::CJSONSorted(".{}"_f << mp_Domain).f_ToString(nullptr))
 
 ;
 		}

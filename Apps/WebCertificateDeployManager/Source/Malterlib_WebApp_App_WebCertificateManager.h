@@ -66,23 +66,23 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		void fp_BuildCommandLine(CDistributedAppCommandLineSpecification &o_CommandLine) override;
 
-		TCFuture<void> fp_StartApp(NEncoding::CEJSON const &_Params) override;
+		TCFuture<void> fp_StartApp(NEncoding::CEJSONSorted const &_Params) override;
 		TCFuture<void> fp_StopApp() override;
 
-		TCFuture<uint32> fp_CommandLine_DomainList(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainAdd(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainChangeSettings(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainRemove(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainList(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainAdd(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainChangeSettings(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainRemove(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
 
 		TCFuture<void> fp_ReadState();
-		void fp_ParseSettings(CEJSON const &_Params, CDomainSettings &o_Settings);
-		void fp_ParseCommandLineSettings(CEJSON const &_Params, CDomainSettings &o_Settings);
-		EFileAttrib fsp_ParseAttributes(CEJSON const &_JSON, EFileAttrib _OriginalAttribs);
-		CEJSON fsp_GenerateAttributes(EFileAttrib _Attributes);
-		CEJSON fp_SaveSettings(CDomainSettings const &_Settings);
+		void fp_ParseSettings(CEJSONSorted const &_Params, CDomainSettings &o_Settings);
+		void fp_ParseCommandLineSettings(CEJSONSorted const &_Params, CDomainSettings &o_Settings);
+		EFileAttrib fsp_ParseAttributes(CEJSONSorted const &_JSON, EFileAttrib _OriginalAttribs);
+		CEJSONSorted fsp_GenerateAttributes(EFileAttrib _Attributes);
+		CEJSONSorted fp_SaveSettings(CDomainSettings const &_Settings);
 		void fp_SaveState(CDomain const &_Domain);
 
-		CEJSON fp_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const;
+		CEJSONSorted fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const;
 
 		TCFuture<void> fp_UpdateDomainSettings(CStr const &_DomainName);
 

@@ -396,7 +396,7 @@ namespace NMib::NWebApp::NWebAppManager
 					{
 						try
 						{
-							auto PackageJSON = CJSON::fs_FromString(CFile::fs_ReadStringFromFile(PackageFile, true), PackageFile);
+							auto PackageJSON = CJSONSorted::fs_FromString(CFile::fs_ReadStringFromFile(PackageFile, true), PackageFile);
 							if (auto pValue = PackageJSON.f_GetMember("main", EJSONType_String))
 								PackageInfo.m_MainFile = pValue->f_String();
 						}

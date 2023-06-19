@@ -33,7 +33,7 @@ namespace NMib::NWebApp::NAcmeManager
 		return "Unknown";
 	}
 
-	void CAcmeManagerActor::fp_ParseSettings(CEJSON const &_Params, CDomainSettings &o_Settings)
+	void CAcmeManagerActor::fp_ParseSettings(CEJSONSorted const &_Params, CDomainSettings &o_Settings)
 	{
 		if (auto pValue = _Params.f_GetMember("GenerateRSA", EJSONType_Boolean))
 			o_Settings.m_bGenerateRSA = pValue->f_Boolean();
@@ -96,9 +96,9 @@ namespace NMib::NWebApp::NAcmeManager
 		}
 	}
 
-	CEJSON CAcmeManagerActor::fp_SaveSettings(CDomainSettings const &_Settings)
+	CEJSONSorted CAcmeManagerActor::fp_SaveSettings(CDomainSettings const &_Settings)
 	{
-		CEJSON Domain;
+		CEJSONSorted Domain;
 
 		Domain["GenerateRSA"] = _Settings.m_bGenerateRSA;
 		Domain["GenerateEC"] = _Settings.m_bGenerateEC;

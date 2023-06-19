@@ -104,7 +104,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 			auto Sets = co_await mp_Route53Actor(&CAwsRoute53Actor::f_ListResourceRecordSets, Zone.m_ID, Params);
 
-			CEJSON State = EJSONType_Object;
+			CEJSONSorted State = EJSONType_Object;
 
 			CAwsRoute53Actor::CChangeResourceRecordSetsParams SetParams;
 			auto &Change = SetParams.m_Changes.f_Insert();
@@ -130,7 +130,7 @@ namespace NMib::NWebApp::NAcmeManager
 						CStr Base64 = CStr::fs_Join(Record.f_RemovePrefix("\"State\" \"").f_RemoveSuffix("\"").f_Split("\" \""), "");
 						try
 						{
-							State = CEJSON::fs_FromString(fg_Base64Decode(Base64));
+							State = CEJSONSorted::fs_FromString(fg_Base64Decode(Base64));
 							if (!State.f_IsObject())
 								State = EJSONType_Object;
 						}
@@ -219,7 +219,7 @@ namespace NMib::NWebApp::NAcmeManager
 			, CPublicKeySetting const &_PublicKeySettings
 			, TCActor<CAcmeClientActor> const &_AcmeClient
 			, CDomainSettings const &_DomainSettings
-			, CEJSON const &_DomainSettingsJson
+			, CEJSONSorted const &_DomainSettingsJson
 		)
 	{
 		CDomain *pDomain = nullptr;
@@ -328,7 +328,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return {};
 	}
 
-	TCFuture<bool> CAcmeManagerActor::fp_UpdateDomain_IsAlreadyUpToDate(CStr const &_DomainName, CEJSON const &_DomainSettingsJson, CStr const &_CertificateType)
+	TCFuture<bool> CAcmeManagerActor::fp_UpdateDomain_IsAlreadyUpToDate(CStr const &_DomainName, CEJSONSorted const &_DomainSettingsJson, CStr const &_CertificateType)
 	{
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
@@ -519,7 +519,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return {};
 	}
 
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainReleaseDNSChallenge(CEJSON const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainReleaseDNSChallenge(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 

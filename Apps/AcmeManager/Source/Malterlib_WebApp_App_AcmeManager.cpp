@@ -20,12 +20,12 @@ namespace NMib::NWebApp::NAcmeManager
 
 	CAcmeManagerActor::~CAcmeManagerActor() = default;
 
-	CEJSON CAcmeManagerActor::fp_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const
+	CEJSONSorted CAcmeManagerActor::fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const
 	{
 		return mp_State.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, _Default);
 	}
 
-	TCFuture<void> CAcmeManagerActor::fp_StartApp(NEncoding::CEJSON const &_Params)
+	TCFuture<void> CAcmeManagerActor::fp_StartApp(NEncoding::CEJSONSorted const &_Params)
 	{
 		auto OnResume = co_await fg_OnResume
 			(
@@ -55,7 +55,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		auto AccountEmailsJSON = fp_GetConfigValue("ACMEAccountEmails", _[_]);
 
-		TCVector<CEJSON> const &AccountEmails = AccountEmailsJSON.f_Array();
+		TCVector<CEJSONSorted> const &AccountEmails = AccountEmailsJSON.f_Array();
 		if (AccountEmails.f_IsEmpty())
 			co_return DMibErrorInstance("ACMEAccountEmails value must be specified in config");
 

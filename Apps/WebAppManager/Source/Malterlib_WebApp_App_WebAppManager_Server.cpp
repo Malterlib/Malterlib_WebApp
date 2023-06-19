@@ -213,7 +213,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 	}
 
-	CEJSON CWebAppManagerImpl::f_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const
+	CEJSONSorted CWebAppManagerImpl::f_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const
 	{
 		return mp_pThis->fp_GetConfigValue(_Name, _Default);
 	}
@@ -400,7 +400,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 	void CWebAppManagerOptions::f_ParseSettings(CStr const &_Settings, CStr const &_FileName)
 	{
-		CEJSON const Settings = CEJSON::fs_FromString(_Settings, _FileName);
+		CEJSONSorted const Settings = CEJSONSorted::fs_FromString(_Settings, _FileName);
 
 		for (auto &PackageJSON : Settings["Packages"].f_Object())
 		{
@@ -820,7 +820,7 @@ namespace NMib::NWebApp::NWebAppManager
 	void ICWebAppManagerCustomization::f_CalculateSettings
 		(
 			TCMap<CStr, CStr> &o_Settings
-			, CJSON &o_MeteorSettings
+			, CJSONSorted &o_MeteorSettings
 			, CStr const &_PackageName
 			, CWebAppManagerOptions::CPackage const &_PackageOptions
 			, ICWebAppManager const &_WebAppManager

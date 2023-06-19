@@ -30,7 +30,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 			}
 		;
 	}
-	EFileAttrib CWebCertificateManagerActor::fsp_ParseAttributes(CEJSON const &_JSON, EFileAttrib _OriginalAttribs)
+	EFileAttrib CWebCertificateManagerActor::fsp_ParseAttributes(CEJSONSorted const &_JSON, EFileAttrib _OriginalAttribs)
 	{
 		if (!_JSON.f_IsStringArray())
 			return _OriginalAttribs;
@@ -57,9 +57,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 		return Attributes;
 	}
 
-	CEJSON CWebCertificateManagerActor::fsp_GenerateAttributes(EFileAttrib _Attributes)
+	CEJSONSorted CWebCertificateManagerActor::fsp_GenerateAttributes(EFileAttrib _Attributes)
 	{
-		CEJSON Return = EJSONType_Array;
+		CEJSONSorted Return = EJSONType_Array;
 
 		for (auto &Name : gc_AttributeNames)
 		{
@@ -70,9 +70,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 		return Return;
 	}
 
-	void CWebCertificateManagerActor::fp_ParseSettings(CEJSON const &_Params, CDomainSettings &o_Settings)
+	void CWebCertificateManagerActor::fp_ParseSettings(CEJSONSorted const &_Params, CDomainSettings &o_Settings)
 	{
-		auto fParseLocation = [&](CEJSON const &_JSON) -> CCertificateLocation
+		auto fParseLocation = [&](CEJSONSorted const &_JSON) -> CCertificateLocation
 			{
 				CCertificateLocation Location;
 
@@ -101,7 +101,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		else if (auto pValue = _Params.f_GetMember("LocationNginxPid", EJSONType_String))
 			o_Settings.m_Location_NginxPid = pValue->f_String();
 
-		auto fParseFileSettings = [&](CEJSON const &_JSON) -> CCertificateFileSettings
+		auto fParseFileSettings = [&](CEJSONSorted const &_JSON) -> CCertificateFileSettings
 			{
 				CCertificateFileSettings FileSettings;
 
@@ -124,13 +124,13 @@ namespace NMib::NWebApp::NWebCertificateManager
 			o_Settings.m_FileSettings_Key = fParseFileSettings(*pValue);
 	}
 
-	CEJSON CWebCertificateManagerActor::fp_SaveSettings(CDomainSettings const &_Settings)
+	CEJSONSorted CWebCertificateManagerActor::fp_SaveSettings(CDomainSettings const &_Settings)
 	{
-		CEJSON Domain;
+		CEJSONSorted Domain;
 
-		auto fGenerateLocation = [&](CCertificateLocation const &_Location) -> CEJSON
+		auto fGenerateLocation = [&](CCertificateLocation const &_Location) -> CEJSONSorted
 			{
-				CEJSON Location;
+				CEJSONSorted Location;
 
 				Location["Key"] = _Location.m_Key;
 				Location["FullChain"] = _Location.m_FullChain;
@@ -154,9 +154,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 		else
 			Domain["LocationNginxPid"] = nullptr;
 
-		auto fGenerateFileSettings = [&](CCertificateFileSettings const &_FileSettings) -> CEJSON
+		auto fGenerateFileSettings = [&](CCertificateFileSettings const &_FileSettings) -> CEJSONSorted
 			{
-				CEJSON FileSettings;
+				CEJSONSorted FileSettings;
 
 				FileSettings["User"] = _FileSettings.m_User;
 				FileSettings["Group"] = _FileSettings.m_Group;

@@ -14,12 +14,12 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 	CWebCertificateManagerActor::~CWebCertificateManagerActor() = default;
 
-	CEJSON CWebCertificateManagerActor::fp_GetConfigValue(CStr const &_Name, CEJSON const &_Default) const
+	CEJSONSorted CWebCertificateManagerActor::fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const
 	{
 		return mp_State.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, _Default);
 	}
 
-	TCFuture<void> CWebCertificateManagerActor::fp_StartApp(NEncoding::CEJSON const &_Params)
+	TCFuture<void> CWebCertificateManagerActor::fp_StartApp(NEncoding::CEJSONSorted const &_Params)
 	{
 		auto OnResume = co_await fg_OnResume
 			(
