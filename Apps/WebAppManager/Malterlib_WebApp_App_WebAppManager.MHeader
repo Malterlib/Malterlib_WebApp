@@ -262,7 +262,7 @@ Type
 		MalterlibWebAppToolDependenciesFilesGetPattern =+ _CopyOptions<Pattern>
 
 		MalterlibWebAppToolDependenciesFiles: string
-		MalterlibWebAppToolDependenciesFiles Target.Dependencies->ForEach(&MalterlibWebAppToolDependenciesFiles_Template)->fg_ExpandCopyOptions()->ForEach(&MalterlibWebAppToolDependenciesFilesGetPattern)->Join(";")
+		MalterlibWebAppToolDependenciesFiles Target.DependencyTargets->ForEach(&MalterlibWebAppToolDependenciesFiles_Template)->fg_ExpandCopyOptions()->ForEach(&MalterlibWebAppToolDependenciesFilesGetPattern)->Join(";")
 
 		FirstDependencyExecutable_Template function(string _Dependency) string?
 		FirstDependencyExecutable_Template GetProperty(&TargetExecutable, _Dependency)
@@ -275,7 +275,7 @@ Type
 			}
 		}
 
-		FirstDependencyExecutable Target.Dependencies->ForEach(&FirstDependencyExecutable_Template)
+		FirstDependencyExecutable Target.DependencyTargets->ForEach(&FirstDependencyExecutable_Template)
 		MalterlibPostBuildScriptInputs =+ ScriptDependencyFile
 	}
 	Target
