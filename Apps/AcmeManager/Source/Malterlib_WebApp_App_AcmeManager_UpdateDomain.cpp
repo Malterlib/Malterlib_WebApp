@@ -321,7 +321,7 @@ namespace NMib::NWebApp::NAcmeManager
 				, _DomainName
 				, pDomainState->m_SecretsManagerHostInfo.f_GetDesc()
 				, CertificatesSecretFolder
-				, CertificateDescription.f_Indent("    ")
+				, CertificateDescription.f_Indent("    ", true, false)
 			)
 		;
 
