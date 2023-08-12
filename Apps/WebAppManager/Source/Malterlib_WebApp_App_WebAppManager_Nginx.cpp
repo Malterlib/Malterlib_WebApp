@@ -88,6 +88,7 @@ R"---(
 	{
 		listen {BindTo}{SSLPort} {DefaultServer};
 		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
+		http2  on;
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -180,6 +181,7 @@ R"---(
 	{
 		listen {BindTo}{SSLPort} {DefaultServer};
 		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
+		http2  on;
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -268,6 +270,7 @@ R"---(
 	{
 		listen {BindTo}{SSLPort} {DefaultServer};
 		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
+		http2  on;
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -372,6 +375,7 @@ R"---(
 	{
 		listen {BindTo}{SSLPort} {DefaultServer};
 		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
+		http2  on;
 		server_name {ServerName} {ServerNameExtra_{PackageName}};
 		access_log logs/access_{PackageName}.log upstreamlog;
 		client_max_body_size 10M;
@@ -437,6 +441,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 	{
 		listen {BindTo}{SSLPort} {DefaultServer};
 		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
+		http2  on;
 		server_name {ServerNameStatic} {ServerNameStaticSource};
 		access_log logs/static_access_{PackageName}.log;
 		client_max_body_size 10M;
@@ -1082,6 +1087,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 	{
 		listen {BindTo}{SSLPort} {DefaultServer};
 		{DisableIPV6} listen [::]:{SSLPort} {DefaultServer};
+		http2  on;
 		server_name www.{DomainName};
 
 {HTTPSDefaultServerLocations_www}
