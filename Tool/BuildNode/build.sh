@@ -100,6 +100,7 @@ function BuildNode()
 	pushd "$IntermediateDir/node_bin/bin" > /dev/null
 
 	export PATH="$PWD:$PATH"
+	npm config set python `which python3.9`
 	if [[ "$MalterlibNpmSource" != "" ]]; then
 		echo "Installing npm from local checkout: $MalterlibNpmSource"
 		if [ -d "$MalterlibNpmSource/../cipm" ]; then
@@ -134,7 +135,7 @@ function BuildNode()
 		./npm install -g npm
 	fi
 
-	./npm config set python `which python3`
+	./npm config set python `which python3.9`
 	./npm install -g retire
 	./npm install -g npm-check-updates
 
