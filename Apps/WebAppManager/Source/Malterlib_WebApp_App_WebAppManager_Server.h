@@ -222,6 +222,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr m_ContentSecurity_ManifestSrc;
 		CStr m_ContentSecurity_FormAction;
 		CStr m_ContentSecurity_ReportURI;
+		CStr m_ContentSecurity_FrameAncestors;
 
 		CStr m_AccessControl_AllowMethods;
 		CStr m_AccessControl_AllowHeaders;

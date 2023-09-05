@@ -251,6 +251,12 @@ exports.handler = (event, context, callback) => {
 				ContentSecurityPolicy += " report-uri {} ;"_f << ContentSecurityReportURI;
 			}
 
+			if (mp_Options.m_ContentSecurity_FrameAncestors)
+			{
+				CStr ContentSecurityFrameAncestors = mp_Options.m_ContentSecurity_FrameAncestors;
+				ContentSecurityPolicy += " frame-ancestors {} ;"_f << ContentSecurityFrameAncestors;
+			}
+
 			ContentSecurityPolicy = ContentSecurityPolicy.f_Replace("{DomainName}", mp_Domain);
 			ContentSecurityPolicy = ContentSecurityPolicy.f_Replace("{SSLPortRewrite}", "");
 			ContentSecurityPolicy = fp_DoCustomStringReplacements(ContentSecurityPolicy);
@@ -351,7 +357,8 @@ exports.handler = async (event) => {
 	headers['strict-transport-security'] = [{key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubdomains; preload'}];
 	headers['content-security-policy'] = [{key: 'Content-Security-Policy', value: "{ContentSecurityPolicy}"}];
 	headers['x-content-type-options'] = [{key: 'X-Content-Type-Options', value: 'nosniff'}];
-	headers['x-frame-options'] = [{key: 'X-Frame-Options', value: 'DENY'}];
+	if ({HasNoFrameAncestors})
+		headers['x-frame-options'] = [{key: 'X-Frame-Options', value: 'DENY'}];
 	headers['x-xss-protection'] = [{key: 'X-XSS-Protection', value: '1; mode=block'}];
 	headers['referrer-policy'] = [{key: 'Referrer-Policy', value: 'same-origin'}];
 
@@ -415,6 +422,7 @@ exports.handler = async (event) => {
 };
 )----")
 	.f_Replace("{ContentSecurityPolicy}", ContentSecurityPolicy)
+	.f_Replace("{HasNoFrameAncestors}", mp_Options.m_ContentSecurity_FrameAncestors.f_IsEmpty() ? "true" : "false")
 	.f_Replace("{AlternateSources}", AlternateSourcesString)
 	.f_Replace("{AccessControl}", AccessControl)
 	.f_Replace("{Redirects}", RedirectContents)
@@ -817,6 +825,7 @@ exports.handler = async (event) => {
 					Stream << Options.m_ContentSecurity_ChildSrc;
 					Stream << Options.m_ContentSecurity_FormAction;
 					Stream << Options.m_ContentSecurity_ReportURI;
+					Stream << Options.m_ContentSecurity_FrameAncestors;
 					Stream << Options.m_AccessControl_AllowMethods;
 					Stream << Options.m_AccessControl_AllowHeaders;
 					Stream << Options.m_AccessControl_AllowOrigin;

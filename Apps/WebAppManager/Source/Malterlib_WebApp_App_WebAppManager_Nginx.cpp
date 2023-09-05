@@ -1252,6 +1252,12 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				ContentSecurityPolicy += " report-uri {} ;"_f << ContentSecurityReportURI;
 			}
 
+			if (mp_Options.m_ContentSecurity_FrameAncestors)
+			{
+				CStr ContentSecurityFrameAncestors = mp_Options.m_ContentSecurity_FrameAncestors;
+				ContentSecurityPolicy += " frame-ancestors {} ;"_f << ContentSecurityFrameAncestors;
+			}
+
 			ContentSecurityPolicy = ContentSecurityPolicy.f_Replace("{DomainName}", mp_Domain);
 			ContentSecurityPolicy = ContentSecurityPolicy.f_Replace("{SSLPortRewrite}", "");
 			ContentSecurityPolicy = fp_DoCustomStringReplacements(ContentSecurityPolicy);
@@ -1276,7 +1282,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 			ConfigContents = ConfigContents.f_Replace("{SecurityHeadersNoFrameOptions}", SecurityHeaders);
 
-			SecurityHeaders += "			add_header X-Frame-Options \"DENY\" always;\n";
+			if (!mp_Options.m_ContentSecurity_FrameAncestors.f_IsEmpty())
+				SecurityHeaders += "			add_header X-Frame-Options \"DENY\" always;\n";
+
 			ConfigContents = ConfigContents.f_Replace("{SecurityHeaders}", SecurityHeaders);
 		}
 

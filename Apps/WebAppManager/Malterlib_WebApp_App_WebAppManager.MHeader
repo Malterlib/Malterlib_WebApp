@@ -96,6 +96,7 @@ Type
 		ContentSecurity_ManifestSrc: [string]?
 		ContentSecurity_FormAction: [string]?
 		ContentSecurity_ReportURI: string?
+		ContentSecurity_FrameAncestors: [string]?
 
 		AccessControl_AllowMethods: [string]?
 		AccessControl_AllowHeaders: [string]?
@@ -1050,6 +1051,11 @@ Property
 				WebAppSettingsContentSecurity =+ {ReportURI: ContentSecurity_ReportURI}
 				{
 					!ContentSecurity_ReportURI undefined
+				}
+
+				WebAppSettingsContentSecurity =+ {FrameAncestors: ContentSecurity_FrameAncestors->Join(" ")}
+				{
+					!ContentSecurity_FrameAncestors undefined
 				}
 
 				WebAppSettingsContentSecurity =+ {ChildSrc: ContentSecurity_ChildSrc->Join(" ")}

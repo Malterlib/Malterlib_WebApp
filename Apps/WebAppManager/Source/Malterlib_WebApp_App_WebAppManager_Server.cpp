@@ -637,6 +637,8 @@ namespace NMib::NWebApp::NWebAppManager
 				m_ContentSecurity_FormAction = pValue->f_String();
 			if (auto *pValue = pContentSecurity->f_GetMember("ReportURI"))
 				m_ContentSecurity_ReportURI = pValue->f_String();
+			if (auto *pValue = pContentSecurity->f_GetMember("FrameAncestors"))
+				m_ContentSecurity_FrameAncestors = pValue->f_String();
 		}
 
 		if (auto *pContentSecurity = Settings.f_GetMember("AccessControl"))
