@@ -40,7 +40,7 @@ namespace NMib::NWebApp
 
 		if (m_RetryingSecretsManagers(_SecretsManager).f_WasCreated())
 		{
-			fg_Timeout(10.0) > [=]
+			fg_Timeout(10.0) > [=, this]
 				{
 					m_RetryingSecretsManagers.f_Remove(_SecretsManager);
 
