@@ -448,6 +448,12 @@ Property
 	}
 
 	WebAppManagerEnvironment =+ {
+		EnvVar: "BIND_IP_MALTERLIB"
+		, ConfigVar: "LocalIPMalterlib"
+		, Tags: [["Meteor", "FastCGI", "Websocket", "Npm"]]
+	}
+
+	WebAppManagerEnvironment =+ {
 		EnvVar: "HTTP_FORWARDED_COUNT"
 		, ConfigVar: "HttpForwardedCount"
 		, Default: "1"
@@ -828,6 +834,11 @@ Property
 				PackageSettings	=+ {MalterlibDistributedApp: CheckIsBool(MalterlibDistributedApp_@(_PackageName))}
 				{
 					!!true IsDefined(`MalterlibDistributedApp_@(_PackageName)`)
+				}
+
+				PackageSettings	=+ {UnixSocket: CheckIsBool(UnixSocket_@(_PackageName))}
+				{
+					!!true IsDefined(`UnixSocket_@(_PackageName)`)
 				}
 
 				CheckWebAppManagerUploadS3Priority function(type(CWebAppManagerUploadS3Priority) _Priorities) type(CWebAppManagerUploadS3Priority) = _Priorities

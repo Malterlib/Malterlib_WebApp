@@ -76,7 +76,10 @@ namespace NMib::NWebApp::NWebAppManager
 		DLog(Info, "Done cleaning up, extracting ExeFS");
 		co_await (fp_ExtractExeFS() % "Failed to extract ExeFS");
 
-		DLog(Info, "Done extracting ExeFS, setting up node prerequisites and updating version history");
+		DLog(Info, "Done extracting ExeFS, setting up nginx user");
+		co_await (fp_SetupPrerequisites_NginxUser() % "Failed to setup nginx user");
+
+		DLog(Info, "Done setting up nginx user, setting up node prerequisites and updating version history");
 		co_await (fp_SetupPrerequisites_Servers() + fp_UpdateVersionHistory());
 
 		DLog(Info, "Done setting up node prerequisites and updating version history, setting up customization prerequisites");
@@ -545,6 +548,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("MalterlibDistributedApp"))
 				Package.m_bMalterlibDistributedApp = pValue->f_Boolean();
+
+			if (auto *pValue = PackageSettings.f_GetMember("UnixSocket"))
+				Package.m_bUnixSocket = pValue->f_Boolean();
 
 			if (auto *pValue = PackageSettings.f_GetMember("UploadS3Priority"))
 			{

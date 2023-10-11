@@ -19,6 +19,16 @@ namespace NMib::NWebApp::NWebAppManager
 		return nNodes;
 	}
 
+	mint CWebAppManagerActor::fp_NeedsLocalIPs() const
+	{
+		for (auto &Package : mp_Options.m_Packages)
+		{
+			if (Package.f_IsDynamicServer() && !Package.m_bUnixSocket)
+				return true;
+		}
+		return false;
+	}
+
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_OSSetup()
 	{
 		TCPromise<void> Promise;
@@ -26,6 +36,9 @@ namespace NMib::NWebApp::NWebAppManager
 #ifdef DPlatformFamily_Windows
 		return Promise <<= g_Void;
 #else
+		if (!fp_NeedsLocalIPs())
+			return Promise <<= g_Void;
+		
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr SetupOSFile = ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_OSSetup.sh";
 
@@ -345,6 +358,9 @@ namespace NMib::NWebApp::NWebAppManager
 				, bForceAppsReinstall = mp_bForceAppsReinstall
 				, FileActors = mp_FileActors
 				, NpmExecutable = fp_GetNodeExecutable("npm")
+				, bUnixSocket = PackageOptions.m_bUnixSocket
+				, SocketRootDirectory = fp_GetPackageSocketRoot(_PackageName)
+				, NginxUserGroup = mp_NginxUser.m_GroupName
 			]
 			() mutable -> TCFuture<CPackageInfo>
 			{
@@ -383,6 +399,25 @@ namespace NMib::NWebApp::NWebAppManager
 #endif
 						User = PackageInfo.m_User;
 						UserHomePath = PackageHomeDirectory;
+					}
+
+					if (bUnixSocket)
+					{
+						CFile::fs_CreateDirectory(SocketRootDirectory);
+						CFile::fs_SetOwnerAndGroupRecursive
+							(
+								SocketRootDirectory
+								, User.m_UserName
+								, NginxUserGroup
+							)
+						;
+						CFile::fs_SetUnixAttributesRecursive
+							(
+								SocketRootDirectory
+								, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_GroupRead | EFileAttrib_GroupWrite
+								, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute | EFileAttrib_GroupRead | EFileAttrib_GroupWrite | EFileAttrib_GroupExecute
+							)
+						;
 					}
 
 					CStr PackageDirectory = ProgramDirectory + "/" + _PackageName;

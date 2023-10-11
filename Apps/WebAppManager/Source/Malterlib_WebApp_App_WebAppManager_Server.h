@@ -170,6 +170,7 @@ namespace NMib::NWebApp::NWebAppManager
 			bool m_bAllowRobots = true;
 			bool m_bUploadS3 = false;
 			bool m_bMalterlibDistributedApp = false;
+			bool m_bUnixSocket = false;
 			bool m_bDefaultServer = false;
 		};
 
@@ -368,6 +369,11 @@ namespace NMib::NWebApp::NWebAppManager
 				return TCMap<CAppLaunchKey, CAppLaunch>::fs_GetKey(*this);
 			}
 
+			ch8 const *f_PortDelim() const
+			{
+				return m_bUnixSocket ? "." : ":";
+			}
+
 			TCVariant<void, CNormalProcessLaunch, TCUniquePointer<CDistributedApp_LaunchInfo>> m_Launch;
 			CActorSubscription m_TunnelSubscription;
 			CStr m_LogCategory;
@@ -375,6 +381,7 @@ namespace NMib::NWebApp::NWebAppManager
 			TCOptional<TCPromise<void>> m_DestroyPromise;
 			bool m_bInitialLaunched = false;
 			bool m_bMalterlibDistributedApp = false;
+			bool m_bUnixSocket = false;
 		};
 
 		ICWebAppManager const &fp_GetImpl();
@@ -412,6 +419,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CEJSONSorted fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const;
 
 		mint fp_GetNumNodes() const;
+		mint fp_NeedsLocalIPs() const;
 
 		static CHashDigest_MD5 fsp_GetFileChecksum(CStr const &_File);
 		static void fsp_SetupPrerequisites_ServerUser
@@ -428,6 +436,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_SetupPrerequisites_Servers();
 		TCFuture<void> fp_SetupPrerequisites_FastCGI();
 		TCFuture<void> fp_SetupPrerequisites_Websocket();
+		TCFuture<void> fp_SetupPrerequisites_NginxUser();
 		TCFuture<void> fp_SetupPrerequisites_Nginx();
 		TCFuture<void> fp_SetupPrerequisites_Customization();
 		TCFuture<void> fp_SetupPrerequisites_NodeExtract();
@@ -459,10 +468,11 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_InvalidateCloudfrontDistributions();
 
 		CStr fp_GetPackageRoot(CStr const &_PackageName) const;
+		CStr fp_GetPackageSocketRoot(CStr const &_PackageName) const;
 		CStr fp_GetPackageHostname(CStr const &_PackageName, EHostnamePrefix _Prefix) const;
 		CStr fp_GetPackageLocalURL(CStr const &_PackageName) const;
 		CStr fp_GetRootURL(CStr const &_Hostname, CStr const &_SubPath) const;
-		CStr fp_GetAppIPAddress(CAppLaunch const &_AppLaunch) const;
+		CStr fp_GetAppIPAddress(CAppLaunch const &_AppLaunch, bool _bForMalterlib) const;
 		CStr fp_GetAppLocalURL(CAppLaunch const &_AppLaunch, mint _iPort) const;
 		void fp_UpdateAppLaunch(CExceptionPointer const &_pException);
 		void fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch);

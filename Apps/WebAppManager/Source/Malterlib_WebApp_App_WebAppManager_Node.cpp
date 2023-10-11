@@ -64,6 +64,16 @@ namespace NMib::NWebApp::NWebAppManager
 			return fp_GetConfigValue("ExternalRoot_{}"_f << _PackageName, CFile::fs_GetExpandedPath(ProgramDirectory / Package.m_ExternalRoot)).f_String();
 	}
 
+	CStr CWebAppManagerActor::fp_GetPackageSocketRoot(CStr const &_PackageName) const
+	{
+		auto &Package = mp_Options.m_Packages[_PackageName];
+		if (!Package.f_IsServer())
+			DMibError("Cannot get package root path for non-server package");
+
+		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+		return ProgramDirectory / "Sockets" / Package.f_GetName();
+	}
+
 	CStr CWebAppManagerActor::fp_GetRootURL(CStr const &_Hostname, CStr const &_SubPath) const
 	{
 		if (!_SubPath.f_IsEmpty())
@@ -82,14 +92,24 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 	}
 
-	CStr CWebAppManagerActor::fp_GetAppIPAddress(CAppLaunch const &_AppLaunch) const
+	CStr CWebAppManagerActor::fp_GetAppIPAddress(CAppLaunch const &_AppLaunch, bool _bForMalterlib) const
 	{
-		return fg_Format("127.{}.{}.1", mp_LoopbackPrefix, 2 + _AppLaunch.f_GetKey().m_iAppSequence);
+		auto &LaunchKey = _AppLaunch.f_GetKey();
+
+		if (_AppLaunch.m_bUnixSocket)
+		{
+			if (_bForMalterlib)
+				return fg_Format("UNIX(660):{}/socket-{}", fp_GetPackageSocketRoot(LaunchKey.m_PackageName), LaunchKey.m_iAppSequence);
+			else
+				return fg_Format("unix:{}/socket-{}", fp_GetPackageSocketRoot(LaunchKey.m_PackageName), LaunchKey.m_iAppSequence);
+		}
+		else
+			return fg_Format("127.{}.{}.1", mp_LoopbackPrefix, 2 + LaunchKey.m_iAppSequence);
 	}
 
 	CStr CWebAppManagerActor::fp_GetAppLocalURL(CAppLaunch const &_AppLaunch, mint _iPort) const
 	{
-		return fg_Format("http://{}:{}/", fp_GetAppIPAddress(_AppLaunch), mp_LocalPort + _iPort);
+		return fg_Format("http://{}{}{}/", fp_GetAppIPAddress(_AppLaunch, false), (_AppLaunch.m_bUnixSocket ? "." : ":"), mp_LocalPort + _iPort);
 	}
 
 	CStr CWebAppManagerActor::fp_GetPackageLocalURL(CStr const &_PackageName) const
@@ -133,6 +153,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 				AppLaunch.m_BackendIdentifier = fg_Format("{}_{}", LaunchKey.m_PackageName, fg_RandomID());
 				AppLaunch.m_bMalterlibDistributedApp = Package.m_bMalterlibDistributedApp;
+				AppLaunch.m_bUnixSocket = Package.m_bUnixSocket;
 
 				for (mint i = 0; i < Package.m_PortConcurrency; ++i)
 					mp_PackageLocalURLs[LaunchKey.m_PackageName].f_Insert(fp_GetAppLocalURL(AppLaunch, i));
@@ -250,10 +271,13 @@ namespace NMib::NWebApp::NWebAppManager
 		o_Arguments.f_Insert("--trace-deprecation");
 		o_Arguments.f_Insert("--trace-warnings");
 
-		if (fp_GetConfigValue("NodeDebug", false).f_Boolean())
-			o_Arguments.f_Insert("--inspect={}:5599"_f << fp_GetAppIPAddress(_AppLaunch));
-		else
-			o_Arguments.f_Insert("--inspect-port={}:5599"_f << fp_GetAppIPAddress(_AppLaunch));
+		if (!_AppLaunch.m_bUnixSocket)
+		{
+			if (fp_GetConfigValue("NodeDebug", false).f_Boolean())
+				o_Arguments.f_Insert("--inspect={}:5599"_f << fp_GetAppIPAddress(_AppLaunch, false));
+			else
+				o_Arguments.f_Insert("--inspect-port={}:5599"_f << fp_GetAppIPAddress(_AppLaunch, false));
+		}
 
 		o_Arguments.f_Insert(_PackageOptions.m_CustomParams);
 	}
@@ -326,6 +350,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 	void CWebAppManagerActor::fp_HandleNodeDebuggerOutput(CAppLaunch &_AppLaunch, CStr const &_StdErr)
 	{
+		if (_AppLaunch.m_bUnixSocket)
+			return;
+
 		for (auto &Line : _StdErr.f_SplitLine<true>())
 		{
 			if (!Line.f_StartsWith("Debugger listening on "))
@@ -356,7 +383,7 @@ namespace NMib::NWebApp::NWebAppManager
 						(
 							&CNetworkTunnelsServer::f_PublishNetworkTunnel
 							, pAppLaunch->m_LogCategory
-							, fp_GetAppIPAddress(*pAppLaunch)
+							, fp_GetAppIPAddress(*pAppLaunch, false)
 							, 5599
 							, fg_Move(MetaData)
 						)
@@ -623,7 +650,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 			CalculatedSettings["PackageName"] = CStr::fs_ToStr(_AppLaunch.f_GetKey().m_PackageName);
 			CalculatedSettings["BackendIdentifier"] = _AppLaunch.m_BackendIdentifier;
-			CalculatedSettings["LocalIP"] = fp_GetAppIPAddress(_AppLaunch);
+			CalculatedSettings["LocalIP"] = fp_GetAppIPAddress(_AppLaunch, false);
+			CalculatedSettings["LocalIPMalterlib"] = fp_GetAppIPAddress(_AppLaunch, true);
+			CalculatedSettings["NginxGroup"] = mp_NginxUser.m_GroupName;
 			CalculatedSettings["LocalPort"] = CStr::fs_ToStr(mp_LocalPort);
 			CalculatedSettings["PortConcurrency"] = CStr::fs_ToStr(PackageOptions.m_PortConcurrency);
 			CalculatedSettings["WebSSLPort"] = CStr::fs_ToStr(mp_WebSSLPort);

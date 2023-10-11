@@ -498,6 +498,49 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		return Text;
 	}
 
+	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_NginxUser()
+	{
+		struct CResults
+		{
+			CUser m_User{"", ""};
+#ifdef DPlatformFamily_Windows
+			CStrSecure m_UserPassword;
+#endif
+		};
+		
+		auto SetupResults = co_await
+			(
+				g_Dispatch(*mp_FileActors) / [User = mp_NginxUser]() mutable -> CResults
+				{
+					CResults Results;
+
+					Results.m_User = User;
+	#ifdef DPlatformFamily_Windows
+					fsp_SetupUser(Results.m_User, Results.m_UserPassword);
+	#else
+					fsp_SetupUser(Results.m_User);
+	#endif
+					return Results;
+				}
+			)
+		;
+
+		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+
+		mp_NginxUser = SetupResults.m_User;
+		TCPromise<void> SavePasswordPromise;
+#ifdef DPlatformFamily_Windows
+		if (!SetupResults.m_UserPassword.f_IsEmpty())
+			fp_SaveUserPassword(mp_NginxUser.m_UserName, SetupResults.m_UserPassword) > SavePasswordPromise;
+		else
+#endif
+			SavePasswordPromise.f_SetResult();
+
+		co_await SavePasswordPromise.f_MoveFuture();
+
+		co_return {};
+	}
+
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_Nginx()
 	{
 		struct CResults
@@ -506,10 +549,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			TCMap<CStr, CStr> m_Redirects;
 			CStr m_CertificateFile;
 			CStr m_CertificateKeyFile;
-			CUser m_User{"", ""};
-#ifdef DPlatformFamily_Windows
-			CStrSecure m_UserPassword;
-#endif
 			bool m_bHasDHParamFile = false;
 		};
 
@@ -621,7 +660,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					, Packages = FilteredPackages
 					, DhParamFile
 					, ConfigFile
-					, User = mp_NginxUser
 					, CertificateOrganization
 					, CertificateCountry
 					, CertificateLocality
@@ -632,13 +670,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				() mutable -> CResults
 				{
 					CResults Results;
-
-					Results.m_User = User;
-	#ifdef DPlatformFamily_Windows
-					fsp_SetupUser(Results.m_User, Results.m_UserPassword);
-	#else
-					fsp_SetupUser(Results.m_User);
-	#endif
 
 					CFile::fs_CreateDirectory(NginxDirectory + "/root");
 					CFile::fs_CreateDirectory(NginxDirectory + "/logs");
@@ -833,15 +864,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
-		mp_NginxUser = SetupResults.m_User;
-		TCPromise<void> SavePasswordPromise;
-#ifdef DPlatformFamily_Windows
-		if (!SetupResults.m_UserPassword.f_IsEmpty())
-			fp_SaveUserPassword(mp_NginxUser.m_UserName, SetupResults.m_UserPassword) > SavePasswordPromise;
-		else
-#endif
-			SavePasswordPromise.f_SetResult();
-
 		CStr ConfigContents = SetupResults.m_ConfigContents;
 
 		CStr PidFile = NginxDirectory + "/nginx.pid";
@@ -880,9 +902,9 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 						continue;
 					++nUpstream;
-					CStr IPAddress = fp_GetAppIPAddress(AppLaunch);
+					CStr IPAddress = fp_GetAppIPAddress(AppLaunch, false);
 					for (mint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
-						UpstreamServers += "\t\tserver {}:{} max_fails=30 fail_timeout=30s;\n"_f << IPAddress << iPort;
+						UpstreamServers += "\t\tserver {}{}{} max_fails=30 fail_timeout=30s;\n"_f << IPAddress << AppLaunch.f_PortDelim() << iPort;
 					PackageIPs[Package.f_GetName()] = IPAddress;
 				}
 
@@ -905,7 +927,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 							continue;
 						for (mint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
-							UpstreamServers += "		{} {}:{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch) << iPort;
+							UpstreamServers += "		{} {}{}{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch, false) << AppLaunch.f_PortDelim() << iPort;
 					}
 
 					UpstreamServers += "	}\n\n";
@@ -924,7 +946,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 							continue;
 						for (mint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
-							UpstreamServers += "		{} {}:{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch) << iPort;
+							UpstreamServers += "		{} {}{}{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch, false) << AppLaunch.f_PortDelim() << iPort;
 					}
 
 					UpstreamServers += "	}\n\n";
@@ -1349,8 +1371,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 			mp_CertificateDeploySubscription = co_await mp_CertificateDeployActor(&CWebCertificateDeployActor::f_AddDomain, fg_Move(DomainSettings));
 		}
-
-		co_await SavePasswordPromise.f_MoveFuture();
 
 		co_return {};
 	}
