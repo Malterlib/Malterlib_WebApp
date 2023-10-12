@@ -36,7 +36,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		if (mp_RetryingSecretsManagers(_SecretsManager).f_WasCreated())
 		{
-			fg_Timeout(10.0) > [=]
+			fg_Timeout(10.0) > [=, this]
 				{
 					mp_RetryingSecretsManagers.f_Remove(_SecretsManager);
 
