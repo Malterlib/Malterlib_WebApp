@@ -99,7 +99,10 @@ namespace NMib::NWebApp::NWebAppManager
 		if (_AppLaunch.m_bUnixSocket)
 		{
 			if (_bForMalterlib)
-				return fg_Format("UNIX(660):{}/socket-{}", fp_GetPackageSocketRoot(LaunchKey.m_PackageName), LaunchKey.m_iAppSequence);
+			{
+				// The folder where the socket lives already have the correct permissions so the socket can have everyone access.
+				return fg_Format("UNIX(666):{}/socket-{}", fp_GetPackageSocketRoot(LaunchKey.m_PackageName), LaunchKey.m_iAppSequence);
+			}
 			else
 				return fg_Format("unix:{}/socket-{}", fp_GetPackageSocketRoot(LaunchKey.m_PackageName), LaunchKey.m_iAppSequence);
 		}
