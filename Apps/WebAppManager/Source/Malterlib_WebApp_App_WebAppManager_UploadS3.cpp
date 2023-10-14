@@ -12,7 +12,7 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 40;
+		uint32 gc_UpdateVersion = 41;
 	}
 
 	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
@@ -135,7 +135,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		{
 			OriginRequestConfig.m_Handler = "index.handler";
-			OriginRequestConfig.m_Runtime = "nodejs16.x";
+			OriginRequestConfig.m_Runtime = "nodejs18.x";
 			OriginRequestConfig.m_Role = AWSLambdaRole;
 			OriginRequestConfig.m_MemorySizeMB = 128;
 			OriginRequestConfig.m_TimeoutSeconds = 3;
@@ -221,7 +221,7 @@ exports.handler = (event, context, callback) => {
 
 		{
 			OriginResponseConfig.m_Handler = "index.handler";
-			OriginResponseConfig.m_Runtime = "nodejs16.x";
+			OriginResponseConfig.m_Runtime = "nodejs18.x";
 			OriginResponseConfig.m_Role = AWSLambdaRole;
 			OriginResponseConfig.m_MemorySizeMB = 128;
 			OriginResponseConfig.m_TimeoutSeconds = 3;
@@ -449,7 +449,7 @@ exports.handler = async (event) => {
 
 			{
 				ViewerResponseConfig.m_Handler = "index.handler";
-				ViewerResponseConfig.m_Runtime = "nodejs16.x";
+				ViewerResponseConfig.m_Runtime = "nodejs18.x";
 				ViewerResponseConfig.m_Role = AWSLambdaRole;
 				ViewerResponseConfig.m_MemorySizeMB = 128;
 				ViewerResponseConfig.m_TimeoutSeconds = 3;
