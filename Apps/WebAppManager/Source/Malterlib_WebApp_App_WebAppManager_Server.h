@@ -172,6 +172,7 @@ namespace NMib::NWebApp::NWebAppManager
 			bool m_bMalterlibDistributedApp = false;
 			bool m_bUnixSocket = false;
 			bool m_bDefaultServer = false;
+			bool m_bNeedMongo = false;
 		};
 
 		struct CMongo
@@ -238,6 +239,7 @@ namespace NMib::NWebApp::NWebAppManager
 		bool m_bServeAllSubdomains = false;
 		bool m_bStartNginx = true;
 		bool m_bAllowRobots = false;
+		bool m_bNeedsMongo = false;
 		bool m_bAllowRedirectsOutsideOfDomain = true;
 	};
 

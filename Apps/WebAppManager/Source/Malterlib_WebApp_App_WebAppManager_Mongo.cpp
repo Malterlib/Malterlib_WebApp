@@ -17,6 +17,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupMongo()
 	{
+		if (!mp_Options.m_bNeedsMongo)
+			co_return {};
+
 		if (mp_Options.m_Mongo.m_DatabaseSetupScript.f_IsEmpty())
 			co_return {};
 
@@ -35,6 +38,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_Mongo()
 	{
+		if (!mp_Options.m_bNeedsMongo)
+			co_return {};
+
 		struct CSetupResult
 		{
 			CStr m_MongoAdminUserName;

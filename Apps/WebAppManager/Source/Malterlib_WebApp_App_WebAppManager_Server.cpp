@@ -571,6 +571,9 @@ namespace NMib::NWebApp::NWebAppManager
 		if (auto pValue = Settings.f_GetMember("AllowRobots"))
 			m_bAllowRobots = pValue->f_Boolean();
 
+		if (auto pValue = Settings.f_GetMember("NeedsMongo"))
+			m_bNeedsMongo = pValue->f_Boolean();
+
 		if (auto pValue = Settings.f_GetMember("AllowRobotsSitemap"))
 			m_RobotsSitemap = pValue->f_String();
 

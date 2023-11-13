@@ -36,6 +36,7 @@ Type
 		WebAppManagerAllowRobotsAllow: [string]?
 		WebAppManagerAllowRobotsDisallow: [string]?
 		WebAppManagerAllowRobots: bool?
+		WebAppManagerNeedsMongo: bool?
 		WebAppManagerAllowRobotsSitemap: string?
 
 		WebAppManagerMongoDirectory: string?
@@ -1109,6 +1110,10 @@ Property
 				WebAppSettings =+ {AllowRobots: WebAppManagerAllowRobots}
 				{
 					!WebAppManagerAllowRobots undefined
+				}
+				WebAppSettings =+ {NeedsMongo: WebAppManagerNeedsMongo}
+				{
+					!WebAppManagerNeedsMongo undefined
 				}
 				WebAppSettings =+ {AllowRobotsSitemap: WebAppManagerAllowRobotsSitemap}
 				{
