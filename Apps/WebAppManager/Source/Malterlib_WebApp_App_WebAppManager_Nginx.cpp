@@ -46,7 +46,7 @@ R"---(
 
 		location ~* "^/{SubPath}/([a-z0-9]{40}\.(css|js))$"
 		{
-			gzip_static always;
+			gzip_static {GZipStatic};
 			expires max;
 {SecurityHeaders}
 			add_header Cache-Control public;
@@ -59,6 +59,7 @@ R"---(
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			error_page 502 = @{PackageName}_Fallback$1$is_args$args;
 			proxy_pass http://{UpstreamSticky}$1$is_args$args;
 			proxy_http_version 1.1;
@@ -72,6 +73,9 @@ R"---(
 		}
 		location @{PackageName}_Fallback
 		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			proxy_pass http://{Upstream};
 			proxy_http_version 1.1;
 			proxy_set_header Host $host;
@@ -112,7 +116,7 @@ R"---(
 
 		location ~* "^/[a-z0-9]{40}\.(css|js)$"
 		{
-			gzip_static always;
+			gzip_static {GZipStatic};
 			expires max;
 {SecurityHeaders}
 			add_header Cache-Control public;
@@ -129,6 +133,7 @@ R"---(
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			error_page 502 = @{PackageName}_Fallback$1$is_args$args;
 			proxy_pass http://{UpstreamSticky}$1$is_args$args;
 			proxy_http_version 1.1;
@@ -142,6 +147,9 @@ R"---(
 		}
 		location @{PackageName}_Fallback
 		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			proxy_pass http://{Upstream};
 			proxy_http_version 1.1;
 			proxy_set_header Host $host;
@@ -164,7 +172,8 @@ R"---(
 		location ~ ^/{SubPath}({DefaultLocation})?$
 		{
 {PathRedirect}
-			gzip_static always;
+{DefaultSourceSubFilters}
+			gzip_static {GZipStatic};
 {SecurityHeaders}
 			add_header Cache-Control no-cache;
 			alias "{StaticRoot}";
@@ -210,7 +219,8 @@ R"---(
 		location ~ ^({DefaultLocation})$
 		{
 {PathRedirect}
-			gzip_static always;
+{DefaultSourceSubFilters}
+			gzip_static {GZipStatic};
 {SecurityHeaders}
 			add_header Cache-Control no-cache;
 			alias "{StaticRoot}";
@@ -231,7 +241,7 @@ ch8 const *g_pFastCGIServerTemplate[2] =
 R"---(
 		location ~* "^/{SubPath}(/[a-z0-9]{40}\.(css|js))$"
 		{
-			gzip_static always;
+			gzip_static {GZipStatic};
 			expires max;
 {SecurityHeaders}
 			add_header Cache-Control public;
@@ -244,6 +254,7 @@ R"---(
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			include {FastCGIFile};
 
 			error_page 502 = @{PackageName}_Fallback;
@@ -255,6 +266,9 @@ R"---(
 		}
 		location @{PackageName}_Fallback
 		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			include {FastCGIFile};
 
 			fastcgi_pass {Upstream};
@@ -294,7 +308,7 @@ R"---(
 
 		location ~* "^/[a-z0-9]{40}\.(css|js)$"
 		{
-			gzip_static always;
+			gzip_static {GZipStatic};
 			expires max;
 {SecurityHeaders}
 			add_header Cache-Control public;
@@ -311,6 +325,7 @@ R"---(
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			include {FastCGIFile};
 
 			error_page 502 = @{PackageName}_Fallback;
@@ -322,6 +337,9 @@ R"---(
 		}
 		location @{PackageName}_Fallback
 		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			include {FastCGIFile};
 
 			fastcgi_pass {Upstream};
@@ -344,6 +362,7 @@ R"---(
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			error_page 502 = @{PackageName}_Fallback;
 			proxy_pass http://{UpstreamSticky};
 			proxy_http_version 1.1;
@@ -357,6 +376,9 @@ R"---(
 		}
 		location @{PackageName}_Fallback
 		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			proxy_pass http://{Upstream};
 			proxy_http_version 1.1;
 			proxy_set_header Host $host;
@@ -406,6 +428,7 @@ R"---(
 		{
 {PathRedirect}
 {ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			error_page 502 = @{PackageName}_Fallback;
 			proxy_pass http://{UpstreamSticky};
 			proxy_http_version 1.1;
@@ -419,6 +442,9 @@ R"---(
 		}
 		location @{PackageName}_Fallback
 		{
+{PathRedirect}
+{ServerRootOptions_{PackageName}}
+{DefaultSourceSubFilters}
 			proxy_pass http://{Upstream};
 			proxy_http_version 1.1;
 			proxy_set_header Host $host;
@@ -456,7 +482,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		location ~* "^/[a-z0-9]{40}\.(css|js)$"
 		{
-			gzip_static always;
+			gzip_static {GZipStatic};
 			expires max;
 			root "{StaticRoot}";
 		}
@@ -507,7 +533,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			CStrSecure m_UserPassword;
 #endif
 		};
-		
+
 		auto SetupResults = co_await
 			(
 				g_Dispatch(*mp_FileActors) / [User = mp_NginxUser]() mutable -> CResults
@@ -556,6 +582,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		{
 			CStr m_Locations;
 			CStr m_DefaultLocation;
+			CStr m_DefaultSourceSubFilters;
 		};
 
 		CStr NginxDirectory = fp_GetDataPath("nginx");
@@ -582,28 +609,11 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		{
 			CStr AlternateSourcesContents;
 			TCVector<CStr> DefaultLocations;
+			CStr DefaultSourceSubFiltersContents;
+
 			for (auto &AlternateSource : Package.m_AlternateSources)
 			{
-				CStr Destination = AlternateSource.m_Destination;
-				if (Destination != "Default")
-				{
-					CStr AlternateSourceConfigName = "AlternateSource_{}"_f << Destination;
-					Destination = fp_GetConfigValue(AlternateSourceConfigName, "").f_String();
-					if (Destination.f_IsEmpty())
-					{
-						DMibLogWithCategory(WebAppManager, Error, "Missing alternate source in config file: {}", AlternateSourceConfigName);
-						co_return {};
-					}
-				}
-
-				if (Destination == "Default")
-				{
-					DefaultLocations.f_Insert(AlternateSource.m_Pattern);
-					continue;
-				}
-
 				CStr SubFilters;
-
 				if (!AlternateSource.m_SearchReplace.f_IsEmpty())
 				{
 					for (auto &SearchReplace : AlternateSource.m_SearchReplace)
@@ -622,6 +632,28 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						"			proxy_set_header Accept-Encoding \"\";\n"
 					;
 				}
+
+				CStr Destination = AlternateSource.m_Destination;
+				if (Destination != "Default")
+				{
+					CStr AlternateSourceConfigName = "AlternateSource_{}"_f << Destination;
+					Destination = fp_GetConfigValue(AlternateSourceConfigName, "").f_String();
+					if (Destination.f_IsEmpty())
+					{
+						DMibLogWithCategory(WebAppManager, Error, "Missing alternate source in config file: {}", AlternateSourceConfigName);
+						co_return {};
+					}
+				}
+				else
+				{
+					if (!AlternateSource.m_SearchReplace.f_IsEmpty())
+						DefaultSourceSubFiltersContents += SubFilters;
+					else
+						DefaultLocations.f_Insert(AlternateSource.m_Pattern);
+
+					continue;
+				}
+
 				AlternateSourcesContents += fg_Format
 					(
 						"		location ~ {}\n"
@@ -646,6 +678,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			AlternateSource.m_Locations = fg_Move(AlternateSourcesContents);
 			if (!DefaultLocations.f_IsEmpty())
 				AlternateSource.m_DefaultLocation = "{}"_f << CStr::fs_Join(DefaultLocations, "|");
+
+			AlternateSource.m_DefaultSourceSubFilters = fg_Move(DefaultSourceSubFiltersContents);
 		}
 
 		auto SetupResults = co_await
@@ -1086,7 +1120,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							StaticPackages += "		{\n";
 							StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
 							if (Package.f_IsStatic())
-								StaticPackages += "			gzip_static always;\n";
+								StaticPackages += "			gzip_static {GZipStatic};\n";
 							StaticPackages += "{SecurityHeaders}\n";
 							StaticPackages += "			add_header Cache-Control no-cache;\n";
 							StaticPackages += "			access_log logs/static_access_{}.log;\n"_f << Package.f_GetName();
@@ -1100,6 +1134,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					Server = Server.f_Replace("{PathRedirect}",  SetupResults.m_Redirects[Package.f_GetName()]);
 					auto &AlternateSource = AlternateSources[Package.f_GetName()];
 					Server = Server.f_Replace("{AlternateSources}", AlternateSource.m_Locations);
+					Server = Server.f_Replace("{DefaultSourceSubFilters}", AlternateSource.m_DefaultSourceSubFilters);
+					Server = Server.f_Replace("{GZipStatic}", AlternateSource.m_DefaultSourceSubFilters.f_IsEmpty() ? gc_Str<"always">.m_Str : gc_Str<"off">.m_Str);
 					Server = Server.f_Replace("{DefaultLocation}", AlternateSource.m_DefaultLocation ? AlternateSource.m_DefaultLocation : CStr("/.*"));
 
 					if (bIsMainServer && mp_Options.m_bRedirectWWW)
@@ -1175,7 +1211,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			ConfigContents = ConfigContents.f_Replace("{CheckServerNameLogicPort80}", g_pCheckServerName);
 		else
 			ConfigContents = ConfigContents.f_Replace("{CheckServerNameLogicPort80}", "");
-		
+
 		ConfigContents = ConfigContents.f_Replace("{DomainName}", mp_Domain);
 		ConfigContents = ConfigContents.f_Replace("{DomainNameCookie}", mp_DomainCookie);
 		ConfigContents = ConfigContents.f_Replace("{DomainNameEscaped}", mp_Domain.f_Replace(".", "\\."));

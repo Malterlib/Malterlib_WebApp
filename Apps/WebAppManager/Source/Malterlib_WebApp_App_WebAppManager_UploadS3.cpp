@@ -7,12 +7,13 @@
 #include <Mib/File/VirtualFS>
 #include <Mib/File/VirtualFSs/MalterlibFS>
 #include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Compression/ZLib>
 
 namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 41;
+		uint32 gc_UpdateVersion = 42;
 	}
 
 	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)
@@ -762,6 +763,21 @@ exports.handler = async (event) => {
 		if (!fp_FormatAlternateSources(AlternateSourcesString, AlternateSources))
 			co_return {};
 
+		TCVector<CWebAppManagerOptions::CPackage::CSearchReplace> DefaultSourceSearchReplace;
+
+		for (auto &AlternateSource : AlternateSources)
+		{
+			if (AlternateSource.m_SearchReplace.f_IsEmpty() || AlternateSource.m_Destination != "Default")
+				continue;
+
+			for (auto &SearchReplace : AlternateSource.m_SearchReplace)
+			{
+				auto &NewSearchReplace = DefaultSourceSearchReplace.f_Insert();
+				NewSearchReplace.m_Search = fp_DoCustomStringReplacements(SearchReplace.m_Search.f_Replace("{DomainName}", mp_Domain));
+				NewSearchReplace.m_Replace = fp_DoCustomStringReplacements(SearchReplace.m_Replace.f_Replace("{DomainName}", mp_Domain));
+			}
+		}
+
 		CSourceCheckResults SourceCheckResults = co_await
 			(
 				g_Dispatch(*mp_FileActors) / [=, Options = mp_Options, Domain = mp_Domain]() mutable -> CSourceCheckResults
@@ -836,6 +852,7 @@ exports.handler = async (event) => {
 					Stream << RedirectsPermanent;
 					Stream << bRawTarGz;
 					Stream << DirectoryManifest;
+					Stream << DefaultSourceSearchReplace;
 
 					fAddChecksum(CHash_MD5::fs_DigestFromData(Stream.f_GetVector()));
 
@@ -939,7 +956,7 @@ exports.handler = async (event) => {
 
 		bool bVerbose = fp_GetConfigValue("VerboseS3Logging", false).f_Boolean();
 
-		TCSet<CStr> FilesToUpdate;
+		TCMap<CStr, TCOptional<CByteVector>> FilesToUpdate;
 
 		mint nMetaDataQueries = 0;
 		for (auto &NewFile : SourceCheckResults.m_DirectoryManifest.m_Files)
@@ -958,23 +975,66 @@ exports.handler = async (event) => {
 					continue;
 			}
 
+			auto *pNewChecksum = SourceCheckResults.m_FileChecksums.f_FindEqual(FileName);
+			DMibCheck(pNewChecksum);
+
+			CHashDigest_MD5 RealChecksum;
+			if (pNewChecksum)
+				RealChecksum = pNewChecksum->m_MD5;
+
+			TCOptional<CByteVector> FileContents;
+
+			if (!DefaultSourceSearchReplace.f_IsEmpty() && !NewFile.m_OriginalPath.f_IsEmpty())
+			{
+				FileContents = co_await
+					(
+						g_Dispatch(*mp_FileActors) / [=, FullFileName = RootPath / NewFile.m_OriginalPath]() mutable -> TCOptional<CByteVector>
+						{
+							auto RawFileContents = CFile::fs_ReadFile(FullFileName);
+							bool bIsGZip = CFile::fs_GetExtension(FullFileName) == "gz";
+
+							if (bIsGZip)
+								RawFileContents = fg_DecompressGZip(RawFileContents);
+
+							CStr FileContents = CFile::fs_ReadStringFromVector(RawFileContents);
+
+							CStr OriginalFileContents = FileContents;
+							for (auto &SearchReplace : DefaultSourceSearchReplace)
+								FileContents = FileContents.f_Replace(SearchReplace.m_Search, SearchReplace.m_Replace);
+
+							if (FileContents != OriginalFileContents)
+							{
+								CByteVector ModifiedFileContents;
+								CFile::fs_WriteStringToVector(ModifiedFileContents, FileContents, false);
+								if (bIsGZip)
+									ModifiedFileContents = fg_CompressGZip(ModifiedFileContents);
+
+								return fg_Move(ModifiedFileContents);
+							}
+
+							return {};
+						}
+					)
+				;
+
+				if (FileContents)
+					RealChecksum = CHash_MD5::fs_DigestFromData(*FileContents);
+			}
+
 			auto pExistingObject = ExistingObjects.f_FindEqual(DestinationFileName);
 			if (!pExistingObject)
 			{
-				FilesToUpdate[DestinationFileName];
+				FilesToUpdate[DestinationFileName] = fg_Move(FileContents);
 				if (bVerbose)
 					DMibLogWithCategory(S3Upload, Info, "Add - Does not exist in bucket: {}", DestinationFileName);
 				continue;
 			}
 
-			auto *pNewChecksum = SourceCheckResults.m_FileChecksums.f_FindEqual(FileName);
-			DMibCheck(pNewChecksum);
-
-			if (!pNewChecksum || pNewChecksum->m_MD5.f_GetString() != *pExistingObject)
+			if (!pNewChecksum || RealChecksum.f_GetString() != *pExistingObject)
 			{
-				FilesToUpdate[DestinationFileName];
+				FilesToUpdate[DestinationFileName] = fg_Move(FileContents);
 				if (bVerbose)
-					DMibLogWithCategory(S3Upload, Info, "Update - MD5 differs. {} != {}: {}", pNewChecksum->m_MD5.f_GetString(), *pExistingObject, DestinationFileName);
+					DMibLogWithCategory(S3Upload, Info, "Update - MD5 differs. {} != {}: {}", RealChecksum.f_GetString(), *pExistingObject, DestinationFileName);
 				continue;
 			}
 
@@ -1038,7 +1098,9 @@ exports.handler = async (event) => {
 			else
 				PutInfo.m_ContentType = "application/octet-stream"; // Default to safe octet-stream
 
-			if (!FilesToUpdate.f_FindEqual(FileName))
+			auto *pModifiedFileContents = FilesToUpdate.f_FindEqual(FileName);
+
+			if (!pModifiedFileContents)
 			{
 				auto pMetaData = MetaData.f_FindEqual(FileName);
 				if (pMetaData)
@@ -1105,10 +1167,14 @@ exports.handler = async (event) => {
 			if (Priority == TCLimitsInt<int64>::mc_Max)
 				Priority = 0;
 
+			TCOptional<CByteVector> FileContents;
+			if (pModifiedFileContents && *pModifiedFileContents)
+				FileContents = *pModifiedFileContents;
+
 			// Limit the number of files held in memory to limit memory usage
 			ToUpload[Priority].f_Insert
 				(
-					[=, this, ExpectedChecksum = NewFile.m_Digest](CActorSubscription &&_Subscription) -> TCFuture<void>
+					[=, this, ExpectedChecksum = NewFile.m_Digest, FileContents = fg_Move(FileContents)](CActorSubscription &&_Subscription) mutable -> TCFuture<void>
 					{
 						auto OnResume = co_await f_CheckDestroyedOnResume();
 
@@ -1122,12 +1188,17 @@ exports.handler = async (event) => {
 						{
 							ReadData = co_await
 								(
-									g_Dispatch(*mp_FileActors) / [=, FullFileName = RootPath / NewFile.m_OriginalPath]() -> CByteVector
+									g_Dispatch(*mp_FileActors) / [=, FullFileName = RootPath / NewFile.m_OriginalPath, FileContents = fg_Move(FileContents)]() mutable -> CByteVector
 									{
-										auto FileData = CFile::fs_ReadFile(FullFileName);
-
-										if (CHash_SHA256::fs_DigestFromData(FileData) != ExpectedChecksum)
-											DMibError("Aborting file upload due to changed file contents");
+										CByteVector FileData;
+										if (FileContents)
+											FileData = fg_Move(*FileContents);
+										else
+										{
+											FileData = CFile::fs_ReadFile(FullFileName);
+											if (CHash_SHA256::fs_DigestFromData(FileData) != ExpectedChecksum)
+												DMibError("Aborting file upload due to changed file contents");
+										}
 
 										return FileData;
 									}
