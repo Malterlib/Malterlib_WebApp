@@ -996,7 +996,7 @@ exports.handler = async (event) => {
 							if (bIsGZip)
 								RawFileContents = fg_DecompressGZip(RawFileContents);
 
-							CStr FileContents = CFile::fs_ReadStringFromVector(RawFileContents);
+							CStr FileContents = CFile::fs_ReadStringFromVector(RawFileContents, true);
 
 							CStr OriginalFileContents = FileContents;
 							for (auto &SearchReplace : DefaultSourceSearchReplace)
