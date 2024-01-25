@@ -567,6 +567,14 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		co_return {};
 	}
 
+	constexpr CStr gc_SubFilterConfig = gc_Str
+		<
+			"			sub_filter_once off;\n"
+			"			sub_filter_types *;\n"
+			"			proxy_set_header Accept-Encoding \"\";\n"
+		>
+	;
+
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_Nginx()
 	{
 		struct CResults
@@ -626,11 +634,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							)
 						;
 					}
-					SubFilters +=
-						"			sub_filter_once off;\n"
-						"			sub_filter_types *;\n"
-						"			proxy_set_header Accept-Encoding \"\";\n"
-					;
 				}
 
 				CStr Destination = AlternateSource.m_Destination;
@@ -647,7 +650,12 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				else
 				{
 					if (!AlternateSource.m_SearchReplace.f_IsEmpty())
+					{
+						if (DefaultSourceSubFiltersContents.f_IsEmpty() && !SubFilters.f_IsEmpty())
+							DefaultSourceSubFiltersContents += gc_SubFilterConfig;
+
 						DefaultSourceSubFiltersContents += SubFilters;
+					}
 					else
 						DefaultLocations.f_Insert(AlternateSource.m_Pattern);
 
@@ -665,10 +673,11 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						"			proxy_buffer_size 128k;\n"
 						"			proxy_buffers 4 256k;\n"
 						"			proxy_busy_buffers_size 256k;\n"
-						"{}"
+						"{}{}"
 						"		}\n"
 						, AlternateSource.m_Pattern
 						, Destination
+						, gc_SubFilterConfig
 						, SubFilters
 					)
 				;
