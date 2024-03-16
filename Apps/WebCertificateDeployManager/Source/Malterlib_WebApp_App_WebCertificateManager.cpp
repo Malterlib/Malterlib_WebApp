@@ -55,9 +55,6 @@ namespace NMib::NWebApp::NWebCertificateManager
 		if (mp_CertificateDeployActor)
 			fg_Move(mp_CertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
 
-		if (mp_FileActor)
-			fg_Move(mp_FileActor).f_Destroy() > Destroys.f_AddResult();
-
 		co_await Destroys.f_GetResults();
 
 		co_return {};

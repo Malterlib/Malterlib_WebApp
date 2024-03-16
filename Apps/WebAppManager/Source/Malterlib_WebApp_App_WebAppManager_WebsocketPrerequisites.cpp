@@ -21,37 +21,41 @@ namespace NMib::NWebApp::NWebAppManager
 #endif
 		};
 
-		auto NodeInfo = co_await
-			(
-				g_Dispatch(*mp_FileActors)
-				/ [ProgramDirectory, WebsocketDirectory, ThisActor = fg_ThisActor(this), WebsocketUser = mp_WebsocketUser, MongoSSLDirectory = fp_GetMongoSSLDirectory()]
-				() mutable -> TCFuture<CInfo>
-				{
-					TCPromise<CInfo> Promise;
-
-					DLog(Info, "Setting up websocket user");
-
-					CInfo Info;
-					Info.m_User = WebsocketUser;
-
-					try
+		CInfo NodeInfo;
+		{
+			auto BlockingActorCheckout = fg_BlockingActor();
+			NodeInfo = co_await
+				(
+					g_Dispatch(BlockingActorCheckout)
+					/ [ProgramDirectory, WebsocketDirectory, ThisActor = fg_ThisActor(this), WebsocketUser = mp_WebsocketUser, MongoSSLDirectory = fp_GetMongoSSLDirectory()]
+					() mutable -> TCFuture<CInfo>
 					{
-	#ifdef DPlatformFamily_Windows
-						fsp_SetupPrerequisites_ServerUser(Info.m_User, Info.m_UserPassword, WebsocketDirectory, MongoSSLDirectory);
-	#else
-						fsp_SetupPrerequisites_ServerUser(Info.m_User, WebsocketDirectory, MongoSSLDirectory);
-	#endif
-						Promise.f_SetResult(Info);
-						return Promise.f_MoveFuture();
+						TCPromise<CInfo> Promise;
+
+						DLog(Info, "Setting up websocket user");
+
+						CInfo Info;
+						Info.m_User = WebsocketUser;
+
+						try
+						{
+		#ifdef DPlatformFamily_Windows
+							fsp_SetupPrerequisites_ServerUser(Info.m_User, Info.m_UserPassword, WebsocketDirectory, MongoSSLDirectory);
+		#else
+							fsp_SetupPrerequisites_ServerUser(Info.m_User, WebsocketDirectory, MongoSSLDirectory);
+		#endif
+							Promise.f_SetResult(Info);
+							return Promise.f_MoveFuture();
+						}
+						catch (NException::CException const &)
+						{
+							Promise.f_SetCurrentException();
+							return Promise.f_MoveFuture();
+						}
 					}
-					catch (NException::CException const &)
-					{
-						Promise.f_SetCurrentException();
-						return Promise.f_MoveFuture();
-					}
-				}
-			)
-		;
+				)
+			;
+		}
 
 		mp_WebsocketUser = NodeInfo.m_User;
 #ifdef DPlatformFamily_Windows

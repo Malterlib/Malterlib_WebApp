@@ -45,9 +45,10 @@ namespace NMib::NWebApp::NWebAppManager
 				Executables.f_Insert(CFile::fs_GetFileNoExt(PackageOptions.m_CustomExecutable));
 		}
 
+		auto BlockingActorCheckout = fg_BlockingActor();
 		co_await
 			(
-				g_Dispatch(*mp_FileActors) / [Executables = fg_Move(Executables)]
+				g_Dispatch(BlockingActorCheckout) / [Executables = fg_Move(Executables)]
 				{
 					fg_CleanupOldProcesses(Executables);
 				}

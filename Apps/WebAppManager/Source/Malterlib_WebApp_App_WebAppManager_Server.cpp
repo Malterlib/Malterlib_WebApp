@@ -61,8 +61,6 @@ namespace NMib::NWebApp::NWebAppManager
 			)
 		;
 
-		mp_FileActors.f_Construct(fg_Construct(fg_Construct<CSeparateThreadActor>(), "File actor"));
-
 		{
 			auto CaptureScope = co_await (g_CaptureExceptions % "Failed to parse config");
 			fp_ParseConfig();
@@ -188,8 +186,6 @@ namespace NMib::NWebApp::NWebAppManager
 		if (mp_NginxLaunch)
 			co_await mp_NginxLaunch.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy nginx launch");
 
-		co_await mp_FileActors.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy file actors");
-
 		co_return {};
 	}
 
@@ -314,46 +310,50 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerActor::fp_ExtractExeFS() const
 	{
-		TCPromise<void> Promise;
-
-		return Promise <<= g_Dispatch(*mp_FileActors) / []
-			{
-				CExeFS ExeFS;
-				if (!fg_OpenExeFS(ExeFS))
-					DError("Failed to open ExeFS");
-
-				CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
-
-				CFileSystemInterface_VirtualFS MalterlibFS(ExeFS.m_FileSystem);
-				CFileSystemInterface_Disk DiskFS;
-				CTime SourceFileTime = MalterlibFS.f_GetWriteTime("");
-
-				CTime DestinationFileTime;
-				CStr ExeFSFileTimeFile = ProgramDirectory + "/ExeFS.time";
-
-				if (CFile::fs_FileExists(ExeFSFileTimeFile))
+		auto BlockingActorCheckout = fg_BlockingActor();
+		co_await
+			(
+				g_Dispatch(BlockingActorCheckout) / []
 				{
+					CExeFS ExeFS;
+					if (!fg_OpenExeFS(ExeFS))
+						DError("Failed to open ExeFS");
+
+					CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+
+					CFileSystemInterface_VirtualFS MalterlibFS(ExeFS.m_FileSystem);
+					CFileSystemInterface_Disk DiskFS;
+					CTime SourceFileTime = MalterlibFS.f_GetWriteTime("");
+
+					CTime DestinationFileTime;
+					CStr ExeFSFileTimeFile = ProgramDirectory + "/ExeFS.time";
+
+					if (CFile::fs_FileExists(ExeFSFileTimeFile))
+					{
+						TCBinaryStreamFile<> Stream;
+						Stream.f_Open(ExeFSFileTimeFile, EFileOpen_Read | EFileOpen_ShareAll);
+						Stream >> DestinationFileTime;
+					}
+					if (SourceFileTime == DestinationFileTime)
+						return;
+
+					auto Files = CFile::fs_FindFiles(ProgramDirectory + "/node-*");
+					if (!Files.f_IsEmpty())
+					{
+						for (auto &File : Files)
+							CFile::fs_DeleteDirectoryRecursive(File);
+					}
+
+					MalterlibFS.f_CopyFilesWithAttribs("*", DiskFS, ProgramDirectory);
+
 					TCBinaryStreamFile<> Stream;
-					Stream.f_Open(ExeFSFileTimeFile, EFileOpen_Read | EFileOpen_ShareAll);
-					Stream >> DestinationFileTime;
+					Stream.f_Open(ExeFSFileTimeFile, EFileOpen_Write | EFileOpen_ShareAll);
+					Stream << SourceFileTime;
 				}
-				if (SourceFileTime == DestinationFileTime)
-					return;
-
-				auto Files = CFile::fs_FindFiles(ProgramDirectory + "/node-*");
-				if (!Files.f_IsEmpty())
-				{
-					for (auto &File : Files)
-						CFile::fs_DeleteDirectoryRecursive(File);
-				}
-
-				MalterlibFS.f_CopyFilesWithAttribs("*", DiskFS, ProgramDirectory);
-
-				TCBinaryStreamFile<> Stream;
-				Stream.f_Open(ExeFSFileTimeFile, EFileOpen_Write | EFileOpen_ShareAll);
-				Stream << SourceFileTime;
-			}
+			)
 		;
+		
+		co_return {};
 	}
 
 	TCFuture<void> CWebAppManagerActor::fp_CheckVersion(CStr const &_Tool, CStr const &_Argument, CStr const &_ParseString, CVersion const &_NeededVersion)

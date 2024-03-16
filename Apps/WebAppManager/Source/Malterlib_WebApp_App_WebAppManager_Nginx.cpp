@@ -534,22 +534,26 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 #endif
 		};
 
-		auto SetupResults = co_await
-			(
-				g_Dispatch(*mp_FileActors) / [User = mp_NginxUser]() mutable -> CResults
-				{
-					CResults Results;
+		CResults SetupResults;
+		{
+			auto BlockingActorCheckout = fg_BlockingActor();
+			SetupResults = co_await
+				(
+					g_Dispatch(BlockingActorCheckout) / [User = mp_NginxUser]() mutable -> CResults
+					{
+						CResults Results;
 
-					Results.m_User = User;
-	#ifdef DPlatformFamily_Windows
-					fsp_SetupUser(Results.m_User, Results.m_UserPassword);
-	#else
-					fsp_SetupUser(Results.m_User);
-	#endif
-					return Results;
-				}
-			)
-		;
+						Results.m_User = User;
+		#ifdef DPlatformFamily_Windows
+						fsp_SetupUser(Results.m_User, Results.m_UserPassword);
+		#else
+						fsp_SetupUser(Results.m_User);
+		#endif
+						return Results;
+					}
+				)
+			;
+		}
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
@@ -691,219 +695,223 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			AlternateSource.m_DefaultSourceSubFilters = fg_Move(DefaultSourceSubFiltersContents);
 		}
 
-		auto SetupResults = co_await
-			(
-				g_Dispatch(*mp_FileActors) /
-				[
-					ProgramDirectory = CFile::fs_GetProgramDirectory()
-					, NginxDirectory
-					, bIsStaging = mp_bIsStaging
-					, Domain = mp_Domain
-					, DomainCookie = mp_DomainCookie
-					, Packages = FilteredPackages
-					, DhParamFile
-					, ConfigFile
-					, CertificateOrganization
-					, CertificateCountry
-					, CertificateLocality
-					, CertificateOrganizationalUnit
-					, FastCGIFile
-					, ManagerName = mp_Options.m_ManagerName
-				]
-				() mutable -> CResults
-				{
-					CResults Results;
-
-					CFile::fs_CreateDirectory(NginxDirectory + "/root");
-					CFile::fs_CreateDirectory(NginxDirectory + "/logs");
-					CFile::fs_CreateDirectory(NginxDirectory + "/.tmp");
-					CFile::fs_CreateDirectory(NginxDirectory + "/certificates");
-
-					Results.m_CertificateFile = NginxDirectory + "/certificates/web.pem";
-					Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web.key";
-					CStr CertificateRequestFile = NginxDirectory + "/certificates/web.csr";
-
-					CStr CaCertificateFile = NginxDirectory + "/certificates/web_ca.pem";
-					CStr CaCertificateKeyFile = NginxDirectory + "/certificates/web_ca.key";
-
-					if (bIsStaging)
+		CResults SetupResults;
+		{
+			auto BlockingActorCheckout = fg_BlockingActor();
+			SetupResults = co_await
+				(
+					g_Dispatch(BlockingActorCheckout) /
+					[
+						ProgramDirectory = CFile::fs_GetProgramDirectory()
+						, NginxDirectory
+						, bIsStaging = mp_bIsStaging
+						, Domain = mp_Domain
+						, DomainCookie = mp_DomainCookie
+						, Packages = FilteredPackages
+						, DhParamFile
+						, ConfigFile
+						, CertificateOrganization
+						, CertificateCountry
+						, CertificateLocality
+						, CertificateOrganizationalUnit
+						, FastCGIFile
+						, ManagerName = mp_Options.m_ManagerName
+					]
+					() mutable -> CResults
 					{
-						Results.m_CertificateFile = NginxDirectory + "/certificates/web-staging.pem";
-						Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web-staging.key";
-						CertificateRequestFile = NginxDirectory + "/certificates/web-staging.csr";
-					}
+						CResults Results;
 
-					if (!CFile::fs_FileExists(Results.m_CertificateFile))
-					{
-	#ifdef DMibDebug
-						CPublicKeySetting KeySettings = CPublicKeySettings_EC_secp384r1{};
-	#else
-						CPublicKeySetting KeySettings = CPublicKeySettings_RSA{8192};
-	#endif
+						CFile::fs_CreateDirectory(NginxDirectory + "/root");
+						CFile::fs_CreateDirectory(NginxDirectory + "/logs");
+						CFile::fs_CreateDirectory(NginxDirectory + "/.tmp");
+						CFile::fs_CreateDirectory(NginxDirectory + "/certificates");
 
-						TCMap<CStr, CStr> RelativeDistinguishedNames;
+						Results.m_CertificateFile = NginxDirectory + "/certificates/web.pem";
+						Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web.key";
+						CStr CertificateRequestFile = NginxDirectory + "/certificates/web.csr";
 
-						RelativeDistinguishedNames["C"] = CertificateCountry;
-						RelativeDistinguishedNames["L"] = CertificateLocality;
-						RelativeDistinguishedNames["O"] = CertificateOrganization;
-						RelativeDistinguishedNames["OU"] = CertificateOrganizationalUnit;
+						CStr CaCertificateFile = NginxDirectory + "/certificates/web_ca.pem";
+						CStr CaCertificateKeyFile = NginxDirectory + "/certificates/web_ca.key";
 
-						CByteVector CertData;
-						CByteVector CertRequestData;
-						CSecureByteVector KeyData;
-						CByteVector CaCertData;
-						CSecureByteVector CaKeyData;
-
-						TCVector<CStr> Subjects = fg_CreateVector<CStr>(Domain, "*." + Domain);
-
-						if (CFile::fs_FileExists(CaCertificateFile) && CFile::fs_FileExists(CaCertificateKeyFile))
+						if (bIsStaging)
 						{
-							CaCertData = CFile::fs_ReadFile(CaCertificateFile);
-							CaKeyData = CFile::fs_ReadFileSecure(CaCertificateKeyFile);
+							Results.m_CertificateFile = NginxDirectory + "/certificates/web-staging.pem";
+							Results.m_CertificateKeyFile = NginxDirectory + "/certificates/web-staging.key";
+							CertificateRequestFile = NginxDirectory + "/certificates/web-staging.csr";
 						}
-						else
+
+						if (!CFile::fs_FileExists(Results.m_CertificateFile))
 						{
+		#ifdef DMibDebug
+							CPublicKeySetting KeySettings = CPublicKeySettings_EC_secp384r1{};
+		#else
+							CPublicKeySetting KeySettings = CPublicKeySettings_RSA{8192};
+		#endif
+
+							TCMap<CStr, CStr> RelativeDistinguishedNames;
+
+							RelativeDistinguishedNames["C"] = CertificateCountry;
+							RelativeDistinguishedNames["L"] = CertificateLocality;
+							RelativeDistinguishedNames["O"] = CertificateOrganization;
+							RelativeDistinguishedNames["OU"] = CertificateOrganizationalUnit;
+
+							CByteVector CertData;
+							CByteVector CertRequestData;
+							CSecureByteVector KeyData;
+							CByteVector CaCertData;
+							CSecureByteVector CaKeyData;
+
+							TCVector<CStr> Subjects = fg_CreateVector<CStr>(Domain, "*." + Domain);
+
+							if (CFile::fs_FileExists(CaCertificateFile) && CFile::fs_FileExists(CaCertificateKeyFile))
+							{
+								CaCertData = CFile::fs_ReadFile(CaCertificateFile);
+								CaKeyData = CFile::fs_ReadFileSecure(CaCertificateKeyFile);
+							}
+							else
+							{
+								CCertificateOptions Options;
+								Options.m_CommonName = fg_Format("{} CA {nfh,sj16,sf0}", ManagerName, fg_GetHighEntropyRandomInteger<uint64>());
+								Options.m_RelativeDistinguishedNames = RelativeDistinguishedNames;
+								Options.m_KeySetting = KeySettings;
+								Options.f_MakeCA();
+
+								CCertificateSignOptions SignOptions;
+								SignOptions.m_Days = 365*20;
+								SignOptions.f_AddExtension_SubjectKeyIdentifier();
+
+								CCertificate::fs_GenerateSelfSignedCertAndKey
+									(
+										Options
+										, CaCertData
+										, CaKeyData
+										, SignOptions
+									)
+								;
+								CFile::fs_WriteFile(CaCertData, CaCertificateFile);
+		#ifdef DPlatformFamily_Windows
+								CFile::fs_WriteFile(CaCertData, NginxDirectory + "/certificates/web_ca.crt");
+		#endif
+								CFile::fs_WriteFileSecure(CaKeyData, CaCertificateKeyFile);
+							}
+
 							CCertificateOptions Options;
-							Options.m_CommonName = fg_Format("{} CA {nfh,sj16,sf0}", ManagerName, fg_GetHighEntropyRandomInteger<uint64>());
+							Options.m_CommonName = Domain;
 							Options.m_RelativeDistinguishedNames = RelativeDistinguishedNames;
+							Options.m_Hostnames = Subjects;
 							Options.m_KeySetting = KeySettings;
-							Options.f_MakeCA();
 
 							CCertificateSignOptions SignOptions;
-							SignOptions.m_Days = 365*20;
-							SignOptions.f_AddExtension_SubjectKeyIdentifier();
+							SignOptions.m_Serial = 1;
+							SignOptions.m_Days = 824;
+							SignOptions.f_AddExtension_AuthorityKeyIdentifier();
+							Options.f_AddExtension_BasicConstraints(false);
+							Options.f_AddExtension_KeyUsage(EKeyUsage_KeyEncipherment | EKeyUsage_DigitalSignature);
 
-							CCertificate::fs_GenerateSelfSignedCertAndKey
-								(
-									Options
-									, CaCertData
-									, CaKeyData
-									, SignOptions
-								)
-							;
-							CFile::fs_WriteFile(CaCertData, CaCertificateFile);
-	#ifdef DPlatformFamily_Windows
-							CFile::fs_WriteFile(CaCertData, NginxDirectory + "/certificates/web_ca.crt");
-	#endif
-							CFile::fs_WriteFileSecure(CaKeyData, CaCertificateKeyFile);
+							CCertificate::fs_GenerateClientCertificateRequest(Options, CertRequestData, KeyData);
+							CCertificate::fs_SignClientCertificate(CaCertData, CaKeyData, CertRequestData, CertData, SignOptions);
+
+							CFile::fs_WriteFile(CertData, Results.m_CertificateFile);
+							CFile::fs_WriteFileSecure(KeyData, Results.m_CertificateKeyFile);
+							CFile::fs_WriteFile(CertRequestData, CertificateRequestFile);
 						}
 
-						CCertificateOptions Options;
-						Options.m_CommonName = Domain;
-						Options.m_RelativeDistinguishedNames = RelativeDistinguishedNames;
-						Options.m_Hostnames = Subjects;
-						Options.m_KeySetting = KeySettings;
+						if (CFile::fs_FileExists(DhParamFile))
+							Results.m_bHasDHParamFile = true;
 
-						CCertificateSignOptions SignOptions;
-						SignOptions.m_Serial = 1;
-						SignOptions.m_Days = 824;
-						SignOptions.f_AddExtension_AuthorityKeyIdentifier();
-						Options.f_AddExtension_BasicConstraints(false);
-						Options.f_AddExtension_KeyUsage(EKeyUsage_KeyEncipherment | EKeyUsage_DigitalSignature);
+						CFile::fs_SetUnixAttributesRecursive(NginxDirectory + "/certificates", EFileAttrib_UserRead, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
 
-						CCertificate::fs_GenerateClientCertificateRequest(Options, CertRequestData, KeyData);
-						CCertificate::fs_SignClientCertificate(CaCertData, CaKeyData, CertRequestData, CertData, SignOptions);
+						Results.m_ConfigContents = CFile::fs_ReadStringFromFile(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_Nginx.conf");
+						CFile::fs_DiffCopyFileOrDirectory(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_FastCGI.conf", FastCGIFile, nullptr);
 
-						CFile::fs_WriteFile(CertData, Results.m_CertificateFile);
-						CFile::fs_WriteFileSecure(KeyData, Results.m_CertificateKeyFile);
-						CFile::fs_WriteFile(CertRequestData, CertificateRequestFile);
-					}
-
-					if (CFile::fs_FileExists(DhParamFile))
-						Results.m_bHasDHParamFile = true;
-
-					CFile::fs_SetUnixAttributesRecursive(NginxDirectory + "/certificates", EFileAttrib_UserRead, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
-
-					Results.m_ConfigContents = CFile::fs_ReadStringFromFile(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_Nginx.conf");
-					CFile::fs_DiffCopyFileOrDirectory(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_FastCGI.conf", FastCGIFile, nullptr);
-
-					{
-						for (auto &Package : Packages)
 						{
-							if (!Package.f_IsServer())
-								continue;
-
-							CStr RedirectContents;
-
-							if (!Package.m_RedirectsFile.f_IsEmpty())
+							for (auto &Package : Packages)
 							{
-								CStr RedirectPath = fg_Format("{}/{}/{}", CFile::fs_GetProgramDirectory(), Package.f_GetName(), Package.m_RedirectsFile);
+								if (!Package.f_IsServer())
+									continue;
 
-								try
+								CStr RedirectContents;
+
+								if (!Package.m_RedirectsFile.f_IsEmpty())
 								{
-									CJSONSorted const RedirectJSON = CJSONSorted::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath), RedirectPath);
+									CStr RedirectPath = fg_Format("{}/{}/{}", CFile::fs_GetProgramDirectory(), Package.f_GetName(), Package.m_RedirectsFile);
 
-									for (auto const &Redirect : RedirectJSON["redirects"].f_Array())
+									try
 									{
-										CStr Path = Redirect["path"].f_String();
-										CStr RedirectTo = Redirect["redirectTo"].f_String();
-										CStr Campaign = Redirect["campaign"].f_String();
-										CStr ReferrerCookie = Redirect["referrerCookie"].f_String();
-										CStr CampaignPercentEncoded;
-										CURL::fs_PercentEncode(CampaignPercentEncoded, Campaign);
-										RedirectContents += fg_Format
-											(
-												"			if ($uri ~* ^/{}$) {{\n"
-												"{{SecurityHeaders}\n"
-												"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain={}\";\n"
-												"				return 302 {}?campaign={};\n"
-												"			}\n"
-												, Path
-												, ReferrerCookie
-												, DomainCookie
-												, RedirectTo
-												, CampaignPercentEncoded
-											)
-										;
+										CJSONSorted const RedirectJSON = CJSONSorted::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath), RedirectPath);
+
+										for (auto const &Redirect : RedirectJSON["redirects"].f_Array())
+										{
+											CStr Path = Redirect["path"].f_String();
+											CStr RedirectTo = Redirect["redirectTo"].f_String();
+											CStr Campaign = Redirect["campaign"].f_String();
+											CStr ReferrerCookie = Redirect["referrerCookie"].f_String();
+											CStr CampaignPercentEncoded;
+											CURL::fs_PercentEncode(CampaignPercentEncoded, Campaign);
+											RedirectContents += fg_Format
+												(
+													"			if ($uri ~* ^/{}$) {{\n"
+													"{{SecurityHeaders}\n"
+													"				add_header Set-Cookie \"{}=$http_referer; Secure; HttpOnly; Path=/; Domain={}\";\n"
+													"				return 302 {}?campaign={};\n"
+													"			}\n"
+													, Path
+													, ReferrerCookie
+													, DomainCookie
+													, RedirectTo
+													, CampaignPercentEncoded
+												)
+											;
+										}
+									}
+									catch (CException const &_Exception)
+									{
+										DMibError(fg_Format("Failed to generate redirects: {}", _Exception));
 									}
 								}
-								catch (CException const &_Exception)
+
+								for (auto &Redirect : Package.m_RedirectsTemporary)
 								{
-									DMibError(fg_Format("Failed to generate redirects: {}", _Exception));
+									CStr RedirectTo = Redirect.m_To;
+									RedirectTo = RedirectTo.f_Replace("{}", "$uri");
+
+									RedirectContents += fg_Format
+										(
+											"			if ($uri ~* ^{}) {{\n"
+											"				return 302 {}$is_args$args;\n"
+											"			}\n"
+											, Redirect.m_From
+											, RedirectTo
+										)
+									;
 								}
+
+								for (auto &Redirect : Package.m_RedirectsPermanent)
+								{
+									CStr RedirectTo = Redirect.m_To;
+									RedirectTo = RedirectTo.f_Replace("{}", "$uri");
+
+									RedirectContents += fg_Format
+										(
+											"			if ($uri ~* ^{}) {{\n"
+											"				return 301 {}$is_args$args;\n"
+											"			}\n"
+											, Redirect.m_From
+											, RedirectTo
+										)
+									;
+								}
+
+								if (!RedirectContents.f_IsEmpty())
+									Results.m_Redirects[Package.f_GetName()] = fg_Move(RedirectContents);
 							}
-
-							for (auto &Redirect : Package.m_RedirectsTemporary)
-							{
-								CStr RedirectTo = Redirect.m_To;
-								RedirectTo = RedirectTo.f_Replace("{}", "$uri");
-
-								RedirectContents += fg_Format
-									(
-										"			if ($uri ~* ^{}) {{\n"
-										"				return 302 {}$is_args$args;\n"
-										"			}\n"
-										, Redirect.m_From
-										, RedirectTo
-									)
-								;
-							}
-
-							for (auto &Redirect : Package.m_RedirectsPermanent)
-							{
-								CStr RedirectTo = Redirect.m_To;
-								RedirectTo = RedirectTo.f_Replace("{}", "$uri");
-
-								RedirectContents += fg_Format
-									(
-										"			if ($uri ~* ^{}) {{\n"
-										"				return 301 {}$is_args$args;\n"
-										"			}\n"
-										, Redirect.m_From
-										, RedirectTo
-									)
-								;
-							}
-
-							if (!RedirectContents.f_IsEmpty())
-								Results.m_Redirects[Package.f_GetName()] = fg_Move(RedirectContents);
 						}
-					}
 
-					return Results;
-				}
-			)
-		;
+						return Results;
+					}
+				)
+			;
+		}
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
@@ -1359,19 +1367,22 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			ConfigContents = ConfigContents.f_Replace("{DefaultServerWhenNoDefault}", "default_server");
 		}
 
-		co_await
-			(
-				g_Dispatch(*mp_FileActors) / [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_UserName, GroupName = mp_NginxUser.m_GroupName, NginxDirectory]()
-				{
-					CFile::fs_WriteStringToFile(ConfigFile, ConfigContents, false);
+		{
+			auto BlockingActorCheckout = fg_BlockingActor();
+			co_await
+				(
+					g_Dispatch(BlockingActorCheckout) / [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_UserName, GroupName = mp_NginxUser.m_GroupName, NginxDirectory]()
+					{
+						CFile::fs_WriteStringToFile(ConfigFile, ConfigContents, false);
 
-					CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, GroupName);
-					CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", GroupName);
-				}
-			)
-		;
+						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, GroupName);
+						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", GroupName);
+					}
+				)
+			;
+		}
 
-		mp_CertificateDeployActor = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager, *mp_FileActors);
+		mp_CertificateDeployActor = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager);
 
 		co_await mp_CertificateDeployActor(&CWebCertificateDeployActor::f_Start);
 

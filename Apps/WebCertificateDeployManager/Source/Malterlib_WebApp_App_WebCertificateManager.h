@@ -88,7 +88,6 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		TCMap<CStr, CDomain> mp_Domains;
 
-		TCActor<CSeparateThreadActor> mp_FileActor;
 		TCActor<CWebCertificateDeployActor> mp_CertificateDeployActor;
 	};
 }

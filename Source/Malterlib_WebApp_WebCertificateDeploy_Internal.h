@@ -27,7 +27,6 @@ namespace NMib::NWebApp
 				CWebCertificateDeployActor *_pThis
 				, TCActor<CActorDistributionManager> const &_DistributionManager
 				, TCActor<CDistributedActorTrustManager> const &_TrustManager
-				, TCActor<CSeparateThreadActor> const &_FileActor
 			)
 		;
 
@@ -69,7 +68,6 @@ namespace NMib::NWebApp
 		CWebCertificateDeployActor *m_pThis;
 		TCActor<CActorDistributionManager> m_DistributionManager;
 		TCActor<CDistributedActorTrustManager> m_TrustManager;
-		TCActor<CSeparateThreadActor> m_FileActor;
 		TCTrustedActorSubscription<CSecretsManager> m_SecretsManagerSubscription;
 		TCMap<TCWeakDistributedActor<CActor>, CStr> m_LastSecretsManagerError;
 		TCSet<TCWeakDistributedActor<CActor>> m_RetryingSecretsManagers;
@@ -81,6 +79,5 @@ namespace NMib::NWebApp
 		TCMap<CStr, CDomain> m_Domains;
 
 		bool m_bStarted = false;
-		bool m_bOwnsFileActor = false;
 	};
 }

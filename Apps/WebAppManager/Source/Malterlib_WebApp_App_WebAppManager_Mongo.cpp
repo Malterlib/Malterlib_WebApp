@@ -46,7 +46,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_MongoAdminUserName;
 		};
 
-		mp_MongoCertificateDeployActor = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager, *mp_FileActors);
+		mp_MongoCertificateDeployActor = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager);
 
 		CStr CertificateAuthority = mp_AppState.m_ConfigDatabase.m_Data.f_GetMemberValue("MongoCertificateAuthority", "MongoCA").f_String();
 		auto MongoSSLDirectory = fp_GetMongoSSLDirectory();
@@ -85,9 +85,10 @@ namespace NMib::NWebApp::NWebAppManager
 
 		co_await mp_MongoCertificateDeployActor(&CMongoCertificateDeployActor::f_Start);
 
+		auto BlockingActorCheckout = fg_BlockingActor();
 		auto SetupResult = co_await
 			(
-				mp_FileActors.f_Dispatch() / [=, bConnectToExternalMongo = mp_bConnectToExternalMongo]() -> CSetupResult
+				g_Dispatch(BlockingActorCheckout) / [=, bConnectToExternalMongo = mp_bConnectToExternalMongo]() -> CSetupResult
 				{
 					CSetupResult SetupResult;
 

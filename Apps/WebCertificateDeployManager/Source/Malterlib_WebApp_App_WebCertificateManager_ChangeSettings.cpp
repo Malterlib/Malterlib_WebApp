@@ -86,9 +86,10 @@ namespace NMib::NWebApp::NWebCertificateManager
 #ifdef DPlatformFamily_Windows
 				co_return DMibErrorInstance("Reloading nginx config is not supported on Windows");
 #else
+				auto BlockingActorCheckout = fg_BlockingActor();
 				co_await
 					(
-						g_Dispatch(mp_FileActor) / [PidLocation = *pDomain->m_Settings.m_Location_NginxPid]
+						g_Dispatch(BlockingActorCheckout) / [PidLocation = *pDomain->m_Settings.m_Location_NginxPid]
 						{
 							auto PidText = CFile::fs_ReadStringFromFile(PidLocation);
 							auto ProcessId = PidText.f_ToInt(int32(0));

@@ -778,140 +778,144 @@ exports.handler = async (event) => {
 			}
 		}
 
-		CSourceCheckResults SourceCheckResults = co_await
-			(
-				g_Dispatch(*mp_FileActors) / [=, Options = mp_Options, Domain = mp_Domain]() mutable -> CSourceCheckResults
-				{
-					CHash_MD5 Checksum;
-
-					auto fAddChecksum = [&](CHashDigest_MD5 const &_Checksum)
-						{
-							Checksum.f_AddData(_Checksum.f_GetData(), _Checksum.mc_Size);
-						}
-					;
-
-					CDirectoryManifest PreviousDirectoryManifest;
-					CDirectoryManifest DirectoryManifest;
-
+		CSourceCheckResults SourceCheckResults;
+		{
+			auto BlockingActorCheckout = fg_BlockingActor();
+			SourceCheckResults = co_await
+				(
+					g_Dispatch(BlockingActorCheckout) / [=, Options = mp_Options, Domain = mp_Domain]() mutable -> CSourceCheckResults
 					{
-						CStr PreviousManifestFile = ProgramDirectory / "S3UploadPreviousManifest.bin";
+						CHash_MD5 Checksum;
 
-						bool bPreviousExists = CFile::fs_FileExists(PreviousManifestFile);
-
-						if (bPreviousExists)
-							PreviousDirectoryManifest = TCBinaryStreamFile<>::fs_ReadFile<CDirectoryManifest>(PreviousManifestFile);
-
-						DirectoryManifest = CDirectoryManifest::fs_GetManifest(ManifestConfig, nullptr, nullptr, NFile::EFileOpen_None, &PreviousDirectoryManifest);
-
-						for (auto &Prefix : UploadPrefixes)
-						{
-							CStr RobotsPath = Prefix / "robots.txt";
-							if (!DirectoryManifest.m_Files.f_FindEqual(RobotsPath))
+						auto fAddChecksum = [&](CHashDigest_MD5 const &_Checksum)
 							{
-								auto &ManifestFile = DirectoryManifest.m_Files[RobotsPath];
-								ManifestFile.m_SymlinkData = AllowRobotsText;
-								ManifestFile.m_Digest = CHash_SHA256::fs_DigestFromData(ManifestFile.m_SymlinkData.f_GetStr(), ManifestFile.m_SymlinkData.f_GetLen());
+								Checksum.f_AddData(_Checksum.f_GetData(), _Checksum.mc_Size);
 							}
-						}
+						;
 
-						TCBinaryStreamFile<>::fs_WriteFile(DirectoryManifest, PreviousManifestFile + ".tmp");
+						CDirectoryManifest PreviousDirectoryManifest;
+						CDirectoryManifest DirectoryManifest;
 
-						if (bPreviousExists)
-							CFile::fs_AtomicReplaceFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
-						else
-							CFile::fs_RenameFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
-					}
-
-					CBinaryStreamMemory<> Stream;
-					Stream << gc_UpdateVersion; // Version
-					Stream << bAllowRobots;
-					Stream << CloudFrontDistributions;
-					Stream << Options.m_ContentSecurity_DefaultSrc;
-					Stream << Options.m_ContentSecurity_PrefetchSrc;
-					Stream << Options.m_ContentSecurity_ManifestSrc;
-					Stream << Options.m_ContentSecurity_ImgSrc;
-					Stream << Options.m_ContentSecurity_MediaSrc;
-					Stream << Options.m_ContentSecurity_FontSrc;
-					Stream << Domain;
-					Stream << Options.m_ContentSecurity_ScriptSrc;
-					Stream << Options.m_ContentSecurity_StyleSrc;
-					Stream << Options.m_ContentSecurity_FrameSrc;
-					Stream << Options.m_ContentSecurity_ConnectSrc;
-					Stream << Options.m_ContentSecurity_ObjectSrc;
-					Stream << Options.m_ContentSecurity_ChildSrc;
-					Stream << Options.m_ContentSecurity_FormAction;
-					Stream << Options.m_ContentSecurity_ReportURI;
-					Stream << Options.m_ContentSecurity_FrameAncestors;
-					Stream << Options.m_AccessControl_AllowMethods;
-					Stream << Options.m_AccessControl_AllowHeaders;
-					Stream << Options.m_AccessControl_AllowOrigin;
-					Stream << Options.m_AccessControl_MaxAge;
-					Stream << AlternateSources;
-					Stream << AlternateSourcesString;
-					Stream << RedirectsTemporary;
-					Stream << RedirectsPermanent;
-					Stream << bRawTarGz;
-					Stream << DirectoryManifest;
-					Stream << DefaultSourceSearchReplace;
-
-					fAddChecksum(CHash_MD5::fs_DigestFromData(Stream.f_GetVector()));
-
-					for (auto &File : ChecksumFiles)
-						fAddChecksum(fsp_GetFileChecksum(File));
-
-					CStr ChecksumFile = ProgramDirectory / "S3Upload.md5";
-					CStr ChecksumStr = Checksum.f_GetDigest().f_GetString();
-
-					if (CFile::fs_FileExists(ChecksumFile) && CFile::fs_ReadStringFromFile(ChecksumFile, true) == ChecksumStr)
-						return {true};
-
-					TCMap<CStr, CChecksums> FileChecksums;
-					{
-						TCMap<CStr, CChecksums> PreviousChecksums;
-						CStr PreviousChecksumFile = ProgramDirectory / "S3UploadChecksums.bin";
-
-						bool bPreviousExists = CFile::fs_FileExists(PreviousChecksumFile);
-						if (bPreviousExists)
-							PreviousChecksums = TCBinaryStreamFile<>::fs_ReadFile<TCMap<CStr, CChecksums>>(PreviousChecksumFile);
-
-						for (auto &File : DirectoryManifest.m_Files)
 						{
-							if (!File.f_IsFile())
-								continue;
+							CStr PreviousManifestFile = ProgramDirectory / "S3UploadPreviousManifest.bin";
 
-							auto const &FileName = File.f_GetFileName();
+							bool bPreviousExists = CFile::fs_FileExists(PreviousManifestFile);
 
-							auto const *pPreviousChecksum = PreviousChecksums.f_FindEqual(FileName);
-							if (pPreviousChecksum && File.m_Digest == pPreviousChecksum->m_SHA256)
+							if (bPreviousExists)
+								PreviousDirectoryManifest = TCBinaryStreamFile<>::fs_ReadFile<CDirectoryManifest>(PreviousManifestFile);
+
+							DirectoryManifest = CDirectoryManifest::fs_GetManifest(ManifestConfig, nullptr, nullptr, NFile::EFileOpen_None, &PreviousDirectoryManifest);
+
+							for (auto &Prefix : UploadPrefixes)
 							{
-								FileChecksums[FileName] = {File.m_Digest, pPreviousChecksum->m_MD5};
-								continue;
+								CStr RobotsPath = Prefix / "robots.txt";
+								if (!DirectoryManifest.m_Files.f_FindEqual(RobotsPath))
+								{
+									auto &ManifestFile = DirectoryManifest.m_Files[RobotsPath];
+									ManifestFile.m_SymlinkData = AllowRobotsText;
+									ManifestFile.m_Digest = CHash_SHA256::fs_DigestFromData(ManifestFile.m_SymlinkData.f_GetStr(), ManifestFile.m_SymlinkData.f_GetLen());
+								}
 							}
 
-							if (CFile::fs_GetFile(FileName) == "robots.txt" && !File.m_SymlinkData.f_IsEmpty())
-								FileChecksums[FileName] = {File.m_Digest, CHash_MD5::fs_DigestFromData(File.m_SymlinkData.f_GetStr(), File.m_SymlinkData.f_GetLen())};
+							TCBinaryStreamFile<>::fs_WriteFile(DirectoryManifest, PreviousManifestFile + ".tmp");
+
+							if (bPreviousExists)
+								CFile::fs_AtomicReplaceFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
 							else
-								FileChecksums[FileName] = {File.m_Digest, CFile::fs_GetFileChecksum(RootPath / File.m_OriginalPath)};
+								CFile::fs_RenameFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
 						}
 
-						TCBinaryStreamFile<>::fs_WriteFile(FileChecksums, PreviousChecksumFile + ".tmp");
+						CBinaryStreamMemory<> Stream;
+						Stream << gc_UpdateVersion; // Version
+						Stream << bAllowRobots;
+						Stream << CloudFrontDistributions;
+						Stream << Options.m_ContentSecurity_DefaultSrc;
+						Stream << Options.m_ContentSecurity_PrefetchSrc;
+						Stream << Options.m_ContentSecurity_ManifestSrc;
+						Stream << Options.m_ContentSecurity_ImgSrc;
+						Stream << Options.m_ContentSecurity_MediaSrc;
+						Stream << Options.m_ContentSecurity_FontSrc;
+						Stream << Domain;
+						Stream << Options.m_ContentSecurity_ScriptSrc;
+						Stream << Options.m_ContentSecurity_StyleSrc;
+						Stream << Options.m_ContentSecurity_FrameSrc;
+						Stream << Options.m_ContentSecurity_ConnectSrc;
+						Stream << Options.m_ContentSecurity_ObjectSrc;
+						Stream << Options.m_ContentSecurity_ChildSrc;
+						Stream << Options.m_ContentSecurity_FormAction;
+						Stream << Options.m_ContentSecurity_ReportURI;
+						Stream << Options.m_ContentSecurity_FrameAncestors;
+						Stream << Options.m_AccessControl_AllowMethods;
+						Stream << Options.m_AccessControl_AllowHeaders;
+						Stream << Options.m_AccessControl_AllowOrigin;
+						Stream << Options.m_AccessControl_MaxAge;
+						Stream << AlternateSources;
+						Stream << AlternateSourcesString;
+						Stream << RedirectsTemporary;
+						Stream << RedirectsPermanent;
+						Stream << bRawTarGz;
+						Stream << DirectoryManifest;
+						Stream << DefaultSourceSearchReplace;
 
-						if (bPreviousExists)
-							CFile::fs_AtomicReplaceFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
-						else
-							CFile::fs_RenameFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
+						fAddChecksum(CHash_MD5::fs_DigestFromData(Stream.f_GetVector()));
+
+						for (auto &File : ChecksumFiles)
+							fAddChecksum(fsp_GetFileChecksum(File));
+
+						CStr ChecksumFile = ProgramDirectory / "S3Upload.md5";
+						CStr ChecksumStr = Checksum.f_GetDigest().f_GetString();
+
+						if (CFile::fs_FileExists(ChecksumFile) && CFile::fs_ReadStringFromFile(ChecksumFile, true) == ChecksumStr)
+							return {true};
+
+						TCMap<CStr, CChecksums> FileChecksums;
+						{
+							TCMap<CStr, CChecksums> PreviousChecksums;
+							CStr PreviousChecksumFile = ProgramDirectory / "S3UploadChecksums.bin";
+
+							bool bPreviousExists = CFile::fs_FileExists(PreviousChecksumFile);
+							if (bPreviousExists)
+								PreviousChecksums = TCBinaryStreamFile<>::fs_ReadFile<TCMap<CStr, CChecksums>>(PreviousChecksumFile);
+
+							for (auto &File : DirectoryManifest.m_Files)
+							{
+								if (!File.f_IsFile())
+									continue;
+
+								auto const &FileName = File.f_GetFileName();
+
+								auto const *pPreviousChecksum = PreviousChecksums.f_FindEqual(FileName);
+								if (pPreviousChecksum && File.m_Digest == pPreviousChecksum->m_SHA256)
+								{
+									FileChecksums[FileName] = {File.m_Digest, pPreviousChecksum->m_MD5};
+									continue;
+								}
+
+								if (CFile::fs_GetFile(FileName) == "robots.txt" && !File.m_SymlinkData.f_IsEmpty())
+									FileChecksums[FileName] = {File.m_Digest, CHash_MD5::fs_DigestFromData(File.m_SymlinkData.f_GetStr(), File.m_SymlinkData.f_GetLen())};
+								else
+									FileChecksums[FileName] = {File.m_Digest, CFile::fs_GetFileChecksum(RootPath / File.m_OriginalPath)};
+							}
+
+							TCBinaryStreamFile<>::fs_WriteFile(FileChecksums, PreviousChecksumFile + ".tmp");
+
+							if (bPreviousExists)
+								CFile::fs_AtomicReplaceFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
+							else
+								CFile::fs_RenameFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
+						}
+
+						CSourceCheckResults Results;
+						Results.m_ChecksumStr = ChecksumStr;
+						Results.m_ChecksumFile = ChecksumFile;
+						Results.m_DirectoryManifest = fg_Move(DirectoryManifest);
+						Results.m_FileChecksums = fg_Move(FileChecksums);
+
+						return Results;
 					}
-
-					CSourceCheckResults Results;
-					Results.m_ChecksumStr = ChecksumStr;
-					Results.m_ChecksumFile = ChecksumFile;
-					Results.m_DirectoryManifest = fg_Move(DirectoryManifest);
-					Results.m_FileChecksums = fg_Move(FileChecksums);
-
-					return Results;
-				}
-			)
-		;
+				)
+			;
+		}
 
 		DMibLogWithCategory(S3Upload, Info, "Getting source checksums {fe2} s", Clock.f_GetTime());
 		Clock.f_Start();
@@ -986,36 +990,39 @@ exports.handler = async (event) => {
 
 			if (!DefaultSourceSearchReplace.f_IsEmpty() && !NewFile.m_OriginalPath.f_IsEmpty())
 			{
-				FileContents = co_await
-					(
-						g_Dispatch(*mp_FileActors) / [=, FullFileName = RootPath / NewFile.m_OriginalPath]() mutable -> TCOptional<CByteVector>
-						{
-							auto RawFileContents = CFile::fs_ReadFile(FullFileName);
-							bool bIsGZip = CFile::fs_GetExtension(FullFileName) == "gz";
-
-							if (bIsGZip)
-								RawFileContents = fg_DecompressGZip(RawFileContents);
-
-							CStr FileContents = CFile::fs_ReadStringFromVector(RawFileContents, true);
-
-							CStr OriginalFileContents = FileContents;
-							for (auto &SearchReplace : DefaultSourceSearchReplace)
-								FileContents = FileContents.f_Replace(SearchReplace.m_Search, SearchReplace.m_Replace);
-
-							if (FileContents != OriginalFileContents)
+				{
+					auto BlockingActorCheckout = fg_BlockingActor();
+					FileContents = co_await
+						(
+							g_Dispatch(BlockingActorCheckout) / [=, FullFileName = RootPath / NewFile.m_OriginalPath]() mutable -> TCOptional<CByteVector>
 							{
-								CByteVector ModifiedFileContents;
-								CFile::fs_WriteStringToVector(ModifiedFileContents, FileContents, false);
+								auto RawFileContents = CFile::fs_ReadFile(FullFileName);
+								bool bIsGZip = CFile::fs_GetExtension(FullFileName) == "gz";
+
 								if (bIsGZip)
-									ModifiedFileContents = fg_CompressGZip(ModifiedFileContents);
+									RawFileContents = fg_DecompressGZip(RawFileContents);
 
-								return fg_Move(ModifiedFileContents);
+								CStr FileContents = CFile::fs_ReadStringFromVector(RawFileContents, true);
+
+								CStr OriginalFileContents = FileContents;
+								for (auto &SearchReplace : DefaultSourceSearchReplace)
+									FileContents = FileContents.f_Replace(SearchReplace.m_Search, SearchReplace.m_Replace);
+
+								if (FileContents != OriginalFileContents)
+								{
+									CByteVector ModifiedFileContents;
+									CFile::fs_WriteStringToVector(ModifiedFileContents, FileContents, false);
+									if (bIsGZip)
+										ModifiedFileContents = fg_CompressGZip(ModifiedFileContents);
+
+									return fg_Move(ModifiedFileContents);
+								}
+
+								return {};
 							}
-
-							return {};
-						}
-					)
-				;
+						)
+					;
+				}
 
 				if (FileContents)
 					RealChecksum = CHash_MD5::fs_DigestFromData(*FileContents);
@@ -1186,9 +1193,10 @@ exports.handler = async (event) => {
 							ReadData = CByteVector((uint8 *)NewFile.m_SymlinkData.f_GetStr(), NewFile.m_SymlinkData.f_GetLen());
 						else
 						{
+							auto BlockingActorCheckout = fg_BlockingActor();
 							ReadData = co_await
 								(
-									g_Dispatch(*mp_FileActors) / [=, FullFileName = RootPath / NewFile.m_OriginalPath, FileContents = fg_Move(FileContents)]() mutable -> CByteVector
+									g_Dispatch(BlockingActorCheckout) / [=, FullFileName = RootPath / NewFile.m_OriginalPath, FileContents = fg_Move(FileContents)]() mutable -> CByteVector
 									{
 										CByteVector FileData;
 										if (FileContents)
@@ -1318,9 +1326,10 @@ exports.handler = async (event) => {
 			}
 		;
 
+		auto BlockingActorCheckout = fg_BlockingActor();
 		co_await
 			(
-				g_Dispatch(*mp_FileActors) / [=]()
+				g_Dispatch(BlockingActorCheckout) / [=]()
 				{
 					CFile::fs_WriteStringToFile(SourceCheckResults.m_ChecksumFile, SourceCheckResults.m_ChecksumStr, false);
 					DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3 took {fe2} s in total", GlobalClock.f_GetTime());

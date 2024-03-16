@@ -449,7 +449,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_SetupPrerequisites_UploadS3Perform();
 		TCFuture<void> fp_SetupPrerequisites_UploadS3FileChangeNotifications();
 		TCFuture<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials, CStr const &_Prefix);
-		TCFuture<void> fp_SetupPrerequisites_Package(CStr const &_PackageName, CWebAppManagerOptions::EPackageType _Type);
+		TCFuture<void> fp_SetupPrerequisites_Package(CStr _PackageName, CWebAppManagerOptions::EPackageType _Type);
 		TCFuture<void> fp_SetupPrerequisites_OSSetup();
 
 		bool fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources);
@@ -505,7 +505,6 @@ namespace NMib::NWebApp::NWebAppManager
 		TCSharedPointer<CUniqueUserGroup> mp_pUniqueUserGroup;
 
 		CWebAppManagerOptions mp_Options;
-		TCRoundRobinActors<CSeparateThreadActor> mp_FileActors{5};
 
 		TCSharedPointer<ICWebAppManagerCustomization> mp_pCustomization;
 

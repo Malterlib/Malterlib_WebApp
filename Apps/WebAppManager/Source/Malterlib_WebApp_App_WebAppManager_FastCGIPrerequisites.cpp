@@ -23,7 +23,8 @@ namespace NMib::NWebApp::NWebAppManager
 #endif
 		};
 
-		g_Dispatch(*mp_FileActors) /
+		auto BlockingActorCheckout = fg_BlockingActor();
+		g_Dispatch(BlockingActorCheckout) /
 			[
 				ProgramDirectory
 				, FastCGIDirectory

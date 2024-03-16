@@ -12,27 +12,19 @@ namespace NMib::NWebApp
 			CWebCertificateDeployActor *_pThis
 			, TCActor<CActorDistributionManager> const &_DistributionManager
 			, TCActor<CDistributedActorTrustManager> const &_TrustManager
-			, TCActor<CSeparateThreadActor> const &_FileActor
 		)
 		: m_pThis(_pThis)
 		, m_DistributionManager(_DistributionManager)
 		, m_TrustManager(_TrustManager)
-		, m_FileActor(_FileActor)
 	{
-		if (!m_FileActor)
-		{
-			m_FileActor = TCActor<CSeparateThreadActor>{fg_Construct(), "Certificate Deploy File Access"};
-			m_bOwnsFileActor = true;
-		}
 	}
 
 	CWebCertificateDeployActor::CWebCertificateDeployActor
 		(
 			TCActor<CActorDistributionManager> const &_DistributionManager
 			, TCActor<CDistributedActorTrustManager> const &_TrustManager
-			, TCActor<CSeparateThreadActor> const &_FileActor
 		)
-		: mp_pInternal(fg_Construct(this, _DistributionManager, _TrustManager, _FileActor))
+		: mp_pInternal(fg_Construct(this, _DistributionManager, _TrustManager))
 	{
 	}
 
@@ -104,8 +96,6 @@ namespace NMib::NWebApp
 			Internal.m_TimerSubscription->f_Destroy() > Results.f_AddResult();
 
 		Internal.m_SecretsManagerSubscription.f_Destroy() > Results.f_AddResult();
-		if (Internal.m_bOwnsFileActor && Internal.m_FileActor)
-			Internal.m_FileActor.f_Destroy() > Results.f_AddResult();
 
 		co_await Results.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy certificate deploy actor");
 
