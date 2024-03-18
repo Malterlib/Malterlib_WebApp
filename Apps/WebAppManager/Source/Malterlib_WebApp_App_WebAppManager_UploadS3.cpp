@@ -819,10 +819,7 @@ exports.handler = async (event) => {
 
 							TCBinaryStreamFile<>::fs_WriteFile(DirectoryManifest, PreviousManifestFile + ".tmp");
 
-							if (bPreviousExists)
-								CFile::fs_AtomicReplaceFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
-							else
-								CFile::fs_RenameFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
+							CFile::fs_AtomicReplaceFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
 						}
 
 						CBinaryStreamMemory<> Stream;
@@ -899,10 +896,7 @@ exports.handler = async (event) => {
 
 							TCBinaryStreamFile<>::fs_WriteFile(FileChecksums, PreviousChecksumFile + ".tmp");
 
-							if (bPreviousExists)
-								CFile::fs_AtomicReplaceFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
-							else
-								CFile::fs_RenameFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
+							CFile::fs_AtomicReplaceFile(PreviousChecksumFile + ".tmp", PreviousChecksumFile);
 						}
 
 						CSourceCheckResults Results;
