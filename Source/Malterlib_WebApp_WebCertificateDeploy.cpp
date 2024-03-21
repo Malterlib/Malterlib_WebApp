@@ -99,6 +99,15 @@ namespace NMib::NWebApp
 
 		co_await Results.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy certificate deploy actor");
 
+		{
+			TCActorResultVector<void> Destroys;
+
+			for (auto &Domain : Internal.m_Domains)
+				fg_Move(Domain.m_UpdateDomainSequencer).f_Destroy() > Destroys.f_AddResult();
+
+			co_await Destroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy sequencers");
+		}
+
 		co_return {};
 	}
 

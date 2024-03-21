@@ -32,8 +32,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 			)
 		;
 
-		mp_FileActor = TCActor<CSeparateThreadActor>{fg_Construct(), "Web certificate file access"};
-		mp_CertificateDeployActor = fg_Construct(mp_State.m_DistributionManager, mp_State.m_TrustManager, mp_FileActor);
+		mp_CertificateDeployActor = fg_Construct(mp_State.m_DistributionManager, mp_State.m_TrustManager);
 
 		co_await mp_CertificateDeployActor(&CWebCertificateDeployActor::f_Start);
 

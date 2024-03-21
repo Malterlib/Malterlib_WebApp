@@ -3,6 +3,8 @@
 
 #include <Mib/Encoding/JSONShortcuts>
 #include <Mib/Cryptography/RandomID>
+#include <Mib/Concurrency/LogError>
+
 #include "Malterlib_WebApp_App_AcmeManager.h"
 
 namespace NMib::NWebApp::NAcmeManager
@@ -13,10 +15,13 @@ namespace NMib::NWebApp::NAcmeManager
 
 		CStr Name = _Params["Domain"].f_String();
 
-		if (!mp_Domains.f_FindEqual(Name))
+		auto *pDomain = mp_Domains.f_FindEqual(Name);
+		if (!pDomain)
 			co_return Auditor.f_Exception(fg_Format("No such domain '{}'", Name));
 
-		mp_Domains.f_Remove(Name);
+		auto DestroyFuture = fg_Move(pDomain->m_UpdateDomainSequencer).f_Destroy();
+		mp_Domains.f_Remove(pDomain);
+		co_await fg_Move(DestroyFuture).f_Wrap() > fg_LogError("AcmeManager", "Failed to destroy update domain sequencer");
 
 		if (auto *pDomainState = mp_State.m_StateDatabase.m_Data.f_GetMember("Domains"))
 		{

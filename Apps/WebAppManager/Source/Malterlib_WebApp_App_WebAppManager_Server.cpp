@@ -186,6 +186,18 @@ namespace NMib::NWebApp::NWebAppManager
 		if (mp_NginxLaunch)
 			co_await mp_NginxLaunch.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy nginx launch");
 
+		{
+			TCActorResultVector<void> Destroys;
+
+			fg_Move(mp_S3UploadSequencer).f_Destroy() > Destroys.f_AddResult();
+			fg_Move(mp_S3FileReadSequencer).f_Destroy() > Destroys.f_AddResult();
+			fg_Move(mp_S3PrioritySequencer).f_Destroy() > Destroys.f_AddResult();
+			fg_Move(mp_S3DeleteSequencer).f_Destroy() > Destroys.f_AddResult();
+			fg_Move(mp_S3MetadataSequencer).f_Destroy() > Destroys.f_AddResult();
+
+			co_await Destroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy sequencers");
+		}
+
 		co_return {};
 	}
 
