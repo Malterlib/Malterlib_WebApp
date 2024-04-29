@@ -45,6 +45,7 @@ namespace NMib::NWebApp::NWebAppManager
 				, fg_CreateVector<CStr>
 				(
 					"--no-same-owner"
+					, "--no-xattr"
 					, "-xf"
 					, _TarFile
 				)
