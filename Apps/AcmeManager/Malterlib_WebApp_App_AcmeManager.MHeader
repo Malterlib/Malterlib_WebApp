@@ -66,4 +66,12 @@
 	%Dependency "Lib_Malterlib_WebApp_AcmeManager"
 }
 
-Property.Malterlib_WebApp_App_Targets =+ "Malterlib_WebApp_AcmeManager"
+Property
+{
+	Malterlib_App_Enable_AcmeManager: bool = true
+
+	Malterlib_WebApp_App_Targets =+ "Malterlib_WebApp_AcmeManager"
+	{
+		!!Malterlib_App_Enable_AcmeManager true
+	}
+}

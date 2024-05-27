@@ -64,4 +64,12 @@
 	%Dependency "Lib_Malterlib_WebApp_WebCertificateManager"
 }
 
-Property.Malterlib_WebApp_App_Targets =+ "Malterlib_WebApp_WebCertificateManager"
+Property
+{
+	Malterlib_App_Enable_WebCertificateManager: bool = true
+
+	Malterlib_WebApp_App_Targets =+ "Malterlib_WebApp_WebCertificateManager"
+	{
+		!!Malterlib_App_Enable_WebCertificateManager true
+	}
+}
