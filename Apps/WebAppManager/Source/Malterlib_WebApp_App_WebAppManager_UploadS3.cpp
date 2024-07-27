@@ -793,8 +793,8 @@ exports.handler = async (event) => {
 							}
 						;
 
-						CDirectoryManifest PreviousDirectoryManifest;
-						CDirectoryManifest DirectoryManifest;
+						CDirectoryManifestLatestVersion PreviousDirectoryManifest;
+						CDirectoryManifestLatestVersion DirectoryManifest;
 
 						{
 							CStr PreviousManifestFile = ProgramDirectory / "S3UploadPreviousManifest.bin";
@@ -802,9 +802,9 @@ exports.handler = async (event) => {
 							bool bPreviousExists = CFile::fs_FileExists(PreviousManifestFile);
 
 							if (bPreviousExists)
-								PreviousDirectoryManifest = TCBinaryStreamFile<>::fs_ReadFile<CDirectoryManifest>(PreviousManifestFile);
+								PreviousDirectoryManifest = TCBinaryStreamFile<>::fs_ReadFile<CDirectoryManifestLatestVersion>(PreviousManifestFile);
 
-							DirectoryManifest = CDirectoryManifest::fs_GetManifest(ManifestConfig, nullptr, nullptr, NFile::EFileOpen_None, &PreviousDirectoryManifest);
+							DirectoryManifest = {CDirectoryManifest::fs_GetManifest(ManifestConfig, nullptr, nullptr, NFile::EFileOpen_None, &PreviousDirectoryManifest)};
 
 							for (auto &Prefix : UploadPrefixes)
 							{
@@ -879,19 +879,21 @@ exports.handler = async (event) => {
 								if (!File.f_IsFile())
 									continue;
 
+								DMibFastCheck(File.m_Digest);
+
 								auto const &FileName = File.f_GetFileName();
 
 								auto const *pPreviousChecksum = PreviousChecksums.f_FindEqual(FileName);
-								if (pPreviousChecksum && File.m_Digest == pPreviousChecksum->m_SHA256)
+								if (pPreviousChecksum && *File.m_Digest == pPreviousChecksum->m_SHA256)
 								{
-									FileChecksums[FileName] = {File.m_Digest, pPreviousChecksum->m_MD5};
+									FileChecksums[FileName] = {*File.m_Digest, pPreviousChecksum->m_MD5};
 									continue;
 								}
 
 								if (CFile::fs_GetFile(FileName) == "robots.txt" && !File.m_SymlinkData.f_IsEmpty())
-									FileChecksums[FileName] = {File.m_Digest, CHash_MD5::fs_DigestFromData(File.m_SymlinkData.f_GetStr(), File.m_SymlinkData.f_GetLen())};
+									FileChecksums[FileName] = {*File.m_Digest, CHash_MD5::fs_DigestFromData(File.m_SymlinkData.f_GetStr(), File.m_SymlinkData.f_GetLen())};
 								else
-									FileChecksums[FileName] = {File.m_Digest, CFile::fs_GetFileChecksum(RootPath / File.m_OriginalPath)};
+									FileChecksums[FileName] = {*File.m_Digest, CFile::fs_GetFileChecksum(RootPath / File.m_OriginalPath)};
 							}
 
 							TCBinaryStreamFile<>::fs_WriteFile(FileChecksums, PreviousChecksumFile + ".tmp");
@@ -1073,6 +1075,8 @@ exports.handler = async (event) => {
 			if (!NewFile.f_IsFile())
 				continue;
 
+			DMibFastCheck(NewFile.m_Digest);
+
 			auto FileName = SourceCheckResults.m_DirectoryManifest.m_Files.fs_GetKey(NewFile);
 
 			CAwsS3Actor::CPutObjectInfo PutInfo;
@@ -1175,7 +1179,7 @@ exports.handler = async (event) => {
 			// Limit the number of files held in memory to limit memory usage
 			ToUpload[Priority].f_Insert
 				(
-					[=, this, ExpectedChecksum = NewFile.m_Digest, FileContents = fg_Move(FileContents)](CActorSubscription &&_Subscription) mutable -> TCFuture<void>
+					[=, this, ExpectedChecksum = *NewFile.m_Digest, FileContents = fg_Move(FileContents)](CActorSubscription &&_Subscription) mutable -> TCFuture<void>
 					{
 						auto OnResume = co_await f_CheckDestroyedOnResume();
 
