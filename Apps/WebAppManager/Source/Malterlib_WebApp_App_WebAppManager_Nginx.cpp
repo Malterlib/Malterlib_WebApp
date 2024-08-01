@@ -1318,7 +1318,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			SecurityHeaders += "			add_header Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload\" always;\n";
 			SecurityHeaders += "			add_header Content-Security-Policy \"{}\" always;\n"_f << ContentSecurityPolicy;
 			SecurityHeaders += "			add_header X-Content-Type-Options \"nosniff\" always;\n";
-			SecurityHeaders += "			add_header X-XSS-Protection \"1; mode=block\" always;\n";
+			SecurityHeaders += "			add_header X-XSS-Protection \"0\" always;\n";
 			SecurityHeaders += "			add_header Referrer-Policy \"same-origin\" always;\n";
 
 			if (!mp_Options.m_AccessControl_AllowMethods.f_IsEmpty())

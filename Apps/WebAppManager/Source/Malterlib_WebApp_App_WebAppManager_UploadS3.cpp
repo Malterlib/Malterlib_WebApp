@@ -360,7 +360,7 @@ exports.handler = async (event) => {
 	headers['x-content-type-options'] = [{key: 'X-Content-Type-Options', value: 'nosniff'}];
 	if ({HasNoFrameAncestors})
 		headers['x-frame-options'] = [{key: 'X-Frame-Options', value: 'DENY'}];
-	headers['x-xss-protection'] = [{key: 'X-XSS-Protection', value: '1; mode=block'}];
+	headers['x-xss-protection'] = [{key: 'X-XSS-Protection', value: '0'}];
 	headers['referrer-policy'] = [{key: 'Referrer-Policy', value: 'same-origin'}];
 
 	if (!{AllowRedirectsOutsideOfDomain} && (response.status == 301 || response.status == 302) && headers['location'] && headers['location'][0] && headers['location'][0].value) {
