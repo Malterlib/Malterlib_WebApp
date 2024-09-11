@@ -25,7 +25,7 @@ namespace NMib::NWebApp::NAcmeManager
 		auto SettingsOption_GenerateRSA = "GenerateRSA?"_o=
 			{
 				"Names"_o= {"--generate-rsa"}
-				, "Default"_o= true
+				, "Default"_o= false
 				, "Type"_o= true
 				, "Description"_o= "Generate a RSA based certificate"
 			}
