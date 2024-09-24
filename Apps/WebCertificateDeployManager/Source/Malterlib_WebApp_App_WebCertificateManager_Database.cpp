@@ -86,17 +86,17 @@ namespace NMib::NWebApp::NWebCertificateManager
 			}
 		;
 
-		if (auto pValue = _Params.f_GetMember("LocationEc", EJSONType_Null))
+		if (_Params.f_GetMember("LocationEc", EJSONType_Null))
 			o_Settings.m_Location_Ec.f_Clear();
 		else if (auto pValue = _Params.f_GetMember("LocationEc", EJSONType_Object))
 			o_Settings.m_Location_Ec = fParseLocation(*pValue);
 
-		if (auto pValue = _Params.f_GetMember("LocationRsa", EJSONType_Null))
+		if (_Params.f_GetMember("LocationRsa", EJSONType_Null))
 			o_Settings.m_Location_Rsa.f_Clear();
 		else if (auto pValue = _Params.f_GetMember("LocationRsa", EJSONType_Object))
 			o_Settings.m_Location_Rsa = fParseLocation(*pValue);
 
-		if (auto pValue = _Params.f_GetMember("LocationNginxPid", EJSONType_Null))
+		if (_Params.f_GetMember("LocationNginxPid", EJSONType_Null))
 			o_Settings.m_Location_NginxPid.f_Clear();
 		else if (auto pValue = _Params.f_GetMember("LocationNginxPid", EJSONType_String))
 			o_Settings.m_Location_NginxPid = pValue->f_String();
