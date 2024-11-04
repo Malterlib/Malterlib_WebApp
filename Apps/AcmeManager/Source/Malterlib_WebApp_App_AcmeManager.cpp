@@ -25,7 +25,7 @@ namespace NMib::NWebApp::NAcmeManager
 		return mp_State.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, _Default);
 	}
 
-	TCFuture<void> CAcmeManagerActor::fp_StartApp(NEncoding::CEJSONSorted const &_Params)
+	TCFuture<void> CAcmeManagerActor::fp_StartApp(NEncoding::CEJSONSorted const _Params)
 	{
 		auto OnResume = co_await fg_OnResume
 			(
@@ -69,15 +69,15 @@ namespace NMib::NWebApp::NAcmeManager
 		{
 			auto Result = co_await mp_SecretsManagerSubscription.f_OnActor
 				(
-					g_ActorFunctor / [this](TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo) -> TCFuture<void>
+					g_ActorFunctor / [this](TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _ActorInfo) -> TCFuture<void>
 					{
-						co_await self(&CAcmeManagerActor::fp_HandleSecretsManagerAdded, _SecretsManager, _ActorInfo);
+						co_await fp_HandleSecretsManagerAdded(_SecretsManager, _ActorInfo);
 
 						co_return {};
 					}
-					, g_ActorFunctor / [this](TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo &&_ActorInfo) -> TCFuture<void>
+					, g_ActorFunctor / [this](TCWeakDistributedActor<CActor> _SecretsManager, CTrustedActorInfo _ActorInfo) -> TCFuture<void>
 					{
-						self(&CAcmeManagerActor::fp_SecretsManagerRemoved, _SecretsManager, _ActorInfo) > fg_LogError("Mib/WebApp/AcmeManager", "Failed to handle secrets manager removed");
+						co_await fp_SecretsManagerRemoved(_SecretsManager, _ActorInfo).f_Wrap() > fg_LogError("Mib/WebApp/AcmeManager", "Failed to handle secrets manager removed");
 
 						co_return {};
 					}
@@ -94,7 +94,7 @@ namespace NMib::NWebApp::NAcmeManager
 				24.0 * 60.0 * 60.0 // 24 h
 				, [this]() -> TCFuture<void>
 				{
-					co_await self(&CAcmeManagerActor::fp_UpdateAllDomains, "");
+					co_await fp_UpdateAllDomains("");
 
 					co_return {};
 				}
@@ -105,26 +105,26 @@ namespace NMib::NWebApp::NAcmeManager
 
 	TCFuture<void> CAcmeManagerActor::fp_StopApp()
 	{
-		TCActorResultVector<void> Destroys;
+		TCFutureVector<void> Destroys;
 		if (mp_DomainUpdateTimerSubscription)
-			mp_DomainUpdateTimerSubscription->f_Destroy() > Destroys.f_AddResult();
+			fg_Exchange(mp_DomainUpdateTimerSubscription, nullptr)->f_Destroy() > Destroys;
 
-		mp_SecretsManagerSubscription.f_Destroy() > Destroys.f_AddResult();
+		mp_SecretsManagerSubscription.f_Destroy() > Destroys;
 
 		if (mp_Route53Actor)
-			mp_Route53Actor.f_Destroy() > Destroys.f_AddResult();
+			fg_Move(mp_Route53Actor).f_Destroy() > Destroys;
 
-		mp_CurlActors.f_Destroy() > Destroys.f_AddResult();
+		mp_CurlActors.f_Destroy() > Destroys;
 
 		for (auto &Domain : mp_Domains)
 		{
-			fg_Move(Domain.m_UpdateDomainSequencer).f_Destroy() > Destroys.f_AddResult();
+			fg_Move(Domain.m_UpdateDomainSequencer).f_Destroy() > Destroys;
 			if (Domain.m_DomainState)
 			{
 				if (Domain.m_DomainState->m_AcmeClientEC)
-					Domain.m_DomainState->m_AcmeClientEC.f_Destroy() > Destroys.f_AddResult();
+					fg_Move(Domain.m_DomainState->m_AcmeClientEC).f_Destroy() > Destroys;
 				if (Domain.m_DomainState->m_AcmeClientRSA)
-					Domain.m_DomainState->m_AcmeClientRSA.f_Destroy() > Destroys.f_AddResult();
+					fg_Move(Domain.m_DomainState->m_AcmeClientRSA).f_Destroy() > Destroys;
 
 				for (auto &OnRelease : Domain.m_DomainState->m_OnReleaseDNSChallenge)
 					OnRelease.f_SetException(DMibErrorInstance("Shutting down"));
@@ -134,7 +134,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		}
 
-		co_await Destroys.f_GetResults();
+		co_await fg_AllDoneWrapped(Destroys);
 
 		co_return {};
 	}

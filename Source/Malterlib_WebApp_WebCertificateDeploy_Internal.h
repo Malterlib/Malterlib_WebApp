@@ -53,16 +53,16 @@ namespace NMib::NWebApp
 			CActorSubscription m_ChangesSubscription;
 		};
 
-		TCFuture<void> f_SecretsManagerAddedWithRetry(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info);
-		TCFuture<void> f_SecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info);
-		TCFuture<void> f_SecretsManagerRemoved(TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo);
+		TCFuture<void> f_SecretsManagerAddedWithRetry(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info);
+		TCFuture<void> f_SecretsManagerAdded(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info);
+		TCFuture<void> f_SecretsManagerRemoved(TCWeakDistributedActor<CActor> _SecretsManager, CTrustedActorInfo _ActorInfo);
 		CExceptionPointer f_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState);
-		TCFuture<void> f_UpdateDomainForSecretsManager(CStr const &_DomainName, TCDistributedActor<CSecretsManager> const &_SecretsManager, CHostInfo const &_SecretsManagerHostInfo);
-		TCFuture<void> f_UpdateDomainForAllSecretsManagers(CStr const &_DomainName);
+		TCFuture<void> f_UpdateDomainForSecretsManager(CStr _DomainName, TCDistributedActor<CSecretsManager> _SecretsManager, CHostInfo _SecretsManagerHostInfo);
+		TCFuture<void> f_UpdateDomainForAllSecretsManagers(CStr _DomainName);
 		TCFuture<void> f_UpdateAllDomainsForAllSecretsManagers();
 		CExceptionPointer f_UpdateDomain_CheckSecret(CSecretsManager::CSecretProperties const &_Properties, CSecretsManager::CSecretID const &_SecretID, bool _bCertificate);
-		TCFuture<void> f_UpdateDomain_UpdateFiles(CStr const &_DomainName, CStr const &_CertificateType, CCertificateFilesSettings const &_FileSettings);
-		TCFuture<void> f_UpdateDomain(CStr const &_DomainName);
+		TCFuture<void> f_UpdateDomain_UpdateFiles(CStr _DomainName, CStr _CertificateType, CCertificateFilesSettings _FileSettings);
+		TCFuture<void> f_UpdateDomain(CStr _DomainName);
 		void f_UpdateDomainStatus(CDomain &o_Domain, CHostInfo const &_HostInfo, EStatusSeverity _Severity, CStr const &_Status);
 
 		CWebCertificateDeployActor *m_pThis;

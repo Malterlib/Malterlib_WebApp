@@ -9,7 +9,7 @@
 
 namespace NMib::NWebApp::NAcmeManager
 {
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainRemove(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainRemove(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 

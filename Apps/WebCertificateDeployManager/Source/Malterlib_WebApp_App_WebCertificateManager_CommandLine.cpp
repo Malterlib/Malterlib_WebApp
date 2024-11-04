@@ -223,9 +223,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 						, SettingsOption_KeyFileAttributes
 					}
 				}
-				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
-					return g_Future <<= self(&CWebCertificateManagerActor::fp_CommandLine_DomainAdd, _Params, _pCommandLine);
+					return fp_CommandLine_DomainAdd(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
 			)
 		;
@@ -257,9 +257,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 						, fStripDefault(SettingsOption_KeyFileAttributes)
 					}
 				}
-				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
-					return g_Future <<= self(&CWebCertificateManagerActor::fp_CommandLine_DomainChangeSettings, _Params, _pCommandLine);
+					return fp_CommandLine_DomainChangeSettings(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
 			)
 		;
@@ -286,9 +286,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 						, CTableRenderHelper::fs_OutputTypeOption()
 					}
 				}
-				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
-					return g_Future <<= self(&CWebCertificateManagerActor::fp_CommandLine_DomainList, _Params, _pCommandLine);
+					return fp_CommandLine_DomainList(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
 			)
 		;
@@ -306,9 +306,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 						}
 					}
 				}
-				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
-					return g_Future <<= self(&CWebCertificateManagerActor::fp_CommandLine_DomainRemove, _Params, _pCommandLine);
+					return fp_CommandLine_DomainRemove(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
 			)
 		;

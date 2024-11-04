@@ -73,7 +73,7 @@ namespace NMib::NWebApp::NWebAppManager
 		return true;
 	}
 
-	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials, CStr const &_Prefix)
+	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials _AWSCredentials, CStr _Prefix)
 	{
 		auto OnResume = co_await f_CheckDestroyedOnResume();
 
@@ -507,7 +507,7 @@ exports.handler = async (event) => {
 	{
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
-		TCActorResultVector<void> Results;
+		TCFutureVector<void> Results;
 
 		for (auto &Package : mp_Options.m_Packages)
 		{
@@ -536,7 +536,7 @@ exports.handler = async (event) => {
 							&CFileChangeNotificationActor::f_RegisterForChanges
 							, Root
 							, EFileChange_All
-							, g_ActorFunctor / [=, this](TCVector<CFileChangeNotification::CNotification> const &_Changes) -> TCFuture<void>
+							, g_ActorFunctor / [=, this](TCVector<CFileChangeNotification::CNotification> _Changes) -> TCFuture<void>
 							{
 								if (!mp_bInitialS3UploadDone || mp_bPendingS3Upload)
 									co_return {};
@@ -544,11 +544,11 @@ exports.handler = async (event) => {
 
 								auto Result = co_await mp_S3UploadSequencer.f_RunSequenced
 									(
-										g_ActorFunctorWeak / [=, this](CActorSubscription &&_Subscription) -> TCFuture<void>
+										g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<void>
 										{
 											mp_bPendingS3Upload = false;
 											DMibLogWithCategory(WebAppManager, Info, "Updating S3 upload due to file changes");
-											co_await self(&CWebAppManagerActor::fp_SetupPrerequisites_UploadS3Perform);
+											co_await fp_SetupPrerequisites_UploadS3Perform();
 
 											(void)_Subscription;
 
@@ -573,10 +573,10 @@ exports.handler = async (event) => {
 					co_return {};
 				}
 			)
-			> Results.f_AddResult();
+			> Results;
 		}
 
-		co_await (co_await Results.f_GetResults() | g_Unwrap);
+		co_await fg_AllDone(Results);
 
 		co_return {};
 	}
@@ -585,10 +585,10 @@ exports.handler = async (event) => {
 	{
 		return mp_S3UploadSequencer.f_RunSequenced
 			(
-				g_ActorFunctorWeak / [=, this](CActorSubscription &&_Subscription) -> TCFuture<void>
+				g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<void>
 				{
 					mp_bInitialS3UploadDone = true;
-					co_await self(&CWebAppManagerActor::fp_SetupPrerequisites_UploadS3Perform);
+					co_await fp_SetupPrerequisites_UploadS3Perform();
 
 					(void) _Subscription;
 
@@ -948,7 +948,7 @@ exports.handler = async (event) => {
 		DMibLogWithCategory(S3Upload, Info, "Listing bucket {fe2} s", Clock.f_GetTime());
 		Clock.f_Start();
 
-		TCActorResultMap<CStr, CAwsS3Actor::CObjectInfoMetaData> MetaDataResults;
+		TCFutureMap<CStr, CAwsS3Actor::CObjectInfoMetaData> MetaDataResults;
 
 		TCMap<CStr, CStr> ExistingObjects;
 		for (auto &Object : Bucket.m_Objects)
@@ -1044,21 +1044,20 @@ exports.handler = async (event) => {
 			++nMetaDataQueries;
 			mp_S3MetadataSequencer.f_RunSequenced
 				(
-					g_ActorFunctorWeak / [=, this](CActorSubscription &&_Subscription) -> TCFuture<CAwsS3Actor::CObjectInfoMetaData>
+					g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<CAwsS3Actor::CObjectInfoMetaData>
 					{
 						(void) _Subscription;
 						co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetaData, BucketName, DestinationFileName);
 					}
 				)
-				> MetaDataResults.f_AddResult(DestinationFileName)
+				> MetaDataResults[DestinationFileName]
 			;
-
 		}
 
 		if (nMetaDataQueries)
 			DMibLogWithCategory(S3Upload, Info, "Querying object meta data for {} objects", nMetaDataQueries);
 
-		auto MetaData = co_await (MetaDataResults.f_GetResults() % "Failed to get file meta data");
+		auto MetaData = co_await (fg_AllDoneWrapped(MetaDataResults) % "Failed to get file meta data");
 
 		if (nMetaDataQueries)
 			DMibLogWithCategory(S3Upload, Info, "Querying object meta data for {} objects {fe2} s", nMetaDataQueries, Clock.f_GetTime());
@@ -1179,7 +1178,7 @@ exports.handler = async (event) => {
 			// Limit the number of files held in memory to limit memory usage
 			ToUpload[Priority].f_Insert
 				(
-					[=, this, ExpectedChecksum = *NewFile.m_Digest, FileContents = fg_Move(FileContents)](CActorSubscription &&_Subscription) mutable -> TCFuture<void>
+					[=, this, ExpectedChecksum = *NewFile.m_Digest, FileContents = fg_Move(FileContents)](CActorSubscription _Subscription) mutable -> TCFuture<void>
 					{
 						auto OnResume = co_await f_CheckDestroyedOnResume();
 
@@ -1223,29 +1222,29 @@ exports.handler = async (event) => {
 			;
 		}
 
-		TCActorResultVector<void> UploadResults;
+		TCFutureVector<void> UploadResults;
 
 		for (auto &PriorityUploadList : ToUpload)
 		{
 			mp_S3PrioritySequencer.f_RunSequenced
 				(
-					g_ActorFunctorWeak / [=, this](CActorSubscription &&_Subscription) mutable -> TCFuture<void>
+					g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) mutable -> TCFuture<void>
 					{
 						auto OnResume = co_await f_CheckDestroyedOnResume();
 
-						TCActorResultVector<void> UploadResults;
+						TCFutureVector<void> UploadResults;
 
 						for (auto &fUpload : PriorityUploadList)
-							mp_S3FileReadSequencer.f_RunSequenced(g_ActorFunctorWeak / fg_Move(fUpload)) > UploadResults.f_AddResult();
+							mp_S3FileReadSequencer.f_RunSequenced(g_ActorFunctorWeak / fg_Move(fUpload)) > UploadResults;
 
-						co_await (co_await UploadResults.f_GetResults() | g_Unwrap);
+						co_await fg_AllDone(UploadResults);
 
 						(void)_Subscription;
 
 						co_return {};
 					}
 				)
-				> UploadResults.f_AddResult()
+				> UploadResults
 			;
 		}
 
@@ -1253,13 +1252,13 @@ exports.handler = async (event) => {
 		if (bUploadFiles)
 			DMibLogWithCategory(S3Upload, Info, "Reading files and uploading");
 
-		co_await (co_await UploadResults.f_GetResults() | g_Unwrap);
+		co_await fg_AllDone(UploadResults);
 
 		if (bUploadFiles)
 			DMibLogWithCategory(S3Upload, Info, "Reading files and uploading {fe2} s", Clock.f_GetTime());
 		Clock.f_Start();
 
-		TCActorResultVector<void> DeleteFilesResults;
+		TCFutureVector<void> DeleteFilesResults;
 		for (auto &File : FilesToDelete)
 		{
 			if (bVerbose)
@@ -1267,13 +1266,13 @@ exports.handler = async (event) => {
 
 			mp_S3DeleteSequencer.f_RunSequenced
 				(
-					g_ActorFunctorWeak / [=, this](CActorSubscription &&_Subscription) -> TCFuture<void>
+					g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<void>
 					{
 						(void)_Subscription;
 						co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_DeleteObject, BucketName, File);
 					}
 				)
-				> DeleteFilesResults.f_AddResult()
+				> DeleteFilesResults
 			;
 		}
 
@@ -1283,16 +1282,11 @@ exports.handler = async (event) => {
 		else
 			DMibLogWithCategory(S3Upload, Info, "Updating Lambda@Edge");
 
-		TCActorResultVector<void> LambdaUpdateResultsVector;
+		TCFutureVector<void> LambdaUpdateResultsVector;
 		for (auto &UploadPrefix : UploadPrefixes)
-			self(&CWebAppManagerActor::fp_SetupPrerequisites_UpdateAWSLambda, AWSCredentials, UploadPrefix) > LambdaUpdateResultsVector.f_AddResult();
+			fp_SetupPrerequisites_UpdateAWSLambda(AWSCredentials, UploadPrefix) > LambdaUpdateResultsVector;
 
-		auto [Results, LambdaUpdateResults] = co_await
-			(
-				DeleteFilesResults.f_GetResults()
-				+ LambdaUpdateResultsVector.f_GetResults()
-			)
-		;
+		auto [Results, LambdaUpdateResults] = co_await (fg_AllDoneWrapped(DeleteFilesResults) + fg_AllDoneWrapped(LambdaUpdateResultsVector));
 
 		if (bDeleteFiles)
 			DMibLogWithCategory(S3Upload, Info, "Deleting files and updating Lambda@Edge {fe2} s", Clock.f_GetTime());
@@ -1307,7 +1301,7 @@ exports.handler = async (event) => {
 		co_await fp_InvalidateCloudfrontDistributionsWithRetry(CloudFrontDistributions);
 		DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
 
-		fg_Timeout(60.0) > [this, CloudFrontDistributions = CloudFrontDistributions, Clock]() mutable
+		fg_Timeout(60.0) > [this, CloudFrontDistributions = CloudFrontDistributions, Clock]() mutable -> TCFuture<void>
 			{
 				Clock.f_Start();
 				DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
@@ -1321,6 +1315,8 @@ exports.handler = async (event) => {
 						DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again {fe2} s", Clock.f_GetTime());
 					}
 				;
+
+				co_return {};
 			}
 		;
 
@@ -1356,11 +1352,11 @@ exports.handler = async (event) => {
 
 		for (mint iRetry = 10; iRetry >= 0; --iRetry)
 		{
-			TCActorResultMap<CStr, CStr> Results;
+			TCFutureMap<CStr, CStr> Results;
 			for (auto &Distribution : ToInvalidate)
-				mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, Distribution, PathsToInvalidate) > Results.f_AddResult(Distribution);
+				mp_CloudFrontActor(&CAwsCloudFrontActor::f_CreateInvalidation, Distribution, PathsToInvalidate) > Results[Distribution];
 
-			auto ResultsMap = co_await Results.f_GetResults();
+			auto ResultsMap = co_await fg_AllDoneWrapped(Results);
 
 			if (iRetry == 0)
 			{
@@ -1404,7 +1400,7 @@ exports.handler = async (event) => {
 
 		co_await mp_S3UploadSequencer.f_RunSequenced
 			(
-				g_ActorFunctorWeak / [=, this](CActorSubscription &&_Subscription) -> TCFuture<void>
+				g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<void>
 				{
 					NTime::CClock Clock{true};
 					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache out of band");

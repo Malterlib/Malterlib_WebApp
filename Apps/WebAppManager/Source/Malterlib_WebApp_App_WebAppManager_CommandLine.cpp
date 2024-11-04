@@ -27,7 +27,7 @@ namespace NMib::NWebApp::NWebAppManager
 					"Names"_o= {"--invalidate-cloud-front-caches"}
 					, "Description"_o= "Invalidate all CloudFront caches.\n"
 				}
-				, [this] (NEncoding::CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine) -> TCFuture<uint32>
+				, [this] (NEncoding::CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine) -> TCFuture<uint32>
 				{
 					co_await fp_WaitForAppStartup();
 

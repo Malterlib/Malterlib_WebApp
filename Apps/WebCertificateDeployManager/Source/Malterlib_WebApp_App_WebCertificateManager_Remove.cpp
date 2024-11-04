@@ -7,7 +7,7 @@
 
 namespace NMib::NWebApp::NWebCertificateManager
 {
-	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainRemove(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainRemove(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 

@@ -66,13 +66,13 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		void fp_BuildCommandLine(CDistributedAppCommandLineSpecification &o_CommandLine) override;
 
-		TCFuture<void> fp_StartApp(NEncoding::CEJSONSorted const &_Params) override;
+		TCFuture<void> fp_StartApp(NEncoding::CEJSONSorted const _Params) override;
 		TCFuture<void> fp_StopApp() override;
 
-		TCFuture<uint32> fp_CommandLine_DomainList(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainAdd(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainChangeSettings(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainRemove(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainList(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainAdd(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainChangeSettings(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainRemove(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
 
 		TCFuture<void> fp_ReadState();
 		void fp_ParseSettings(CEJSONSorted const &_Params, CDomainSettings &o_Settings);
@@ -84,7 +84,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		CEJSONSorted fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const;
 
-		TCFuture<void> fp_UpdateDomainSettings(CStr const &_DomainName);
+		TCFuture<void> fp_UpdateDomainSettings(CStr _DomainName);
 
 		TCMap<CStr, CDomain> mp_Domains;
 

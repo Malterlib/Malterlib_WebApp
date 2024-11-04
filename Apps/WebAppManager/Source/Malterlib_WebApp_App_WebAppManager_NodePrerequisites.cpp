@@ -262,12 +262,12 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_Packages()
 	{
-		TCActorResultVector<void> Results;
+		TCFutureVector<void> Results;
 
 		for (auto &Package : mp_Options.m_Packages)
-			fp_SetupPrerequisites_Package(Package.f_GetName(), Package.m_Type) > Results.f_AddResult();
+			fp_SetupPrerequisites_Package(Package.f_GetName(), Package.m_Type) > Results;
 
-		co_await Results.f_GetUnwrappedResults();
+		co_await fg_AllDone(Results);
 
 		co_return {};
 	}
@@ -453,7 +453,7 @@ namespace NMib::NWebApp::NWebAppManager
 								}
 							;
 
-							TCActorResultVector<CStr> Results;
+							TCFutureVector<CStr> Results;
 							CStr StaticRoot;
 							if (bIsStatic)
 								StaticRoot = PackageDirectory;
@@ -504,7 +504,7 @@ namespace NMib::NWebApp::NWebAppManager
 										NCompression::fg_CompressGZip(File, File + ".gz");
 										return "";
 									}
-									> Results.f_AddResult()
+									> Results
 								;
 							}
 
@@ -530,12 +530,12 @@ namespace NMib::NWebApp::NWebAppManager
 											, PackageInfo.m_UserPassword
 #endif
 										)
-										> Results.f_AddResult()
+										> Results
 									;
 								}
 							}
 
-							co_await Results.f_GetUnwrappedResults();
+							co_await fg_AllDone(Results);
 							BlockingActorCheckouts.f_Clear();
 
 							// Make package directory read only for node process

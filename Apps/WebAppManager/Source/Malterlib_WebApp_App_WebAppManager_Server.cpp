@@ -109,15 +109,16 @@ namespace NMib::NWebApp::NWebAppManager
 
 		CLogError LogError("");
 
-		TCActorResultVector<void> Destroys;
+		TCFutureVector<void> Destroys;
 		for (auto &ToolLaunch : mp_ToolLaunches)
-			ToolLaunch.m_ProcessLaunch.f_Destroy() > Destroys.f_AddResult();
+			fg_Move(ToolLaunch.m_ProcessLaunch).f_Destroy() > Destroys;
+		mp_ToolLaunches.f_Clear();
 
-		co_await Destroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy tool launches");;
+		co_await fg_AllDone(Destroys).f_Wrap() > LogError.f_Warning("Failed to destroy tool launches");;
 		co_await fp_DestroyApps().f_Wrap() > fg_LogWarning("", "Failed to destroy apps");
 
 		if (mp_NginxLaunch)
-			co_await mp_NginxLaunch.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy nginx launch");
+			co_await fg_Move(mp_NginxLaunch).f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy nginx launch");
 
 		DLog(Debug, "Pre-stop server done");
 
@@ -131,71 +132,72 @@ namespace NMib::NWebApp::NWebAppManager
 		CLogError LogError("");
 
 		{
-			TCActorResultVector<void> Destroys;
+			TCFutureVector<void> Destroys;
 
 			if (mp_CertificateDeploySubscription)
-				fg_Exchange(mp_CertificateDeploySubscription, nullptr)->f_Destroy() > Destroys.f_AddResult();
+				fg_Exchange(mp_CertificateDeploySubscription, nullptr)->f_Destroy() > Destroys;
 
 			if (mp_CertificateDeployActor)
-				fg_Move(mp_CertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
+				fg_Move(mp_CertificateDeployActor).f_Destroy() > Destroys;
 
 			if (mp_MongoCertificateDeploySubscription_Admin)
-				fg_Exchange(mp_MongoCertificateDeploySubscription_Admin, nullptr)->f_Destroy() > Destroys.f_AddResult();
+				fg_Exchange(mp_MongoCertificateDeploySubscription_Admin, nullptr)->f_Destroy() > Destroys;
 
 			if (mp_MongoCertificateDeployActor)
-				fg_Move(mp_MongoCertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
+				fg_Move(mp_MongoCertificateDeployActor).f_Destroy() > Destroys;
 
 			for (auto &ToolLaunch : mp_ToolLaunches)
-				ToolLaunch.m_ProcessLaunch.f_Destroy() > Destroys.f_AddResult();
+				fg_Move(ToolLaunch.m_ProcessLaunch).f_Destroy() > Destroys;
+			mp_ToolLaunches.f_Clear();
 
-			mp_S3Actors.f_Destroy() > Destroys.f_AddResult();
+			mp_S3Actors.f_Destroy() > Destroys;
 
 			if (mp_CloudFrontActor)
-				mp_CloudFrontActor.f_Destroy() > Destroys.f_AddResult();
+				fg_Move(mp_CloudFrontActor).f_Destroy() > Destroys;
 			if (mp_LambdaActor)
-				mp_LambdaActor.f_Destroy() > Destroys.f_AddResult();
+				fg_Move(mp_LambdaActor).f_Destroy() > Destroys;
 
-			mp_CurlActors.f_Destroy()  > Destroys.f_AddResult();
+			mp_CurlActors.f_Destroy() > Destroys;
 
-			co_await Destroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy web app manager");
+			co_await fg_AllDone(Destroys).f_Wrap() > LogError.f_Warning("Failed to destroy web app manager");
 		}
 
 		co_await fp_DestroyApps().f_Wrap() > LogError.f_Warning("Failed to destroy apps");
 		DLog(Debug, "Destroy apps done");
 
 		if (mp_AppLaunchHelper)
-			co_await mp_AppLaunchHelper.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy app launch helper");
+			co_await fg_Move(mp_AppLaunchHelper).f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy app launch helper");
 
 		{
-			TCActorResultVector<void> Destroys;
+			TCFutureVector<void> Destroys;
 			for (auto &Launch : mp_AppLaunches)
 			{
 				if (Launch.m_TunnelSubscription)
 				{
-					Launch.m_TunnelSubscription->f_Destroy() > Destroys.f_AddResult();
+					Launch.m_TunnelSubscription->f_Destroy() > Destroys;
 					Launch.m_TunnelSubscription.f_Clear();
 				}
 			}
 
-			co_await Destroys.f_GetResults().f_Wrap() > LogError.f_Warning("Failed to destroy app launches");
+			co_await fg_AllDone(Destroys).f_Wrap() > LogError.f_Warning("Failed to destroy app launches");
 		}
 
 		if (mp_NetworkTunnelsServer)
 			co_await fg_Move(mp_NetworkTunnelsServer).f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy network tunnels server");
 
 		if (mp_NginxLaunch)
-			co_await mp_NginxLaunch.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy nginx launch");
+			co_await fg_Move(mp_NginxLaunch).f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy nginx launch");
 
 		{
-			TCActorResultVector<void> Destroys;
+			TCFutureVector<void> Destroys;
 
-			fg_Move(mp_S3UploadSequencer).f_Destroy() > Destroys.f_AddResult();
-			fg_Move(mp_S3FileReadSequencer).f_Destroy() > Destroys.f_AddResult();
-			fg_Move(mp_S3PrioritySequencer).f_Destroy() > Destroys.f_AddResult();
-			fg_Move(mp_S3DeleteSequencer).f_Destroy() > Destroys.f_AddResult();
-			fg_Move(mp_S3MetadataSequencer).f_Destroy() > Destroys.f_AddResult();
+			fg_Move(mp_S3UploadSequencer).f_Destroy() > Destroys;
+			fg_Move(mp_S3FileReadSequencer).f_Destroy() > Destroys;
+			fg_Move(mp_S3PrioritySequencer).f_Destroy() > Destroys;
+			fg_Move(mp_S3DeleteSequencer).f_Destroy() > Destroys;
+			fg_Move(mp_S3MetadataSequencer).f_Destroy() > Destroys;
 
-			co_await Destroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy sequencers");
+			co_await fg_AllDone(Destroys).f_Wrap() > LogError.f_Warning("Failed to destroy sequencers");
 		}
 
 		co_return {};
@@ -256,21 +258,17 @@ namespace NMib::NWebApp::NWebAppManager
 		return {};
 	}
 
-	TCFuture<void> CWebAppManagerActor::fp_SaveUserPassword(CStr const &_User, CStrSecure const &_Password)
+	TCFuture<void> CWebAppManagerActor::fp_SaveUserPassword(CStr _User, CStrSecure _Password)
 	{
-		TCPromise<void> Promise;
-
 		if (mp_Options.m_bSaveUserPasswords)
 		{
 			mp_AppState.m_StateDatabase.m_Data["Users"][_User]["Password"] = _Password;
-			mp_AppState.f_SaveStateDatabase() > Promise;
+			co_await mp_AppState.f_SaveStateDatabase();
 		}
 		else
-		{
 			mp_UserPasswords[_User] = _Password;
-			Promise.f_SetResult();
-		}
-		return Promise.f_MoveFuture();
+
+		co_return {};
 	}
 #endif
 
@@ -368,38 +366,24 @@ namespace NMib::NWebApp::NWebAppManager
 		co_return {};
 	}
 
-	TCFuture<void> CWebAppManagerActor::fp_CheckVersion(CStr const &_Tool, CStr const &_Argument, CStr const &_ParseString, CVersion const &_NeededVersion)
+	TCFuture<void> CWebAppManagerActor::fp_CheckVersion(CStr _Tool, CStr _Argument, CStr _ParseString, CVersion _NeededVersion)
 	{
-		TCPromise<void> Promise;
+		auto Data = co_await (fp_RunToolForVersionCheck(_Tool, fg_CreateVector<CStr>(_Argument)) % "Failed to check version");
+		if (Data.f_IsEmpty())
+			co_return DErrorInstance(fg_Format("Failed get version with: {} {}", _Tool, _Argument));
 
-		fp_RunToolForVersionCheck(_Tool, fg_CreateVector<CStr>(_Argument)) > Promise % "Failed to check version" / [=](CStr &&_Data)
-			{
-				if (_Data.f_IsEmpty())
-				{
-					Promise.f_SetException(DErrorInstance(fg_Format("Failed get version with: {} {}", _Tool, _Argument)));
-					return;
-				}
+		CVersion Version;
+		aint nParsed = 0;
+		(CStr::CParse(_ParseString) >> Version.m_Major >> Version.m_Minor >> Version.m_Revision).f_Parse(Data, nParsed);
 
-				CVersion Version;
-				aint nParsed = 0;
-				(CStr::CParse(_ParseString) >> Version.m_Major >> Version.m_Minor >> Version.m_Revision).f_Parse(_Data, nParsed);
+		if (nParsed != 3)
+			co_return DErrorInstance(fg_Format("Failed to extract {} version from: {}", _Tool, Data));
 
-				if (nParsed != 3)
-				{
-					Promise.f_SetException(DErrorInstance(fg_Format("Failed to extract {} version from: {}", _Tool, _Data)));
-					return;
-				}
+		if (Version < _NeededVersion)
+			co_return DErrorInstance(fg_Format("{} version {} is less than the required version of {}", _Tool, Version, _NeededVersion));
 
-				if (Version < _NeededVersion)
-				{
-					Promise.f_SetException(DErrorInstance(fg_Format("{} version {} is less than the required version of {}", _Tool, Version, _NeededVersion)));
-					return;
-				}
-				DLog(Info, "{} version {} found", _Tool, Version);
-				Promise.f_SetResult();
-			}
-		;
-		return Promise.f_MoveFuture();
+		DLog(Info, "{} version {} found", _Tool, Version);
+		co_return {};
 	}
 
 	CStr CWebAppManagerActor::fp_GetDataPath(CStr const &_Path) const

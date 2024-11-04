@@ -5,7 +5,7 @@
 
 namespace NMib::NWebApp
 {
-	TCFuture<CActorSubscription> CWebCertificateDeployActor::f_AddDomain(CDomainSettings &&_DomainSettings)
+	TCFuture<CActorSubscription> CWebCertificateDeployActor::f_AddDomain(CDomainSettings _DomainSettings)
 	{
 		auto &Internal = *mp_pInternal;
 
@@ -18,7 +18,7 @@ namespace NMib::NWebApp
 
 		Domain.m_Settings = fg_Move(_DomainSettings);
 
-		fg_CallSafe(&Internal, &CInternal::f_UpdateDomainForAllSecretsManagers, Domain.m_Settings.m_DomainName)
+		Internal.f_UpdateDomainForAllSecretsManagers(Domain.m_Settings.m_DomainName)
 			> fg_LogError("Mib/WebApp/WebCertificateDeploy", "Update domain '{}' for all secrets managers had some failures"_f << Domain.m_Settings.m_DomainName)
 		;
 

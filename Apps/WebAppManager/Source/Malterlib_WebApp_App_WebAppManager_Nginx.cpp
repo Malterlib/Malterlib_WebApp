@@ -558,15 +558,16 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
 		mp_NginxUser = SetupResults.m_User;
-		TCPromise<void> SavePasswordPromise;
+
+		TCFuture<void> SavePasswordFuture;
 #ifdef DPlatformFamily_Windows
 		if (!SetupResults.m_UserPassword.f_IsEmpty())
-			fp_SaveUserPassword(mp_NginxUser.m_UserName, SetupResults.m_UserPassword) > SavePasswordPromise;
+			SavePasswordFuture = fp_SaveUserPassword(mp_NginxUser.m_UserName, SetupResults.m_UserPassword);
 		else
 #endif
-			SavePasswordPromise.f_SetResult();
+			SavePasswordFuture = g_Void;
 
-		co_await SavePasswordPromise.f_MoveFuture();
+		co_await fg_Move(SavePasswordFuture);
 
 		co_return {};
 	}
@@ -1408,7 +1409,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				}
 			;
 
-			DomainSettings.m_fOnStatusChange = g_ActorFunctor / [](CHostInfo &&_HostInfo, CWebCertificateDeployActor::CDomainStatus &&_Status) -> TCFuture<void>
+			DomainSettings.m_fOnStatusChange = g_ActorFunctor / [](CHostInfo _HostInfo, CWebCertificateDeployActor::CDomainStatus _Status) -> TCFuture<void>
 				{
 					if (_Status.m_Severity == CWebCertificateDeployActor::EStatusSeverity_Error)
 						DMibLogWithCategory(Certificate, Error, "{}", _Status.m_Description);
@@ -1421,7 +1422,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				}
 			;
 
-			DomainSettings.m_fOnCertificateUpdated = g_ActorFunctor / [this](CStr &&_DomainName, CWebCertificateDeployActor::ECertificate _Certificate) -> TCFuture<void>
+			DomainSettings.m_fOnCertificateUpdated = g_ActorFunctor / [this](CStr _DomainName, CWebCertificateDeployActor::ECertificate _Certificate) -> TCFuture<void>
 				{
 					if (!mp_NginxLaunch)
 						co_return {};
@@ -1441,10 +1442,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 	TCFuture<void> CWebAppManagerActor::fp_StartNginx()
 	{
-		TCPromise<void> Promise;
-
 		if (mp_NginxLaunch || mp_bStopped || f_IsDestroyed() || !mp_bStartNginx)
-			return Promise <<= g_Void; // Launch already in progress
+			co_return {}; // Launch already in progress
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 		CStr NginxDirectory = fp_GetDataPath("nginx");
@@ -1453,6 +1452,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		TCVector<CStr> Arguments;
 		Arguments.f_Insert("-c");
 		Arguments.f_Insert(NginxConfig);
+
+		TCPromise<void> Promise;
 
 		CProcessLaunchActor::CLaunch Launch = CProcessLaunchParams::fs_LaunchExecutable
 			(
@@ -1468,7 +1469,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							if (mp_bStopped || f_IsDestroyed())
 							{
 								if (mp_NginxLaunch)
-									mp_NginxLaunch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
+									mp_NginxLaunch(&CProcessLaunchActor::f_StopProcess).f_DiscardResult();
 								Promise.f_SetException(DMibErrorInstance("Application is being destroyed"));
 							}
 							else
@@ -1480,10 +1481,12 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							if (!mp_bStopped && !f_IsDestroyed())
 							{
 								DLogWithCategory(nginx, Info, "Scheduling relaunch of nginx in 10 seconds");
-								fg_Timeout(10.0) > [this]
+								fg_Timeout(10.0) > [this]() -> TCFuture<void>
 									{
 										if (!mp_bStopped && !f_IsDestroyed())
 											fp_StartNginx() > fg_LogError("nginx", "Failed to launch nginx");
+
+										co_return {};
 									}
 								;
 							}
@@ -1544,18 +1547,14 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		mp_NginxLaunch = fg_ConstructActor<CProcessLaunchActor>();
 
-		mp_NginxLaunch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this)) > [this, Promise](TCAsyncResult<CActorSubscription> &&_Subscription)
-			{
-				if (!_Subscription)
-				{
-					Promise.f_SetException(fg_Move(_Subscription));
-					mp_NginxLaunch.f_Clear();
-					return;
-				}
-				mp_NginxLaunchSubscription = fg_Move(*_Subscription);
-			}
-		;
+		auto Subscription = co_await mp_NginxLaunch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this)).f_Wrap();
+		if (!Subscription)
+		{
+			mp_NginxLaunch.f_Clear();
+			co_return Subscription.f_GetException();
+		}
+		mp_NginxLaunchSubscription = fg_Move(*Subscription);
 
-		return Promise.f_MoveFuture();
+		co_return co_await Promise.f_MoveFuture();
 	}
 }

@@ -29,21 +29,21 @@ namespace NMib::NWebApp
 
 		DMibLogWithCategory(Mib/WebApp/WebCertificateDeploy, Info, "Updating out of date domains: {vs}", DomainNames);
 
-		TCActorResultVector<void> Results;
+		TCFutureVector<void> Results;
 
 		for (auto &DomainName : DomainNames)
-			fg_CallSafe(this, &CInternal::f_UpdateDomainForAllSecretsManagers, DomainName) > Results.f_AddResult();
+			f_UpdateDomainForAllSecretsManagers(DomainName) > Results;
 
-		co_await (co_await Results.f_GetResults() | g_Unwrap);
+		co_await fg_AllDone(Results);
 
 		co_return {};
 	}
 
 	TCFuture<void> CWebCertificateDeployActor::CInternal::f_UpdateDomainForSecretsManager
 		(
-			CStr const &_DomainName
-			, TCDistributedActor<CSecretsManager> const &_SecretsManager
-			, CHostInfo const &_SecretsManagerHostInfo
+			CStr _DomainName
+			, TCDistributedActor<CSecretsManager> _SecretsManager
+			, CHostInfo _SecretsManagerHostInfo
 		)
 	{
 		CDomain *pDomain = nullptr;
@@ -79,7 +79,7 @@ namespace NMib::NWebApp
 					, _DomainName
 					, DomainState = fg_Move(DomainState)
 				]
-				(CActorSubscription &&_Subscription) mutable -> TCFuture<void>
+				(CActorSubscription _Subscription) mutable -> TCFuture<void>
 				{
 					auto *pDomain = m_Domains.f_FindEqual(_DomainName);
 
@@ -104,7 +104,7 @@ namespace NMib::NWebApp
 
 					co_await
 						(
-							fg_CallSafe(this, &CInternal::f_UpdateDomain, Domain.f_GetName())
+							f_UpdateDomain(Domain.f_GetName())
 							% ("Failed to update domain '{}'"_f << Domain.f_GetName())
 						)
 					;
@@ -123,7 +123,7 @@ namespace NMib::NWebApp
 		co_return {};
 	}
 
-	TCFuture<void> CWebCertificateDeployActor::CInternal::f_UpdateDomainForAllSecretsManagers(CStr const &_DomainName)
+	TCFuture<void> CWebCertificateDeployActor::CInternal::f_UpdateDomainForAllSecretsManagers(CStr _DomainName)
 	{
 		CDomain *pDomain = nullptr;
 
@@ -143,11 +143,11 @@ namespace NMib::NWebApp
 			)
 		;
 
-		TCActorResultVector<void> UpdateResults;
+		TCFutureVector<void> UpdateResults;
 		for (auto &SecretsManager : m_SecretsManagerSubscription.m_Actors)
-			fg_CallSafe(this, &CInternal::f_UpdateDomainForSecretsManager, _DomainName, SecretsManager.m_Actor, SecretsManager.m_TrustInfo.m_HostInfo) > UpdateResults.f_AddResult();
+			f_UpdateDomainForSecretsManager(_DomainName, SecretsManager.m_Actor, SecretsManager.m_TrustInfo.m_HostInfo) > UpdateResults;
 
-		co_await (co_await UpdateResults.f_GetResults() | g_Unwrap);
+		co_await fg_AllDone(UpdateResults);
 
 		co_return {};
 	}
@@ -208,7 +208,7 @@ namespace NMib::NWebApp
 		return nullptr;
 	}
 
-	TCFuture<void> CWebCertificateDeployActor::CInternal::f_UpdateDomain_UpdateFiles(CStr const &_DomainName, CStr const &_CertificateType, CCertificateFilesSettings const &_FileSettings)
+	TCFuture<void> CWebCertificateDeployActor::CInternal::f_UpdateDomain_UpdateFiles(CStr _DomainName, CStr _CertificateType, CCertificateFilesSettings _FileSettings)
 	{
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
@@ -319,7 +319,7 @@ namespace NMib::NWebApp
 		co_return {};
 	}
 
-	TCFuture<void> CWebCertificateDeployActor::CInternal::f_UpdateDomain(CStr const &_DomainName)
+	TCFuture<void> CWebCertificateDeployActor::CInternal::f_UpdateDomain(CStr _DomainName)
 	{
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
@@ -335,15 +335,15 @@ namespace NMib::NWebApp
 
 		f_UpdateDomainStatus(*pDomain, pDomainState->m_SecretsManagerHostInfo, EStatusSeverity_Info, "Secrets manager connected, updating files");
 
-		TCActorResultVector<void> UpdateFilesResults;
+		TCFutureVector<void> UpdateFilesResults;
 
 		if (pDomain->m_Settings.m_FileSettings_Ec)
-			fg_CallSafe(this, &CInternal::f_UpdateDomain_UpdateFiles, _DomainName, CStr("EC"), *pDomain->m_Settings.m_FileSettings_Ec) > UpdateFilesResults.f_AddResult();
+			f_UpdateDomain_UpdateFiles(_DomainName, CStr("EC"), *pDomain->m_Settings.m_FileSettings_Ec) > UpdateFilesResults;
 
 		if (pDomain->m_Settings.m_FileSettings_Rsa)
-			fg_CallSafe(this, &CInternal::f_UpdateDomain_UpdateFiles, _DomainName, CStr("RSA"), *pDomain->m_Settings.m_FileSettings_Rsa) > UpdateFilesResults.f_AddResult();
+			f_UpdateDomain_UpdateFiles(_DomainName, CStr("RSA"), *pDomain->m_Settings.m_FileSettings_Rsa) > UpdateFilesResults;
 
-		co_await (co_await UpdateFilesResults.f_GetResults() | g_Unwrap);
+		co_await fg_AllDone(UpdateFilesResults);
 
 		f_UpdateDomainStatus(*pDomain, pDomainState->m_SecretsManagerHostInfo, EStatusSeverity_Success, "All certificates deployed and up to date");
 

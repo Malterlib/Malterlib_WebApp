@@ -23,11 +23,9 @@ namespace NMib::NWebApp::NWebAppManager
 		if (mp_Options.m_Mongo.m_DatabaseSetupScript.f_IsEmpty())
 			co_return {};
 
-		co_await fg_CallSafe
+		co_await fp_RunMongoScript
 			(
-				this
-				, &CWebAppManagerActor::fp_RunMongoScript
-				, fg_Format("{}/Source/{}", CFile::fs_GetProgramDirectory(), mp_Options.m_Mongo.m_DatabaseSetupScript)
+				fg_Format("{}/Source/{}", CFile::fs_GetProgramDirectory(), mp_Options.m_Mongo.m_DatabaseSetupScript)
 				, mp_MongoDatabase
 				, 120.0
 			)
@@ -67,7 +65,7 @@ namespace NMib::NWebApp::NWebAppManager
 				)
 			;
 
-			UserSettings.m_fOnStatusChange = g_ActorFunctor / [](CHostInfo &&_HostInfo, CMongoCertificateDeployActor::CUserStatus &&_Status) -> TCFuture<void>
+			UserSettings.m_fOnStatusChange = g_ActorFunctor / [](CHostInfo _HostInfo, CMongoCertificateDeployActor::CUserStatus _Status) -> TCFuture<void>
 				{
 					if (_Status.m_Severity == CMongoCertificateDeployActor::EStatusSeverity_Error)
 						DMibLogWithCategory(Certificate, Error, "Mongo admin certificate: {}", _Status.m_Description);
@@ -189,10 +187,8 @@ namespace NMib::NWebApp::NWebAppManager
 		return fp_GetDBAddressURL(_Database, _HomePath).f_Encode();
 	}
 
-	TCFuture<void> CWebAppManagerActor::fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout)
+	TCFuture<void> CWebAppManagerActor::fp_RunMongoScript(CStr _Script, CStr _Database, fp32 _Timeout)
 	{
-		TCPromise<void> Promise;
-
 		CStr ScriptName = CFile::fs_GetFile(_Script);
 		CStr MongoSSLDirectory = fp_GetMongoSSLDirectory();
 

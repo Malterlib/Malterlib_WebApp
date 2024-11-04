@@ -324,18 +324,18 @@ namespace NMib::NWebApp::NWebAppManager
 
 		TCFuture<CStr> f_LaunchTool
 			(
-				CStr const &_Executable
-				, CStr const &_WorkingDir
-				, TCVector<CStr> const &_Params
-				, CStr const &_LogCategory
+				CStr _Executable
+				, CStr _WorkingDir
+				, TCVector<CStr> _Params
+				, CStr _LogCategory
 				, ELogVerbosity _LogVerbosity
-				, TCMap<CStr, CStr> const &_Environment = {}
+				, TCMap<CStr, CStr> _Environment = {}
 				, bool _bSeparateStdErr = true
-				, CStr const &_Home = {}
-				, CStr const &_User = {}
-				, CStr const &_Group = {}
+				, CStr _Home = {}
+				, CStr _User = {}
+				, CStr _Group = {}
 #ifdef DPlatformFamily_Windows
-				, CStrSecure const &_UserPassword = {}
+				, CStrSecure _UserPassword = {}
 #endif
 			)
 		;
@@ -404,7 +404,7 @@ namespace NMib::NWebApp::NWebAppManager
 		;
 #ifdef DPlatformFamily_Windows
 		CStrSecure fp_GetUserPassword(CStr const &_User);
-		TCFuture<void> fp_SaveUserPassword(CStr const &_User, CStrSecure const &_Password);
+		TCFuture<void> fp_SaveUserPassword(CStr _User, CStrSecure _Password);
 #endif
 		static void fsp_SetupUser
 			(
@@ -415,7 +415,7 @@ namespace NMib::NWebApp::NWebAppManager
 			)
 		;
 		TCFuture<void> fp_ExtractExeFS() const;
-		TCFuture<void> fp_CheckVersion(CStr const &_Tool, CStr const &_Argument, CStr const &_ParseString, CVersion const &_NeededVersion);
+		TCFuture<void> fp_CheckVersion(CStr _Tool, CStr _Argument, CStr _ParseString, CVersion _NeededVersion);
 		TCFuture<void> fp_CleanupOldProcesses();
 		CStr fp_GetNodeExecutable(CStr const &_Executable);
 
@@ -448,7 +448,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_SetupPrerequisites_UploadS3();
 		TCFuture<void> fp_SetupPrerequisites_UploadS3Perform();
 		TCFuture<void> fp_SetupPrerequisites_UploadS3FileChangeNotifications();
-		TCFuture<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials const &_AWSCredentials, CStr const &_Prefix);
+		TCFuture<void> fp_SetupPrerequisites_UpdateAWSLambda(CAwsCredentials _AWSCredentials, CStr _Prefix);
 		TCFuture<void> fp_SetupPrerequisites_Package(CStr _PackageName, CWebAppManagerOptions::EPackageType _Type);
 		TCFuture<void> fp_SetupPrerequisites_OSSetup();
 
@@ -461,7 +461,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr fp_GetMongoSSLDirectory() const;
 		NWeb::NHTTP::CURL fp_GetDBAddressURL(CStr _Database, CStr _HomePath);
 		CStr fp_GetDBAddress(CStr _Database, CStr _HomePath);
-		TCFuture<void> fp_RunMongoScript(CStr const &_Script, CStr const &_Database, fp32 _Timeout);
+		TCFuture<void> fp_RunMongoScript(CStr _Script, CStr _Database, fp32 _Timeout);
 
 		TCFuture<void> fp_SetupMongo();
 

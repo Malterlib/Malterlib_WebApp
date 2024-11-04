@@ -67,11 +67,11 @@ namespace NMib::NWebApp
 			NStorage::TCOptional<CCertificateFilesSettings> m_FileSettings_Ec;
 			NStorage::TCOptional<CCertificateFilesSettings> m_FileSettings_Rsa;
 
-			NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NConcurrency::CHostInfo &&_HostInfo, CDomainStatus &&_Status)> m_fOnStatusChange;
-			NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NStr::CStr &&_DomainName, ECertificate _Certificate)> m_fOnCertificateUpdated;
+			NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NConcurrency::CHostInfo _HostInfo, CDomainStatus _Status)> m_fOnStatusChange;
+			NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NStr::CStr _DomainName, ECertificate _Certificate)> m_fOnCertificateUpdated;
 		};
 
-		NConcurrency::TCFuture<NConcurrency::CActorSubscription> f_AddDomain(CDomainSettings &&_DomainSettings);
+		NConcurrency::TCFuture<NConcurrency::CActorSubscription> f_AddDomain(CDomainSettings _DomainSettings);
 
 	private:
 		NConcurrency::TCFuture<void> fp_Destroy() override;

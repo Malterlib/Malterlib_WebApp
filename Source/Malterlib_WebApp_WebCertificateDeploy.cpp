@@ -43,15 +43,15 @@ namespace NMib::NWebApp
 
 		co_await Internal.m_SecretsManagerSubscription.f_OnActor
 			(
-				g_ActorFunctor / [pInternal = &Internal](TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo) -> TCFuture<void>
+				g_ActorFunctor / [pInternal = &Internal](TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _ActorInfo) -> TCFuture<void>
 				{
-					co_await fg_CallSafe(*pInternal, &CInternal::f_SecretsManagerAddedWithRetry, _SecretsManager, _ActorInfo);
+					co_await pInternal->f_SecretsManagerAddedWithRetry(_SecretsManager, _ActorInfo);
 
 					co_return {};
 				}
-				, g_ActorFunctor / [pInternal = &Internal](TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo &&_ActorInfo) -> TCFuture<void>
+				, g_ActorFunctor / [pInternal = &Internal](TCWeakDistributedActor<CActor> _SecretsManager, CTrustedActorInfo _ActorInfo) -> TCFuture<void>
 				{
-					co_await fg_CallSafe(pInternal, &CInternal::f_SecretsManagerRemoved, _SecretsManager, _ActorInfo);
+					co_await pInternal->f_SecretsManagerRemoved(_SecretsManager, _ActorInfo);
 
 					co_return {};
 				}
@@ -66,7 +66,7 @@ namespace NMib::NWebApp
 				CTimeSpanConvert::fs_CreateHourSpan(1).f_GetSeconds()
 				, [this]() -> TCFuture<void>
 				{
-					auto Result = co_await fg_CallSafe(&*mp_pInternal, &CInternal::f_UpdateAllDomainsForAllSecretsManagers).f_Wrap();
+					auto Result = co_await mp_pInternal->f_UpdateAllDomainsForAllSecretsManagers().f_Wrap();
 					if (!Result)
 						DMibLogWithCategory(Mib/WebApp/WebCertificateDeploy, Error, "Update all domains had some failures: {}", Result.f_GetExceptionStr());
 
@@ -84,28 +84,28 @@ namespace NMib::NWebApp
 
 		CLogError LogError("Mib/WebApp/WebCertificateDeploy");
 
-		TCActorResultVector<void> Results;
+		TCFutureVector<void> Results;
 
 		for (auto &State : Internal.m_SecretsManagerStates)
 		{
 			if (State.m_ChangesSubscription)
-				fg_Exchange(State.m_ChangesSubscription, nullptr)->f_Destroy() > Results.f_AddResult();
+				fg_Exchange(State.m_ChangesSubscription, nullptr)->f_Destroy() > Results;
 		}
 
 		if (Internal.m_TimerSubscription)
-			Internal.m_TimerSubscription->f_Destroy() > Results.f_AddResult();
+			Internal.m_TimerSubscription->f_Destroy() > Results;
 
-		Internal.m_SecretsManagerSubscription.f_Destroy() > Results.f_AddResult();
+		Internal.m_SecretsManagerSubscription.f_Destroy() > Results;
 
-		co_await Results.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy certificate deploy actor");
+		co_await fg_AllDone(Results).f_Wrap() > LogError.f_Warning("Failed to destroy certificate deploy actor");
 
 		{
-			TCActorResultVector<void> Destroys;
+			TCFutureVector<void> Destroys;
 
 			for (auto &Domain : Internal.m_Domains)
-				fg_Move(Domain.m_UpdateDomainSequencer).f_Destroy() > Destroys.f_AddResult();
+				fg_Move(Domain.m_UpdateDomainSequencer).f_Destroy() > Destroys;
 
-			co_await Destroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy sequencers");
+			co_await fg_AllDone(Destroys).f_Wrap() > LogError.f_Warning("Failed to destroy sequencers");
 		}
 
 		co_return {};

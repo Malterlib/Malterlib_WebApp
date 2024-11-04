@@ -5,7 +5,7 @@
 
 namespace NMib::NWebApp::NAcmeManager
 {
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainCreateAccountKey(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainCreateAccountKey(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 
@@ -22,12 +22,12 @@ namespace NMib::NWebApp::NAcmeManager
 
 		Auditor.f_Info("Created account key for domain '{}'"_f << Name);
 
-		co_await self(&CAcmeManagerActor::fp_UpdateAllDomains, Name);
+		co_await fp_UpdateAllDomains(Name);
 
 		co_return 0;
 	}
 
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainChangeSettings(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainChangeSettings(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 
@@ -59,7 +59,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		Auditor.f_Info("Changed domain settings '{}'"_f << Name);
 
-		co_await self(&CAcmeManagerActor::fp_UpdateAllDomains, Name);
+		co_await fp_UpdateAllDomains(Name);
 
 		co_return 0;
 	}

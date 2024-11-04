@@ -73,7 +73,7 @@ namespace NMib::NWebApp::NWebAppManager
 		o_RegisterInfo.m_Resources_Processes = nMaxPids;
 	}
 
-	TCFuture<void> CWebAppManagerDaemonActor::fp_StartApp(NEncoding::CEJSONSorted const &_Params)
+	TCFuture<void> CWebAppManagerDaemonActor::fp_StartApp(NEncoding::CEJSONSorted const _Params)
 	{
 		mp_pManager = fg_ConstructActor<CWebAppManagerActor>(fg_Construct(self), mp_State, mp_Options);
 

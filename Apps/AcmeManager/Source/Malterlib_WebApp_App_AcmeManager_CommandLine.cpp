@@ -132,9 +132,9 @@ namespace NMib::NWebApp::NAcmeManager
 						, SettingsOption_AlternateChain
 					}
 				}
-				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
-					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainAdd, _Params, _pCommandLine);
+					return fp_CommandLine_DomainAdd(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
 			)
 		;
@@ -153,9 +153,9 @@ namespace NMib::NWebApp::NAcmeManager
 						}
 					}
 				}
-				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
-					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainCreateAccountKey, _Params, _pCommandLine);
+					return fp_CommandLine_DomainCreateAccountKey(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
 			)
 		;
@@ -174,9 +174,9 @@ namespace NMib::NWebApp::NAcmeManager
 						}
 					}
 				}
-				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
-					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainReleaseDNSChallenge, _Params, _pCommandLine);
+					return fp_CommandLine_DomainReleaseDNSChallenge(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
 			)
 		;
@@ -204,9 +204,9 @@ namespace NMib::NWebApp::NAcmeManager
 						, fStripDefault(SettingsOption_AlternateChain)
 					}
 				}
-				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
-					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainChangeSettings, _Params, _pCommandLine);
+					return fp_CommandLine_DomainChangeSettings(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
 			)
 		;
@@ -233,9 +233,9 @@ namespace NMib::NWebApp::NAcmeManager
 						, CTableRenderHelper::fs_OutputTypeOption()
 					}
 				}
-				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
-					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainList, _Params, _pCommandLine);
+					return fp_CommandLine_DomainList(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
 			)
 		;
@@ -253,9 +253,9 @@ namespace NMib::NWebApp::NAcmeManager
 						}
 					}
 				}
-				, [this](CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
-					return g_Future <<= self(&CAcmeManagerActor::fp_CommandLine_DomainRemove, _Params, _pCommandLine);
+					return fp_CommandLine_DomainRemove(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
 			)
 		;

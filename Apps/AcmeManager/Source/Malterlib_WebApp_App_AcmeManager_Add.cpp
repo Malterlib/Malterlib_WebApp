@@ -6,7 +6,7 @@
 
 namespace NMib::NWebApp::NAcmeManager
 {
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainAdd(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainAdd(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 
@@ -36,7 +36,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		Auditor.f_Info("Added domain '{}'"_f << Name);
 
-		co_await self(&CAcmeManagerActor::fp_UpdateAllDomains, bCreateAccountKey ? Name : CStr());
+		co_await fp_UpdateAllDomains(bCreateAccountKey ? Name : CStr());
 
 		co_return 0;
 	}

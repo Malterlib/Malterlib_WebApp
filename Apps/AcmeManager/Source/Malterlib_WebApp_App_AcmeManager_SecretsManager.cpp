@@ -8,9 +8,9 @@
 
 namespace NMib::NWebApp::NAcmeManager
 {
-	TCFuture<void> CAcmeManagerActor::fp_HandleSecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info)
+	TCFuture<void> CAcmeManagerActor::fp_HandleSecretsManagerAdded(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info)
 	{
-		auto Result = co_await self(&CAcmeManagerActor::fp_SecretsManagerAdded, _SecretsManager, _Info, "").f_Wrap();
+		auto Result = co_await fp_SecretsManagerAdded(_SecretsManager, _Info, "").f_Wrap();
 
 		if (Result)
 		{
@@ -36,14 +36,16 @@ namespace NMib::NWebApp::NAcmeManager
 
 		if (mp_RetryingSecretsManagers(_SecretsManager).f_WasCreated())
 		{
-			fg_Timeout(10.0) > [=, this]
+			fg_Timeout(10.0) > [=, this]() -> TCFuture<void>
 				{
 					mp_RetryingSecretsManagers.f_Remove(_SecretsManager);
 
 					if (!mp_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
-						return;
+						co_return {};
 
-					self(&CAcmeManagerActor::fp_HandleSecretsManagerAdded, _SecretsManager, _Info) > fg_LogError("SecretsManager", "Failed to handle secrets manager added");
+					co_await fp_HandleSecretsManagerAdded(_SecretsManager, _Info).f_Wrap() > fg_LogError("SecretsManager", "Failed to handle secrets manager added");
+
+					co_return {};
 				}
 			;
 		}
@@ -53,9 +55,9 @@ namespace NMib::NWebApp::NAcmeManager
 
 	TCFuture<void> CAcmeManagerActor::fp_SecretsManagerAdded
 		(
-			TCDistributedActor<CSecretsManager> const &_SecretsManager
-			, CTrustedActorInfo const &_Info
-			, NStr::CStr const &_CreatePrivateKeyForDomain
+			TCDistributedActor<CSecretsManager> _SecretsManager
+			, CTrustedActorInfo _Info
+			, NStr::CStr _CreatePrivateKeyForDomain
 		)
 	{
 		CSecretsManager::CEnumerateSecrets EnumerateSecrets;
@@ -63,7 +65,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		auto Secrets = co_await _SecretsManager.f_CallActor(&CSecretsManager::f_EnumerateSecrets)(EnumerateSecrets);
 
-		TCActorResultMap<CStr, void> UpdateResults;
+		TCFutureMap<CStr, void> UpdateResults;
 
 		for (auto &Domain : mp_Domains)
 		{
@@ -94,7 +96,7 @@ namespace NMib::NWebApp::NAcmeManager
 						, DomainState = fg_Move(DomainState)
 						, bCreatePrivateKey = Domain.f_GetName() == _CreatePrivateKeyForDomain
 					]
-					(CActorSubscription &&_Subscription) mutable -> TCFuture<void>
+					(CActorSubscription _Subscription) mutable -> TCFuture<void>
 					{
 						auto *pDomain = mp_Domains.f_FindEqual(DomainName);
 
@@ -116,7 +118,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 						co_await
 							(
-								self(&CAcmeManagerActor::fp_UpdateDomain, Domain.f_GetName(), bCreatePrivateKey)
+								fp_UpdateDomain(Domain.f_GetName(), bCreatePrivateKey)
 								% ("Failed to update domain '{}'"_f << Domain.f_GetName())
 							)
 						;
@@ -126,12 +128,12 @@ namespace NMib::NWebApp::NAcmeManager
 						co_return {};
 					}
 				)
-				> UpdateResults.f_AddResult(Domain.f_GetName())
+				> UpdateResults[Domain.f_GetName()]
 			;
 
 		}
 
-		auto Results = co_await UpdateResults.f_GetResults();
+		auto Results = co_await fg_AllDoneWrapped(UpdateResults);
 
 		for (auto &Result : Results)
 		{
@@ -149,7 +151,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return {};
 	}
 
-	TCFuture<void> CAcmeManagerActor::fp_SecretsManagerRemoved(TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo)
+	TCFuture<void> CAcmeManagerActor::fp_SecretsManagerRemoved(TCWeakDistributedActor<CActor> _SecretsManager, CTrustedActorInfo _ActorInfo)
 	{
 		mp_LastSecretsManagerError.f_Remove(_SecretsManager);
 		mp_RetryingSecretsManagers.f_Remove(_SecretsManager);
@@ -169,7 +171,7 @@ namespace NMib::NWebApp::NAcmeManager
 		}
 
 		if (bDoneSometing)
-			co_await self(&CAcmeManagerActor::fp_UpdateAllDomains, "");
+			co_await fp_UpdateAllDomains("");
 
 		co_return {};
 	}

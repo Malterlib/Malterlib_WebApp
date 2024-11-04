@@ -30,8 +30,6 @@ namespace NMib::NWebApp::NWebAppManager
 					/ [ProgramDirectory, WebsocketDirectory, ThisActor = fg_ThisActor(this), WebsocketUser = mp_WebsocketUser, MongoSSLDirectory = fp_GetMongoSSLDirectory()]
 					() mutable -> TCFuture<CInfo>
 					{
-						TCPromise<CInfo> Promise;
-
 						DLog(Info, "Setting up websocket user");
 
 						CInfo Info;
@@ -44,13 +42,11 @@ namespace NMib::NWebApp::NWebAppManager
 		#else
 							fsp_SetupPrerequisites_ServerUser(Info.m_User, WebsocketDirectory, MongoSSLDirectory);
 		#endif
-							Promise.f_SetResult(Info);
-							return Promise.f_MoveFuture();
+							co_return fg_Move(Info);
 						}
 						catch (NException::CException const &)
 						{
-							Promise.f_SetCurrentException();
-							return Promise.f_MoveFuture();
+							co_return fg_CurrentException();
 						}
 					}
 				)
@@ -62,7 +58,6 @@ namespace NMib::NWebApp::NWebAppManager
 		if (!NodeInfo.m_UserPassword.f_IsEmpty())
 			co_await fp_SaveUserPassword(NodeInfo.m_User.m_UserName, NodeInfo.m_UserPassword);
 #endif
-
 		co_return {};
 	}
 }

@@ -59,25 +59,23 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<CStr> CWebAppManagerActor::f_LaunchTool
 		(
-			CStr const &_Executable
-			, CStr const &_WorkingDir
-			, TCVector<CStr> const &_Params
-			, CStr const &_LogCategory
+			CStr _Executable
+			, CStr _WorkingDir
+			, TCVector<CStr> _Params
+			, CStr _LogCategory
 			, ELogVerbosity _LogVerbosity
-			, TCMap<CStr, CStr> const &_Environment
+			, TCMap<CStr, CStr> _Environment
 			, bool _bSeparateStdErr
-			, CStr const &_Home
-			, CStr const &_User
-			, CStr const &_Group
+			, CStr _Home
+			, CStr _User
+			, CStr _Group
 #ifdef DPlatformFamily_Windows
-			, CStrSecure const &_UserPassword
+			, CStrSecure _UserPassword
 #endif
 		)
 	{
-		TCPromise<CStr> Promise;
-
 		if (this->f_IsDestroyed() || mp_bStopped)
-			return Promise <<= "";
+			co_return "";
 
 		auto *pToolLaunch = &mp_ToolLaunches.f_Insert();
 		pToolLaunch->m_ProcessLaunch = fg_ConstructActor<CProcessLaunchActor>();
@@ -142,24 +140,20 @@ namespace NMib::NWebApp::NWebAppManager
 			}
 		;
 
-		pToolLaunch->m_ProcessLaunch(&CProcessLaunchActor::f_LaunchSimple, fg_Move(Launch))
-			> Promise / [pCleanup, Promise, _bSeparateStdErr, _LogCategory](CProcessLaunchActor::CSimpleLaunchResult &&_Result)
-			{
-				if (_Result.m_ExitCode != 0)
-				{
-					CStr ErrorOut;
-					if (_bSeparateStdErr)
-						ErrorOut = _Result.f_GetCombinedOut().f_TrimRight();
-					else
-						ErrorOut = _Result.f_GetStdOut().f_TrimRight();
-					Promise.f_SetException(DErrorInstance(fg_Format("Tool '{}' exited with: {}\n{}", _LogCategory, _Result.m_ExitCode, ErrorOut)));
-					return;
-				}
-				Promise.f_SetResult(_Result.f_GetStdOut());
-			}
-		;
+		auto Result = co_await pToolLaunch->m_ProcessLaunch(&CProcessLaunchActor::f_LaunchSimple, fg_Move(Launch));
 
-		return Promise.f_MoveFuture();
+		if (Result.m_ExitCode != 0)
+		{
+			CStr ErrorOut;
+			if (_bSeparateStdErr)
+				ErrorOut = Result.f_GetCombinedOut().f_TrimRight();
+			else
+				ErrorOut = Result.f_GetStdOut().f_TrimRight();
+
+			co_return DErrorInstance(fg_Format("Tool '{}' exited with: {}\n{}", _LogCategory, Result.m_ExitCode, ErrorOut));
+		}
+
+		co_return Result.f_GetStdOut();
 	}
 
 	TCFuture<CStr> CWebAppManagerActor::fp_RunToolForVersionCheck(CStr const &_Tool, TCVector<CStr> const &_Arguments)

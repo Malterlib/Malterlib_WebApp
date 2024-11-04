@@ -12,22 +12,22 @@
 
 namespace NMib::NWebApp::NAcmeManager
 {
-	TCFuture<void> CAcmeManagerActor::fp_UpdateAllDomains(CStr const &_CreateAccountForDomainName)
+	TCFuture<void> CAcmeManagerActor::fp_UpdateAllDomains(CStr _CreateAccountForDomainName)
 	{
 		DMibLogWithCategory(Mib/WebApp/AcmeManager, Info, "Updating all domains");
 
-		TCActorResultVector<void> Results;
+		TCFutureVector<void> Results;
 		for (auto &SecretsManager : mp_SecretsManagerSubscription.m_Actors)
-			self(&CAcmeManagerActor::fp_SecretsManagerAdded, SecretsManager.m_Actor, SecretsManager.m_TrustInfo, _CreateAccountForDomainName) > Results.f_AddResult();
+			fp_SecretsManagerAdded(SecretsManager.m_Actor, SecretsManager.m_TrustInfo, _CreateAccountForDomainName) > Results;
 
-		co_await (co_await Results.f_GetResults() | g_Unwrap);
+		co_await fg_AllDone(Results);
 
 		co_return {};
 	}
 
 	[[nodiscard]] NException::CExceptionPointer CAcmeManagerActor::fp_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState)
 	{
-		if (f_IsDestroyed())
+		if (mp_State.m_bStoppingApp || f_IsDestroyed())
 			return DMibErrorInstance("Shutting down");
 
 		o_pDomain = mp_Domains.f_FindEqual(_DomainName);
@@ -44,9 +44,9 @@ namespace NMib::NWebApp::NAcmeManager
 
 	TCFuture<bool> CAcmeManagerActor::fp_UpdateDomain_HandleChallenge
 		(
-			CStr const &_DomainName
-			, CStr const &_CertificateType
-			, CAcmeClientActor::CChallenge const &_Challenge
+			CStr _DomainName
+			, CStr _CertificateType
+			, CAcmeClientActor::CChallenge _Challenge
 		)
 	{
 		CDomain *pDomain = nullptr;
@@ -214,12 +214,12 @@ namespace NMib::NWebApp::NAcmeManager
 
 	TCFuture<void> CAcmeManagerActor::fp_UpdateDomain_RunAcmeProtocol
 		(
-			CStr const &_DomainName
-			, CStr const &_CertificateType
-			, CPublicKeySetting const &_PublicKeySettings
-			, TCActor<CAcmeClientActor> const &_AcmeClient
-			, CDomainSettings const &_DomainSettings
-			, CEJSONSorted const &_DomainSettingsJson
+			CStr _DomainName
+			, CStr _CertificateType
+			, CPublicKeySetting _PublicKeySettings
+			, TCActor<CAcmeClientActor> _AcmeClient
+			, CDomainSettings _DomainSettings
+			, CEJSONSorted _DomainSettingsJson
 		)
 	{
 		CDomain *pDomain = nullptr;
@@ -241,9 +241,9 @@ namespace NMib::NWebApp::NAcmeManager
 		if (_DomainSettings.m_bIncludeWildcard)
 			CertificateRequest.m_DnsNames.f_Insert("*." + _DomainName);
 		CertificateRequest.m_KeySettings = _PublicKeySettings;
-		CertificateRequest.m_fChallenge = g_ActorFunctor / [this, _DomainName, _CertificateType](CAcmeClientActor::CChallenge const &_Challenge) -> TCFuture<bool>
+		CertificateRequest.m_fChallenge = g_ActorFunctor / [this, _DomainName, _CertificateType](CAcmeClientActor::CChallenge _Challenge) -> TCFuture<bool>
 			{
-				co_return co_await self(&CAcmeManagerActor::fp_UpdateDomain_HandleChallenge, _DomainName, _CertificateType, _Challenge);
+				co_return co_await fp_UpdateDomain_HandleChallenge(_DomainName, _CertificateType, _Challenge);
 			}
 		;
 
@@ -285,7 +285,7 @@ namespace NMib::NWebApp::NAcmeManager
 			;
 		}
 
-		TCActorResultVector<CSecretsManager::CSetSecretPropertiesResult> StoreResults;
+		TCFutureVector<CSecretsManager::CSetSecretPropertiesResult> StoreResults;
 		CStr CertificatesSecretFolder = pDomain->f_GetSecretFolder() / "Certificates" / _CertificateType;
 
 		auto fStoreSecret = [&](CStr const &_Key, CStrSecure const &_Data)
@@ -299,7 +299,7 @@ namespace NMib::NWebApp::NAcmeManager
 				SecretID.m_Folder = CertificatesSecretFolder;
 				SecretID.m_Name = _Key;
 
-				pDomainState->m_SecretsManager.f_CallActor(&CSecretsManager::f_SetSecretProperties)(SecretID, fg_TempCopy(Properties)) > StoreResults.f_AddResult();
+				pDomainState->m_SecretsManager.f_CallActor(&CSecretsManager::f_SetSecretProperties)(SecretID, fg_TempCopy(Properties)) > StoreResults;
 			}
 		;
 
@@ -310,7 +310,7 @@ namespace NMib::NWebApp::NAcmeManager
 		fStoreSecret("Root", Certificates.m_Root);
 		fStoreSecret("Other", CStr::fs_Join(Certificates.m_Other, "\n"));
 
-		co_await (co_await StoreResults.f_GetResults() | g_Unwrap);
+		co_await fg_AllDone(StoreResults);
 
 		DMibLogWithCategory
 			(
@@ -328,7 +328,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return {};
 	}
 
-	TCFuture<bool> CAcmeManagerActor::fp_UpdateDomain_IsAlreadyUpToDate(CStr const &_DomainName, CEJSONSorted const &_DomainSettingsJson, CStr const &_CertificateType)
+	TCFuture<bool> CAcmeManagerActor::fp_UpdateDomain_IsAlreadyUpToDate(CStr _DomainName, CEJSONSorted _DomainSettingsJson, CStr _CertificateType)
 	{
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
@@ -377,7 +377,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return false;
 	}
 
-	TCFuture<void> CAcmeManagerActor::fp_UpdateDomain(CStr const &_DomainName, bool _bCreateAccountKey)
+	TCFuture<void> CAcmeManagerActor::fp_UpdateDomain(CStr _DomainName, bool _bCreateAccountKey)
 	{
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
@@ -399,10 +399,10 @@ namespace NMib::NWebApp::NAcmeManager
 		bool bRsaUpToDate = false;
 		bool bEcUpToDate = false;
 
-		if (!DomainSettings.m_bGenerateRSA || co_await self(&CAcmeManagerActor::fp_UpdateDomain_IsAlreadyUpToDate, _DomainName, DomainSettingsJson, "RSA"))
+		if (!DomainSettings.m_bGenerateRSA || co_await fp_UpdateDomain_IsAlreadyUpToDate(_DomainName, DomainSettingsJson, "RSA"))
 			bRsaUpToDate = true;
 
-		if (!DomainSettings.m_bGenerateEC || co_await self(&CAcmeManagerActor::fp_UpdateDomain_IsAlreadyUpToDate, _DomainName, DomainSettingsJson, "EC"))
+		if (!DomainSettings.m_bGenerateEC || co_await fp_UpdateDomain_IsAlreadyUpToDate(_DomainName, DomainSettingsJson, "EC"))
 			bEcUpToDate = true;
 
 		if (bEcUpToDate && bRsaUpToDate)
@@ -470,10 +470,9 @@ namespace NMib::NWebApp::NAcmeManager
 		{
 			pDomainState->m_AcmeClientRSA = fg_Construct(fAcmeDependencies());
 
-			co_await self
+			co_await fp_UpdateDomain_RunAcmeProtocol
 				(
-					&CAcmeManagerActor::fp_UpdateDomain_RunAcmeProtocol
-					, _DomainName
+					_DomainName
 					, "RSA"
 					, CPublicKeySetting(DomainSettings.m_RSASettings)
 					, pDomainState->m_AcmeClientRSA
@@ -501,10 +500,9 @@ namespace NMib::NWebApp::NAcmeManager
 				}
 			;
 
-			co_await self
+			co_await fp_UpdateDomain_RunAcmeProtocol
 				(
-					&CAcmeManagerActor::fp_UpdateDomain_RunAcmeProtocol
-					, _DomainName
+					_DomainName
 					, "EC"
 					, fPublicKeySettings()
 					, pDomainState->m_AcmeClientEC
@@ -519,7 +517,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return {};
 	}
 
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainReleaseDNSChallenge(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainReleaseDNSChallenge(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 

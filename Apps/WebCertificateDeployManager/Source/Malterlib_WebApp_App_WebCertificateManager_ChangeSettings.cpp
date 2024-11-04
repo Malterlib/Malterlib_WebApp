@@ -13,7 +13,7 @@
 
 namespace NMib::NWebApp::NWebCertificateManager
 {
-	TCFuture<void> CWebCertificateManagerActor::fp_UpdateDomainSettings(CStr const &_DomainName)
+	TCFuture<void> CWebCertificateManagerActor::fp_UpdateDomainSettings(CStr _DomainName)
 	{
 		CDomain *pDomain;
 		auto OnResume = co_await fg_OnResume
@@ -62,7 +62,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		if (pDomain->m_Settings.m_Location_Rsa)
 			DomainSettings.m_FileSettings_Rsa = fGetFilesSettings(*pDomain->m_Settings.m_Location_Rsa);
 
-		DomainSettings.m_fOnStatusChange = g_ActorFunctor / [this, _DomainName](CHostInfo &&_HostInfo, CWebCertificateDeployActor::CDomainStatus &&_Status) -> TCFuture<void>
+		DomainSettings.m_fOnStatusChange = g_ActorFunctor / [this, _DomainName](CHostInfo _HostInfo, CWebCertificateDeployActor::CDomainStatus _Status) -> TCFuture<void>
 			{
 				auto pDomain = mp_Domains.f_FindEqual(_DomainName);
 				if (!pDomain)
@@ -74,7 +74,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 			}
 		;
 
-		DomainSettings.m_fOnCertificateUpdated = g_ActorFunctor / [this](CStr &&_DomainName, CWebCertificateDeployActor::ECertificate _Certificate) -> TCFuture<void>
+		DomainSettings.m_fOnCertificateUpdated = g_ActorFunctor / [this](CStr _DomainName, CWebCertificateDeployActor::ECertificate _Certificate) -> TCFuture<void>
 			{
 				auto pDomain = mp_Domains.f_FindEqual(_DomainName);
 				if (!pDomain)
@@ -113,7 +113,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 	}
 
 
-	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainChangeSettings(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainChangeSettings(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 
@@ -160,7 +160,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		Auditor.f_Info("Changed domain settings '{}'"_f << Name);
 
-		co_await self(&CWebCertificateManagerActor::fp_UpdateDomainSettings, Name);
+		co_await fp_UpdateDomainSettings(Name);
 
 		co_return 0;
 	}

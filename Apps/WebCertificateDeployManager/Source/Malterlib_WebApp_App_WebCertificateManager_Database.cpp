@@ -183,30 +183,30 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 	TCFuture<void> CWebCertificateManagerActor::fp_ReadState()
 	{
-		return TCFuture<void>::fs_RunProtected() / [&]
-			{
-				auto pDomains = mp_State.m_StateDatabase.m_Data.f_GetMember("Domains");
-				if (!pDomains)
-					return;
+		auto CaptureScope = co_await g_CaptureExceptions;
 
-				for (auto &DomainObject : pDomains->f_Object())
-				{
-					auto &Name = DomainObject.f_Name();
-					if (!fg_IsValidHostname(Name))
-						DMibError("'{}' is not a valid Domain name"_f << Name);
+		auto pDomains = mp_State.m_StateDatabase.m_Data.f_GetMember("Domains");
+		if (!pDomains)
+			co_return {};
 
-					auto &DomainJSON = DomainObject.f_Value();
+		for (auto &DomainObject : pDomains->f_Object())
+		{
+			auto &Name = DomainObject.f_Name();
+			if (!fg_IsValidHostname(Name))
+				DMibError("'{}' is not a valid Domain name"_f << Name);
 
-					CDomainSettings Settings;
-					fp_ParseSettings(DomainJSON["Settings"], Settings);
+			auto &DomainJSON = DomainObject.f_Value();
 
-					auto &Domain = mp_Domains[Name];
-					Domain.m_Settings = fg_Move(Settings);
-				}
+			CDomainSettings Settings;
+			fp_ParseSettings(DomainJSON["Settings"], Settings);
 
-				for (auto &Domain : mp_Domains)
-					self(&CWebCertificateManagerActor::fp_UpdateDomainSettings, Domain.f_GetName()) > fg_LogError("Mib/WebApp/WebCertificateManager", "Failed to update domain settings");
-			}
-		;
+			auto &Domain = mp_Domains[Name];
+			Domain.m_Settings = fg_Move(Settings);
+		}
+
+		for (auto &Domain : mp_Domains)
+			fp_UpdateDomainSettings(Domain.f_GetName()) > fg_LogError("Mib/WebApp/WebCertificateManager", "Failed to update domain settings");
+
+		co_return {};
 	}
 }

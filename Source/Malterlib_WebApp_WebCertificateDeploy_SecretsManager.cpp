@@ -5,9 +5,9 @@
 
 namespace NMib::NWebApp
 {
-	TCFuture<void> CWebCertificateDeployActor::CInternal::f_SecretsManagerAddedWithRetry(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info)
+	TCFuture<void> CWebCertificateDeployActor::CInternal::f_SecretsManagerAddedWithRetry(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info)
 	{
-		auto Result = co_await fg_CallSafe(this, &CInternal::f_SecretsManagerAdded, _SecretsManager, _Info).f_Wrap();
+		auto Result = co_await f_SecretsManagerAdded(_SecretsManager, _Info).f_Wrap();
 
 		if (Result)
 		{
@@ -40,16 +40,18 @@ namespace NMib::NWebApp
 
 		if (m_RetryingSecretsManagers(_SecretsManager).f_WasCreated())
 		{
-			fg_Timeout(10.0) > [=, this]
+			fg_Timeout(10.0) > [=, this]() -> TCFuture<void>
 				{
 					m_RetryingSecretsManagers.f_Remove(_SecretsManager);
 
 					if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
-						return;
+						co_return {};
 
-					fg_CallSafe(this, &CInternal::f_SecretsManagerAddedWithRetry, _SecretsManager, _Info)
+					f_SecretsManagerAddedWithRetry(_SecretsManager, _Info)
 						> fg_LogError("Mib/WebApp/WebCertificateDeploy", "Failed to handle secret manager added (retry)")
 					;
+
+					co_return {};
 				}
 			;
 		}
@@ -58,9 +60,9 @@ namespace NMib::NWebApp
 	}
 
 
-	TCFuture<void> CWebCertificateDeployActor::CInternal::f_SecretsManagerAdded(TCDistributedActor<CSecretsManager> const &_SecretsManager, CTrustedActorInfo const &_Info)
+	TCFuture<void> CWebCertificateDeployActor::CInternal::f_SecretsManagerAdded(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info)
 	{
-		TCActorResultMap<CStr, void> UpdateResults;
+		TCFutureMap<CStr, void> UpdateResults;
 
 		auto OnResume = co_await fg_OnResume
 			(
@@ -79,7 +81,7 @@ namespace NMib::NWebApp
 
 		CSecretsManager::CSubscribeToChanges SubscribeToChanges;
 		SubscribeToChanges.m_SemanticID = "org.malterlib.certificate#*";
-		SubscribeToChanges.m_fOnChanges = g_ActorFunctor / [this, _SecretsManager, _Info](CSecretsManager::CSecretChanges &&_Changes) mutable -> TCFuture<void>
+		SubscribeToChanges.m_fOnChanges = g_ActorFunctor / [this, _SecretsManager, _Info](CSecretsManager::CSecretChanges _Changes) mutable -> TCFuture<void>
 			{
 				if (m_pThis->f_IsDestroyed())
 					co_return {};
@@ -128,7 +130,7 @@ namespace NMib::NWebApp
 
 				for (auto &DomainName : DomainsToUpdate)
 				{
-					fg_CallSafe(this, &CInternal::f_UpdateDomainForSecretsManager, DomainName, _SecretsManager, _Info.m_HostInfo)
+					f_UpdateDomainForSecretsManager(DomainName, _SecretsManager, _Info.m_HostInfo)
 						> fg_LogError("Mib/WebApp/WebCertificateDeploy", "Update domain '{}' for secrets manager '{}' failed"_f << DomainName << _Info.m_HostInfo)
 					;
 				}
@@ -144,7 +146,7 @@ namespace NMib::NWebApp
 		co_return {};
 	}
 
-	TCFuture<void> CWebCertificateDeployActor::CInternal::f_SecretsManagerRemoved(TCWeakDistributedActor<CActor> const &_SecretsManager, CTrustedActorInfo const &_ActorInfo)
+	TCFuture<void> CWebCertificateDeployActor::CInternal::f_SecretsManagerRemoved(TCWeakDistributedActor<CActor> _SecretsManager, CTrustedActorInfo _ActorInfo)
 	{
 		m_LastSecretsManagerError.f_Remove(_SecretsManager);
 		m_RetryingSecretsManagers.f_Remove(_SecretsManager);
@@ -160,7 +162,7 @@ namespace NMib::NWebApp
 			co_await Subscription->f_Destroy().f_Wrap() > fg_LogWarning("", "Failed to destroy secret manager change subscription");
 		}
 
-		TCActorResultVector<void> UpdateDomainResults;
+		TCFutureVector<void> UpdateDomainResults;
 		for (auto &Domain : m_Domains)
 		{
 			if (!Domain.m_DomainState)
@@ -172,13 +174,13 @@ namespace NMib::NWebApp
 
 				f_UpdateDomainStatus(Domain, _ActorInfo.m_HostInfo, EStatusSeverity_Warning, "Lost active secrets manager, waiting");
 
-				fg_CallSafe(this, &CInternal::f_UpdateDomainForAllSecretsManagers, Domain.f_GetName()) > UpdateDomainResults.f_AddResult();
+				f_UpdateDomainForAllSecretsManagers(Domain.f_GetName()) > UpdateDomainResults;
 			}
 			else
 				f_UpdateDomainStatus(Domain, _ActorInfo.m_HostInfo, EStatusSeverity_Warning, "Lost secrets manager");
 		}
 
-		co_await (co_await UpdateDomainResults.f_GetResults() | g_Unwrap);
+		co_await fg_AllDone(UpdateDomainResults);
 
 		co_return {};
 	}

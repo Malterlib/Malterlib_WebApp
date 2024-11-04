@@ -6,7 +6,7 @@
 
 namespace NMib::NWebApp::NWebCertificateManager
 {
-	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainAdd(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainAdd(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 
@@ -37,7 +37,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		Auditor.f_Info("Added domain '{}'"_f << Name);
 
-		co_await self(&CWebCertificateManagerActor::fp_UpdateDomainSettings, Name);
+		co_await fp_UpdateDomainSettings(Name);
 
 		co_return 0;
 	}

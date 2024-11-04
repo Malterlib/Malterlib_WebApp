@@ -46,14 +46,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 
 		auto BlockingActorCheckout = fg_BlockingActor();
-		co_await
-			(
-				g_Dispatch(BlockingActorCheckout) / [Executables = fg_Move(Executables)]
-				{
-					fg_CleanupOldProcesses(Executables);
-				}
-			)
-		;
+		co_await BlockingActorCheckout.f_Actor().f_Bind<fg_CleanupOldProcesses>(fg_Move(Executables));
 
 		co_return {};
 

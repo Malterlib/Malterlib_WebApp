@@ -177,37 +177,34 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerActor::fp_StartApps()
 	{
-		TCPromise<void> Promise;
-
 		fp_UpdateAppLaunch(nullptr);
 
-		return Promise <<= mp_AppLaunchesPromise.f_Future();
+		co_return co_await mp_AppLaunchesPromise.f_Future();
 	}
 
 	TCFuture<void> CWebAppManagerActor::fp_DestroyApps()
 	{
-		TCPromise<void> Promise;
-
-		TCActorResultVector<void> Destroys;
+		TCFutureVector<void> Destroys;
 
 		for (auto &Launch : mp_AppLaunches)
 		{
 			if (Launch.m_Launch.f_IsOfType<void>())
 				continue;
 			else if (Launch.m_Launch.f_IsOfType<CNormalProcessLaunch>())
-				Launch.m_Launch.f_GetAsType<CNormalProcessLaunch>().m_Launch.f_Destroy() > Destroys.f_AddResult();
+				fg_Move(Launch.m_Launch.f_GetAsType<CNormalProcessLaunch>().m_Launch).f_Destroy() > Destroys;
 			else
 			{
 				auto &pLaunchInfo = Launch.m_Launch.f_GetAsType<TCUniquePointer<CDistributedApp_LaunchInfo>>();
 				if (pLaunchInfo && pLaunchInfo->m_Launch)
-					fg_Move(pLaunchInfo->m_Launch).f_Destroy() > Destroys.f_AddResult();
+					fg_Move(pLaunchInfo->m_Launch).f_Destroy() > Destroys;
 				else
-					Launch.m_DestroyPromise.f_Set<1>().f_Future() > Destroys.f_AddResult();
+					Launch.m_DestroyPromise.f_Set<1>().f_Future() > Destroys;
 			}
 		}
 
-		Destroys.f_GetResults() > Promise.f_ReceiveAny();
-		return Promise.f_MoveFuture();
+		co_await fg_AllDone(Destroys).f_Wrap() > fg_LogError("AppLaunches", "Destroying apps failed");
+
+		co_return {};
 	}
 
 	void CWebAppManagerActor::fp_UpdateAppLaunch(CExceptionPointer const &_pException)
@@ -372,16 +369,14 @@ namespace NMib::NWebApp::NWebAppManager
 			CEJSONSorted MetaData;
 			MetaData["URLTemplate"] = "{Host}:{Port}";
 
-			TCPromise<void> OldSubscriptionDestroy;
+			TCFuture<void> OldSubscriptionDestroy;
 			if (_AppLaunch.m_TunnelSubscription)
-				_AppLaunch.m_TunnelSubscription->f_Destroy() > OldSubscriptionDestroy;
+				OldSubscriptionDestroy = _AppLaunch.m_TunnelSubscription->f_Destroy();
 			else
-				OldSubscriptionDestroy.f_SetResult();
+				OldSubscriptionDestroy = g_Void;
 
-			OldSubscriptionDestroy.f_MoveFuture() > [this, pAppLaunch = &_AppLaunch, MetaData = fg_Move(MetaData)](TCAsyncResult<void> &&) mutable
+			fg_Move(OldSubscriptionDestroy) > [this, pAppLaunch = &_AppLaunch, MetaData = fg_Move(MetaData)](TCAsyncResult<void> &&) mutable
 				{
-					auto Logger = fg_LogError("Network Tunnel", "Publish network tunnel");
-
 					mp_NetworkTunnelsServer
 						(
 							&CNetworkTunnelsServer::f_PublishNetworkTunnel
@@ -390,7 +385,7 @@ namespace NMib::NWebApp::NWebAppManager
 							, 5599
 							, fg_Move(MetaData)
 						)
-						> Logger / [pAppLaunch](CActorSubscription &&_Subscription)
+						> fg_LogError("Network Tunnel", "Publish network tunnel") / [pAppLaunch](CActorSubscription &&_Subscription)
 						{
 							pAppLaunch->m_TunnelSubscription = fg_Move(_Subscription);
 						}
@@ -494,7 +489,8 @@ namespace NMib::NWebApp::NWebAppManager
 								if (AppLaunch.m_Launch.f_IsOfType<CNormalProcessLaunch>())
 								{
 									auto &NormalLaunch = AppLaunch.m_Launch.f_Get<1>();
-									NormalLaunch.m_Launch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
+									if (NormalLaunch.m_Launch)
+										NormalLaunch.m_Launch(&CProcessLaunchActor::f_StopProcess).f_DiscardResult();
 								}
 								if (_bInitialLaunch)
 									fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance("Application is being destroyed")));
@@ -520,10 +516,12 @@ namespace NMib::NWebApp::NWebAppManager
 									fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance(fg_Format("Unexpected exit {}", _Change.f_Get<EProcessLaunchState_Exited>()))));
 
 								DLog(Info, "Unexpected exit {}, scheduling relaunch in 10 seconds", _Change.f_Get<EProcessLaunchState_Exited>());
-								fg_Timeout(10.0) > [this, pAppLaunch]
+								fg_Timeout(10.0) > [this, pAppLaunch]() -> TCFuture<void>
 									{
 										if (!f_IsDestroyed() && !mp_bStopped)
 											fp_LaunchApp(*pAppLaunch, false);
+
+										co_return {};
 									}
 								;
 							}
@@ -789,7 +787,7 @@ namespace NMib::NWebApp::NWebAppManager
 							AppLaunch.m_DestroyPromise.f_Clear();
 						}
 						else if (pLaunchInfo->m_Launch)
-							pLaunchInfo->m_Launch(&CProcessLaunchActor::f_StopProcess) > fg_DiscardResult();
+							pLaunchInfo->m_Launch(&CProcessLaunchActor::f_StopProcess).f_DiscardResult();
 
 						return;
 					}

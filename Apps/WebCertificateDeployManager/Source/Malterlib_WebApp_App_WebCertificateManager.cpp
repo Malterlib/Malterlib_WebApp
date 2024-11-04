@@ -19,7 +19,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		return mp_State.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, _Default);
 	}
 
-	TCFuture<void> CWebCertificateManagerActor::fp_StartApp(NEncoding::CEJSONSorted const &_Params)
+	TCFuture<void> CWebCertificateManagerActor::fp_StartApp(NEncoding::CEJSONSorted const _Params)
 	{
 		auto OnResume = co_await fg_OnResume
 			(
@@ -43,18 +43,18 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 	TCFuture<void> CWebCertificateManagerActor::fp_StopApp()
 	{
-		TCActorResultVector<void> Destroys;
+		TCFutureVector<void> Destroys;
 
 		for (auto &Domain : mp_Domains)
 		{
 			if (Domain.m_CertificateDeploySubscription)
-				Domain.m_CertificateDeploySubscription->f_Destroy() > Destroys.f_AddResult();
+				Domain.m_CertificateDeploySubscription->f_Destroy() > Destroys;
 		}
 
 		if (mp_CertificateDeployActor)
-			fg_Move(mp_CertificateDeployActor).f_Destroy() > Destroys.f_AddResult();
+			fg_Move(mp_CertificateDeployActor).f_Destroy() > Destroys;
 
-		co_await Destroys.f_GetResults();
+		co_await fg_AllDoneWrapped(Destroys);
 
 		co_return {};
 	}

@@ -9,7 +9,7 @@
 
 namespace NMib::NWebApp::NWebCertificateManager
 {
-	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainList(CEJSONSorted const &_Params, NStorage::TCSharedPointer<CCommandLineControl> const &_pCommandLine)
+	TCFuture<uint32> CWebCertificateManagerActor::fp_CommandLine_DomainList(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		bool bVerbose = _Params["Verbose"].f_Boolean();
 		CStr DomainName = _Params["Domain"].f_String();
