@@ -331,6 +331,15 @@ namespace NMib::NWebApp::NWebAppManager
 
 					CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 
+					if (CFile::fs_FileExists(ProgramDirectory / "mongo/4.0"))
+						CFile::fs_DeleteDirectoryRecursive(ProgramDirectory / "mongo/4.0");
+
+					if (CFile::fs_FileExists(ProgramDirectory / "mongo/4.4"))
+						CFile::fs_DeleteDirectoryRecursive(ProgramDirectory / "mongo/4.4");
+
+					if (CFile::fs_FileExists(ProgramDirectory / "mongo/6.0/bin/mongo"))
+						CFile::fs_DeleteFile(ProgramDirectory / "mongo/6.0/bin/mongo");
+					
 					CFileSystemInterface_VirtualFS MalterlibFS(ExeFS.m_FileSystem);
 					CFileSystemInterface_Disk DiskFS;
 					CTime SourceFileTime = MalterlibFS.f_GetWriteTime("");

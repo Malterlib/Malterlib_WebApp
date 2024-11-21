@@ -262,12 +262,13 @@ namespace NMib::NWebApp::NWebAppManager
 		CommandLineArgs << fg_CreateVector<CStr>
 			(
 				"--quiet"
+				, "--norc"
 				, Address
 				, _Script
 			)
 		;
 
-		CStr MongoExecutable = fp_GetMongoExecutable("mongo");
+		CStr MongoExecutable = fp_GetMongoExecutable("mongosh");
 
 		auto Clock = CClock{true};
 
@@ -291,7 +292,8 @@ namespace NMib::NWebApp::NWebAppManager
 				if
 					(
 						(
-							StdOutResult.f_GetExceptionStr().f_Find("exception: connect failed") >= 0
+							StdOutResult.f_GetExceptionStr().f_Find("MongoNetworkError: connect") >= 0
+							|| StdOutResult.f_GetExceptionStr().f_Find("MongoPoolClearedError:") >= 0
 							|| StdOutResult.f_GetExceptionStr().f_Find("The OS returned an error from execve") >= 0
 							|| StdOutResult.f_GetExceptionStr().f_Find("not master and slaveOk=false") >= 0
 						)
