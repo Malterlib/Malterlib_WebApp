@@ -88,7 +88,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 			bool f_IsDynamicServer() const
 			{
-				return m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket || f_IsNpmDynamic();
+				return m_Concurrency && (m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket || f_IsNpmDynamic());
 			}
 
 			bool f_HasCustomExecutable() const
@@ -185,7 +185,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_ToolsUser;
 			CStr m_ToolsGroup;
 			CStr m_SSLDirectory;
-			CStr m_DatabaseSetupScript;
+			CStr m_DatabaseSetupPackage;
 			CStr m_DefaultDatabase;
 			CStr m_DefaultReplicaName = "DefaultReplica";
 			CStr m_DefaultMongoVersion = "6.0";
@@ -461,7 +461,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr fp_GetMongoSSLDirectory() const;
 		NWeb::NHTTP::CURL fp_GetDBAddressURL(CStr _Database, CStr _HomePath);
 		CStr fp_GetDBAddress(CStr _Database, CStr _HomePath);
-		TCFuture<void> fp_RunMongoScript(CStr _Script, CStr _Database, fp32 _Timeout);
+		TCFuture<void> fp_RunNodeMongoScript(CStr _ScriptName, CStr _Script, TCVector<CStr> _Params, CStr _Database, fp32 _Timeout);
 
 		TCFuture<void> fp_SetupMongo();
 

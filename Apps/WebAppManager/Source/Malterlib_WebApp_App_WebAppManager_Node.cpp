@@ -53,8 +53,6 @@ namespace NMib::NWebApp::NWebAppManager
 	CStr CWebAppManagerActor::fp_GetPackageRoot(CStr const &_PackageName) const
 	{
 		auto &Package = mp_Options.m_Packages[_PackageName];
-		if (!Package.f_IsServer())
-			DMibError("Cannot get package root path for non-server package");
 
 		CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
 

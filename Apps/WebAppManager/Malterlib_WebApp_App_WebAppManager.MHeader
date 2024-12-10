@@ -45,7 +45,7 @@ Type
 		WebAppManagerMongoToolsUser: string?
 		WebAppManagerMongoToolsGroup: string?
 		WebAppManagerMongoSSLDirectory: string?
-		WebAppManagerMongoDatabaseSetupScript: string?
+		WebAppManagerMongoDatabaseSetupPackage: string?
 		WebAppManagerMongoDefaultReplicaName: string?
 		WebAppManagerMongoDefaultDatabase: string?
 		WebAppManagerMongoBinariesPath: string?
@@ -618,10 +618,6 @@ Property
 		WebAppManagerCopySources =+ {Pattern: "Source/Malterlib_WebApp_App_WebAppManager_OSSetup.sh"->MakeAbsolute(), Destination: "Source"}
 		WebAppManagerCopySources =+ {Pattern: "Source/Malterlib_WebApp_App_WebAppManager_Nginx.conf"->MakeAbsolute(), Destination: "Source"}
 		WebAppManagerCopySources =+ {Pattern: "Source/Malterlib_WebApp_App_WebAppManager_FastCGI.conf"->MakeAbsolute(), Destination: "Source"}
-		WebAppManagerCopySources =+ {Pattern: WebAppManagerMongoDatabaseSetupScript, Destination: "Source"}
-		{
-			!WebAppManagerMongoDatabaseSetupScript undefined
-		}
 		WebAppManagerCopySources =+ {Pattern: WebAppManagerMongoBinariesPath / "*", Destination: "mongo", Recursive: true}
 		{
 			!WebAppManagerMongoBinariesPath undefined
@@ -968,9 +964,9 @@ Property
 				{
 					!WebAppManagerMongoSSLDirectory undefined
 				}
-				WebAppSettingsMongo =+ {DatabaseSetupScript: WebAppManagerMongoDatabaseSetupScript->GetFile()}
+				WebAppSettingsMongo =+ {DatabaseSetupPackage: WebAppManagerMongoDatabaseSetupPackage}
 				{
-					!WebAppManagerMongoDatabaseSetupScript undefined
+					!WebAppManagerMongoDatabaseSetupPackage undefined
 				}
 				WebAppSettingsMongo =+ {DefaultReplicaName: WebAppManagerMongoDefaultReplicaName}
 				{

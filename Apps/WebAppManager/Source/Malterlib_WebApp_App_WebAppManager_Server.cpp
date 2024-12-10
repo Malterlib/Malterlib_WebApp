@@ -708,8 +708,8 @@ namespace NMib::NWebApp::NWebAppManager
 			m_Mongo.m_ToolsGroup = pValue->f_String();
 		if (auto *pValue = MongoJSON.f_GetMember("SSLDirectory"))
 			m_Mongo.m_SSLDirectory = pValue->f_String();
-		if (auto *pValue = MongoJSON.f_GetMember("DatabaseSetupScript"))
-			m_Mongo.m_DatabaseSetupScript = pValue->f_String();
+		if (auto *pValue = MongoJSON.f_GetMember("DatabaseSetupPackage"))
+			m_Mongo.m_DatabaseSetupPackage = pValue->f_String();
 		if (auto *pValue = MongoJSON.f_GetMember("DefaultDatabase"))
 			m_Mongo.m_DefaultDatabase = pValue->f_String();
 		if (auto *pValue = MongoJSON.f_GetMember("DefaultMongoVersion"))

@@ -20,12 +20,18 @@ namespace NMib::NWebApp::NWebAppManager
 		if (!mp_Options.m_bNeedsMongo)
 			co_return {};
 
-		if (mp_Options.m_Mongo.m_DatabaseSetupScript.f_IsEmpty())
+		if (mp_Options.m_Mongo.m_DatabaseSetupPackage.f_IsEmpty())
 			co_return {};
 
-		co_await fp_RunMongoScript
+		auto *pPackage = mp_Options.m_Packages.f_FindEqual(mp_Options.m_Mongo.m_DatabaseSetupPackage);
+		if (!pPackage)
+			co_return DMibErrorInstance("WebAppManagerMongoDatabaseSetupPackage '{}' was not found in packages"_f << mp_Options.m_Mongo.m_DatabaseSetupPackage);
+
+		co_await fp_RunNodeMongoScript
 			(
-				fg_Format("{}/Source/{}", CFile::fs_GetProgramDirectory(), mp_Options.m_Mongo.m_DatabaseSetupScript)
+				"DatabaseSetup"
+				, fp_GetPackageRoot(mp_Options.m_Mongo.m_DatabaseSetupPackage) / pPackage->m_MainFile
+				, pPackage->m_CustomParams
 				, mp_MongoDatabase
 				, 120.0
 			)
@@ -187,88 +193,22 @@ namespace NMib::NWebApp::NWebAppManager
 		return fp_GetDBAddressURL(_Database, _HomePath).f_Encode();
 	}
 
-	TCFuture<void> CWebAppManagerActor::fp_RunMongoScript(CStr _Script, CStr _Database, fp32 _Timeout)
+	TCFuture<void> CWebAppManagerActor::fp_RunNodeMongoScript(CStr _ScriptName, CStr _Script, TCVector<CStr> _Params, CStr _Database, fp32 _Timeout)
 	{
-		CStr ScriptName = CFile::fs_GetFile(_Script);
 		CStr MongoSSLDirectory = fp_GetMongoSSLDirectory();
-
-		CProcessLaunchParams Params;
-		fs_SetupEnvironment(Params);
-		Params.m_bAllowExecutableLocate = true;
-		Params.m_bMergeEnvironment = true;
-		Params.m_RunAsUser = mp_MongoToolsUser;
-#ifdef DPlatformFamily_Windows
-		if (mp_MongoToolsUser)
-			Params.m_RunAsUser = fp_GetUserPassword(mp_MongoToolsUser);
-#endif
-		Params.m_RunAsGroup = mp_MongoToolsGroup;
-
-		CStr MongoHost = mp_MongoHost;
-		int64 MongoPort = mp_MongoPort;
 
 		CStr Address = fp_GetDBAddress(_Database, MongoSSLDirectory);
 
-		if (mp_bConnectToExternalMongo)
-			MongoHost = CMongoConnectionSettings::fs_GetConnectionString(mp_ExternalMongoHosts);
+		TCVector<CStr> Arguments;
+		Arguments.f_Insert("--max-old-space-size=3000");
+		Arguments.f_Insert("--trace-deprecation");
+		Arguments.f_Insert("--trace-warnings");
+		Arguments.f_Insert(_Script);
+		Arguments.f_Insert(_Params);
 
-		if (MongoHost.f_IsEmpty())
-			co_return DMibErrorInstance(fg_Format("Failed to launch mongo for running {}: Hostname is empty", ScriptName));
+		TCMap<CStr, CStr> Environment;
 
-		TCVector<CStr> CommandLineArgs;
-
-		if (!MongoSSLDirectory.f_IsEmpty() && mp_bConnectToExternalMongo)
-		{
-			CStr CaCertificatePath = MongoSSLDirectory + "/MongoCA.crt";
-			CStr ClientCertificatePath = MongoSSLDirectory + "/admin.pem";
-
-			CommandLineArgs.f_Insert
-				(
-					{
-						"--tls"
-						, "--tlsCertificateKeyFile"
-						, ClientCertificatePath
-					}
-				)
-			;
-
-			if (CFile::fs_FileExists(CaCertificatePath))
-			{
-				CommandLineArgs.f_Insert
-					(
-						{
-							"--tlsCAFile"
-							, CaCertificatePath
-						}
-					)
-				;
-			}
-		}
-
-		if (!mp_bConnectToExternalMongo)
-		{
-			CommandLineArgs << fg_CreateVector<CStr>
-				(
-					"--eval"
-					, fg_Format
-					(
-						"let WebAppManagerMongoHostName='{}'; let WebAppManagerMongoPort='{}'"
-						, MongoHost
-						, MongoPort
-					)
-				)
-			;
-		}
-
-		CommandLineArgs << fg_CreateVector<CStr>
-			(
-				"--quiet"
-				, "--norc"
-				, Address
-				, _Script
-			)
-		;
-
-		CStr MongoExecutable = fp_GetMongoExecutable("mongosh");
+		Environment["MONGO_URL"] = Address;
 
 		auto Clock = CClock{true};
 
@@ -276,13 +216,16 @@ namespace NMib::NWebApp::NWebAppManager
 		{
 			auto StdOutResult = co_await f_LaunchTool
 				(
-					MongoExecutable
-					, CFile::fs_GetPath(MongoExecutable)
-					, CommandLineArgs
-					, ScriptName
+					fp_GetNodeExecutable("node")
+					, CFile::fs_GetPath(_Script)
+					, Arguments
+					, _ScriptName
 					, ELogVerbosity_None
-					, {}
+					, Environment
 					, true
+					, {}
+					, mp_MongoToolsUser
+					, mp_MongoToolsGroup
 				)
 				.f_Wrap()
 			;
@@ -308,7 +251,7 @@ namespace NMib::NWebApp::NWebAppManager
 			}
 
 			auto StdOut = (*StdOutResult).f_Trim();
-			DLog(Info, "{}:{}{}", ScriptName, StdOut.f_IsEmpty() ? "" : "\n", StdOut);
+			DLog(Info, "{}:{}{}", _ScriptName, StdOut.f_IsEmpty() ? "" : "\n", StdOut);
 			break;
 		}
 

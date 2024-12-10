@@ -326,8 +326,9 @@ namespace NMib::NWebApp::NWebAppManager
 						, bForceAppsReinstall = mp_bForceAppsReinstall
 						, NpmExecutable = fp_GetNodeExecutable("npm")
 						, bUnixSocket = PackageOptions.m_bUnixSocket
-						, SocketRootDirectory = fp_GetPackageSocketRoot(_PackageName)
+						, SocketRootDirectory = PackageOptions.m_bUnixSocket && PackageOptions.m_Concurrency ? fp_GetPackageSocketRoot(_PackageName) : CStr()
 						, NginxUserGroup = mp_NginxUser.m_GroupName
+						, Concurrency = PackageOptions.m_Concurrency
 					]
 					() mutable -> TCFuture<CPackageInfo>
 					{
@@ -365,7 +366,7 @@ namespace NMib::NWebApp::NWebAppManager
 							UserHomePath = PackageHomeDirectory;
 						}
 
-						if (bUnixSocket)
+						if (bUnixSocket && Concurrency)
 						{
 							CFile::fs_CreateDirectory(SocketRootDirectory);
 							CFile::fs_SetOwnerAndGroupRecursive
@@ -389,21 +390,6 @@ namespace NMib::NWebApp::NWebAppManager
 						CStr NewChecksum = fsp_GetFileChecksum(PackageFileName).f_GetString();
 						CStr PackageChecksumFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz.installed.md5";
 						bool bDoInstall = false;
-
-						CStr PackageFile = PackageDirectory / "package.json";
-						if (CFile::fs_FileExists(PackageFile))
-						{
-							try
-							{
-								auto PackageJSON = CJSONSorted::fs_FromString(CFile::fs_ReadStringFromFile(PackageFile, true), PackageFile);
-								if (auto pValue = PackageJSON.f_GetMember("main", EJSONType_String))
-									PackageInfo.m_MainFile = pValue->f_String();
-							}
-							catch (NException::CException const &_Exception)
-							{
-								DLogWithCategoryStr(_PackageName, Error, "Failed to parse package.json: {}", _Exception);
-							}
-						}
 
 						if (bForceAppsReinstall)
 							bDoInstall = true;
@@ -569,6 +555,21 @@ namespace NMib::NWebApp::NWebAppManager
 							}
 
 							CFile::fs_WriteStringToFile(PackageChecksumFileName, NewChecksum, false);
+						}
+
+						CStr PackageFile = PackageDirectory / "package.json";
+						if (CFile::fs_FileExists(PackageFile))
+						{
+							try
+							{
+								auto PackageJSON = CJSONSorted::fs_FromString(CFile::fs_ReadStringFromFile(PackageFile, true), PackageFile);
+								if (auto pValue = PackageJSON.f_GetMember("main", EJSONType_String))
+									PackageInfo.m_MainFile = pValue->f_String();
+							}
+							catch (NException::CException const &_Exception)
+							{
+								DLogWithCategoryStr(_PackageName, Error, "Failed to parse package.json: {}", _Exception);
+							}
 						}
 
 						DLogWithCategoryStr(_PackageName, Info, "Setting up package was successful");
