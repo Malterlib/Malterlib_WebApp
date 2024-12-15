@@ -41,6 +41,7 @@ if [[ "$NodePackage" != "" ]]; then
 	pushd "$NodeDirectory" > /dev/null
 	NpmCommand=npm
 	tar $TarExtractOptions --no-same-owner --strip-components=1 -xf "$NodePackage"
+	sed -i -e "s/build_file_path, 'rU'/build_file_path, 'r'/g" "$NodeDirectory/lib/node_modules/npm/node_modules/node-gyp/gyp/pylib/gyp/input.py"
 	export PATH="$PWD/bin:$PWD:$PATH"
 	popd > /dev/null
 fi
