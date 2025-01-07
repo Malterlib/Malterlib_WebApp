@@ -62,6 +62,7 @@ Type
 		WebAppManagerSaveUserPasswords: bool?
 		WebAppManagerDefaultDomain: string?
 		WebAppManagerStartNginx: bool?
+		WebAppManagerUniqueNginxPath: string?
 
 		MalterlibWebAppManagerUserNamePrefix: string = "mib_"
 
@@ -1130,6 +1131,10 @@ Property
 				WebAppSettings =+ {StartNginx: WebAppManagerStartNginx}
 				{
 					!WebAppManagerStartNginx undefined
+				}
+				WebAppSettings =+ {UniqueNginxPath: WebAppManagerUniqueNginxPath}
+				{
+					!WebAppManagerUniqueNginxPath undefined
 				}
 				WebAppSettings =+ {DefaultWebPort: WebAppManagerDefaultWebPort}
 				{

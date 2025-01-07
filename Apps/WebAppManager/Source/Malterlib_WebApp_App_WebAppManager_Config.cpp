@@ -32,6 +32,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		mp_bAllowRobots = fp_GetConfigValue("AllowRobots", true).f_Boolean();
 		mp_bStartNginx = fp_GetConfigValue("StartNginx", mp_Options.m_bStartNginx).f_Boolean();
+		mp_UniqueNginxPath = fp_GetConfigValue("UniqueNginxPath", mp_Options.m_UniqueNginxPath).f_String();
 
 		mp_Domain = fp_GetConfigValue("Domain", mp_Options.m_DefaultDomain).f_String();
 		if (mp_bIsStaging)

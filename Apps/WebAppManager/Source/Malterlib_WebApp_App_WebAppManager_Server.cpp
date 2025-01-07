@@ -397,6 +397,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 	CStr CWebAppManagerActor::fp_GetDataPath(CStr const &_Path) const
 	{
+		if (_Path == gc_Str<"nginx">.m_Str && mp_UniqueNginxPath)
+			return CFile::fs_AppendPath(CFile::fs_GetProgramDirectory(), mp_UniqueNginxPath);
+
 		return CFile::fs_AppendPath(CFile::fs_GetProgramDirectory(), _Path);
 	}
 
@@ -591,6 +594,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 		if (auto *pValue = Settings.f_GetMember("StartNginx"))
 			m_bStartNginx = pValue->f_Boolean();
+
+		if (auto *pValue = Settings.f_GetMember("UniqueNginxPath"))
+			m_UniqueNginxPath = pValue->f_String();
 
 		if (auto *pValue = Settings.f_GetMember("DefaultWebPort"))
 			m_DefaultWebPort = pValue->f_Integer();

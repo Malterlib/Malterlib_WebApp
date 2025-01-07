@@ -208,6 +208,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr m_S3BucketPrefix;
 		CStr m_RobotsSitemap;
 		TCVector<CStr> m_AllowRedirectsOutsideOfDomainPatterns;
+		CStr m_UniqueNginxPath;
 
 		CStr m_ContentSecurity_DefaultSrc;
 		CStr m_ContentSecurity_PrefetchSrc;
@@ -593,6 +594,8 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr mp_BindTo;
 
 		TCUniquePointer<CWebAppManagerImpl> mp_pWebAppManangerImpl;
+
+		CStr mp_UniqueNginxPath;
 
 		uint64 mp_WebPort = 3000;
 		uint64 mp_WebSSLPort = 3443;
