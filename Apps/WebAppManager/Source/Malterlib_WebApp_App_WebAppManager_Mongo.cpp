@@ -216,7 +216,7 @@ namespace NMib::NWebApp::NWebAppManager
 		{
 			auto StdOutResult = co_await f_LaunchTool
 				(
-					fp_GetNodeExecutable("node")
+					fp_GetNodeExecutable("node", false)
 					, CFile::fs_GetPath(_Script)
 					, Arguments
 					, _ScriptName

@@ -324,7 +324,7 @@ namespace NMib::NWebApp::NWebAppManager
 						, bIsStatic = PackageOptions.f_IsStatic()
 						, ExcludeGzipPatterns = PackageOptions.m_ExcludeGzipPatterns
 						, bForceAppsReinstall = mp_bForceAppsReinstall
-						, NpmExecutable = fp_GetNodeExecutable("npm")
+						, NpmExecutable = fp_GetNodeExecutable("npm", PackageOptions.m_bUseSystemNode)
 						, bUnixSocket = PackageOptions.m_bUnixSocket
 						, SocketRootDirectory = PackageOptions.m_bUnixSocket && PackageOptions.m_Concurrency ? fp_GetPackageSocketRoot(_PackageName) : CStr()
 						, NginxUserGroup = mp_NginxUser.m_GroupName

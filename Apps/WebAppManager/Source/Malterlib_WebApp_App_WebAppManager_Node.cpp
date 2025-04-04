@@ -14,15 +14,16 @@ namespace NMib::NWebApp::NWebAppManager
 		return 65536 + 8192;
 	}
 
-	CStr CWebAppManagerActor::fp_GetNodeExecutable(CStr const &_Executable)
+	CStr CWebAppManagerActor::fp_GetNodeExecutable(CStr const &_Executable, bool _bUseSystemNode)
 	{
+		bool bUseInternalNode = mp_Options.m_bUseInternalNode && !_bUseSystemNode;
 #ifdef DPlatformFamily_Windows
-		if (mp_Options.m_bUseInternalNode)
+		if (bUseInternalNode)
 			return "{}/node_dist/{}.exe"_f << CFile::fs_GetProgramDirectory() << _Executable;
 		else
 			return "{}.exe"_f << _Executable;
 #else
-		if (mp_Options.m_bUseInternalNode)
+		if (bUseInternalNode)
 			return "{}/node_dist/bin/{}"_f << CFile::fs_GetProgramDirectory() << _Executable;
 		else
 			return _Executable;
@@ -413,7 +414,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		if (PackageOptions.m_Type == CWebAppManagerOptions::EPackageType_Meteor)
 		{
-			LaunchExecutable = fp_GetNodeExecutable("node");
+			LaunchExecutable = fp_GetNodeExecutable("node", PackageOptions.m_bUseSystemNode);
 			fp_SetupNodeArguments(Arguments, _AppLaunch, PackageOptions);
 			bIsNode = true;
 
@@ -421,7 +422,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 		else if (PackageOptions.m_Type == CWebAppManagerOptions::EPackageType_Npm)
 		{
-			LaunchExecutable = fp_GetNodeExecutable("node");
+			LaunchExecutable = fp_GetNodeExecutable("node", PackageOptions.m_bUseSystemNode);
 			fp_SetupNodeArguments(Arguments, _AppLaunch, PackageOptions);
 			bIsNode = true;
 

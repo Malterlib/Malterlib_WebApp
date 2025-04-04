@@ -88,7 +88,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		DLog(Info, "Done setting up nginx prerequisites, checking node version");
 		if (mp_bNeedNode)
-			co_await fp_CheckVersion(fp_GetNodeExecutable("node"), "--version", "v{}.{}.{}", mp_Version_Node);
+			co_await fp_CheckVersion(fp_GetNodeExecutable("node", false), "--version", "v{}.{}.{}", mp_Version_Node);
 
 		DLog(Info, "Done checking node version, setting up mongo");
 		co_await fp_SetupMongo();
@@ -574,6 +574,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("DefaultServer"))
 				Package.m_bDefaultServer = pValue->f_Boolean();
+
+			if (auto *pValue = PackageSettings.f_GetMember("UseSystemNode"))
+				Package.m_bUseSystemNode = pValue->f_Boolean();
 		}
 
 		if (auto pValue = Settings.f_GetMember("AllowRobots"))

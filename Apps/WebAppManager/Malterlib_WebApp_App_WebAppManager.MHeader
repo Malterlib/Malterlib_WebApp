@@ -872,6 +872,11 @@ Property
 					!!true IsDefined(`DefaultServer_@(_PackageName)`)
 				}
 
+				PackageSettings	=+ {UseSystemNode: CheckIsBool(UseSystemNode_@(_PackageName))}
+				{
+					!!true IsDefined(`UseSystemNode_@(_PackageName)`)
+				}
+
 				PackageSettings	=+ {NpmBuildType: NpmBuildType_@(_PackageName)}
 				{
 					!!true IsDefined(`NpmBuildType_@(_PackageName)`)

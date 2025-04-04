@@ -28,13 +28,6 @@ namespace NMib::NWebApp::NWebAppManager
 		auto Files = CFile::fs_FindFiles(ProgramDirectory + "/node-*.tar.gz");
 		if (!Files.f_IsEmpty())
 			mp_Options.m_bUseInternalNode = true;
-
-		if (mp_Options.m_bUseInternalNode)
-		{
-			CStr NodeBinDirectory = ProgramDirectory + "/node_dist/bin";
-			CStr Path = fg_GetSys()->f_GetEnvironmentVariable("PATH");
-			fg_GetSys()->f_SetEnvironmentVariable("PATH", NodeBinDirectory + ":" + Path);
-		}
 	}
 
 	CWebAppManagerDaemonActor::~CWebAppManagerDaemonActor()

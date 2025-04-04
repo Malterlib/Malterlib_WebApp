@@ -173,6 +173,7 @@ namespace NMib::NWebApp::NWebAppManager
 			bool m_bUnixSocket = false;
 			bool m_bDefaultServer = false;
 			bool m_bNeedMongo = false;
+			bool m_bUseSystemNode = false;
 		};
 
 		struct CMongo
@@ -418,7 +419,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_ExtractExeFS() const;
 		TCFuture<void> fp_CheckVersion(CStr _Tool, CStr _Argument, CStr _ParseString, CVersion _NeededVersion);
 		TCFuture<void> fp_CleanupOldProcesses();
-		CStr fp_GetNodeExecutable(CStr const &_Executable);
+		CStr fp_GetNodeExecutable(CStr const &_Executable, bool _bUseSystemNode);
 
 		CEJSONSorted fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const;
 
