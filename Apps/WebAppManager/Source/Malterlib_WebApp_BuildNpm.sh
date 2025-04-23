@@ -23,6 +23,35 @@ unset CPLUSPLUS
 unset LD
 unset LDPLUSPLUS
 
+function LockFile
+{
+	if [ "$#" -ne 1 ]; then
+		echo 'usage: LockFile [LOCKFILENAME]' 1>&2
+		return 2
+	fi
+	LOCKFILE="$1"
+
+	echo "$$" >"$LOCKFILE.$$"
+	if ! ln "$LOCKFILE.$$" "$LOCKFILE" 2>/dev/null; then
+		PID=`head -1 "$LOCKFILE"`
+		if [ -z "$PID" ]; then
+		   rm -f "$LOCKFILE"
+		else
+		   kill -0 "$PID" 2>/dev/null || rm -f "$LOCKFILE"
+		fi
+
+		if ! ln "$LOCKFILE.$$" "$LOCKFILE" 2>/dev/null; then
+		   rm -f "$LOCKFILE.$$"
+		   return 1
+		fi
+	fi
+
+	rm -f "$LOCKFILE.$$"
+	trap 'rm -f "$LOCKFILE"' EXIT
+
+	return 0
+}
+
 if [[ "$Action" == "Rebuild" || "$Action" == "Clean" ]]; then
 	if [ -e "$OutputBundleTar" ]; then
 		rm -rf "$OutputBundleTar"
@@ -75,6 +104,18 @@ echo "Building $Name bundle"
 rm -rf "${OutputDir}$Name"
 cd "$AppDir"
 
+SECONDS=0
+LastSeconds=-1
+while ! LockFile "$AppDir/build.lock"; do
+	ThisSeconds=$SECONDS
+	if [[ "$ThisSeconds" != "$LastSeconds" ]] && [[ "$(($ThisSeconds % 10))" == "0" ]]; then
+		echo Waiting for other build in $AppDir to finish: $ThisSeconds s
+	else
+		sleep 1
+	fi
+	LastSeconds=$ThisSeconds
+done
+
 export NPM_CONFIG_PROGRESS=false
 
 if [[ "$NpmBuildType" == "Start" ]]; then
@@ -100,6 +141,8 @@ else
 	echo "Unknown NpmBuildType: '$NpmBuildType'"
 	exit 1
 fi
+
+rm -f lastrun.md5
 
 export PATH="$OldPath"
 
