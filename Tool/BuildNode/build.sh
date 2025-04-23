@@ -137,7 +137,7 @@ function BuildNode()
 
 	./npm config set python `which python3.9`
 	./npm install -g retire
-	./npm install -g npm-check-updates
+	./npm install -g npm-check-updates@16
 
 	popd > /dev/null
 	pushd "$IntermediateDir"  > /dev/null
