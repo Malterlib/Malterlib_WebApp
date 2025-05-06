@@ -53,7 +53,7 @@ namespace NMib::NWebApp::NAcmeManager
 		mp_CurlActors.f_Construct(fg_Construct(fg_Construct(), "Curl actor"));
 		mp_Route53Actor = fg_Construct(*mp_CurlActors, AWSCredentials);
 
-		auto AccountEmailsJSON = fp_GetConfigValue("ACMEAccountEmails", _[_]);
+		auto AccountEmailsJSON = fp_GetConfigValue("ACMEAccountEmails", _[]);
 
 		TCVector<CEJSONSorted> const &AccountEmails = AccountEmailsJSON.f_Array();
 		if (AccountEmails.f_IsEmpty())

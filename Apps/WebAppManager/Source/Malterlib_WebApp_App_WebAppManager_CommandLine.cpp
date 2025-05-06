@@ -24,7 +24,7 @@ namespace NMib::NWebApp::NWebAppManager
 		DefaultSection.f_RegisterCommand
 			(
 				{
-					"Names"_o= {"--invalidate-cloud-front-caches"}
+					"Names"_o= _o["--invalidate-cloud-front-caches"]
 					, "Description"_o= "Invalidate all CloudFront caches.\n"
 				}
 				, [this] (NEncoding::CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine) -> TCFuture<uint32>

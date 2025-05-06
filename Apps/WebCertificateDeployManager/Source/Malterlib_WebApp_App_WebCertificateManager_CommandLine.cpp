@@ -94,7 +94,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		auto SettingsOption_LocationRsaCertificate = "LocationRsaCertificate?"_o=
 			{
-				"Names"_o= {"--location-rsa-certificate"}
+				"Names"_o= _o["--location-rsa-certificate"]
 				, "Default"_o= nullptr
 				, "Type"_o= COneOfType{COneOf(nullptr), ""}
 				, "Description"_o= "File location to deploy RSA certificate to"
@@ -102,7 +102,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		;
 		auto SettingsOption_LocationRsaKey = "LocationRsaKey?"_o=
 			{
-				"Names"_o= {"--location-rsa-key"}
+				"Names"_o= _o["--location-rsa-key"]
 				, "Default"_o= nullptr
 				, "Type"_o= COneOfType{COneOf(nullptr), ""}
 				, "Description"_o= "File location to deploy RSA key to"
@@ -110,7 +110,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		;
 		auto SettingsOption_LocationEcCertificate = "LocationEcCertificate?"_o=
 			{
-				"Names"_o= {"--location-ec-certificate"}
+				"Names"_o= _o["--location-ec-certificate"]
 				, "Default"_o= nullptr
 				, "Type"_o= COneOfType{COneOf(nullptr), ""}
 				, "Description"_o= "File location to deploy EC certificate to"
@@ -118,7 +118,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		;
 		auto SettingsOption_LocationEcKey = "LocationEcKey?"_o=
 			{
-				"Names"_o= {"--location-ec-key"}
+				"Names"_o= _o["--location-ec-key"]
 				, "Default"_o= nullptr
 				, "Type"_o= COneOfType{COneOf(nullptr), ""}
 				, "Description"_o= "File location to deploy EC key to"
@@ -126,7 +126,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		;
 		auto SettingsOption_LocationNginxPid = "LocationNginxPid?"_o=
 			{
-				"Names"_o= {"--location-nginx-pid"}
+				"Names"_o= _o["--location-nginx-pid"]
 				, "Default"_o= nullptr
 				, "Type"_o= COneOfType{COneOf(nullptr), ""}
 				, "Description"_o= "File location where nginx pid file lives.\n"
@@ -135,7 +135,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		;
 		auto SettingsOption_CertificateFileUser = "CertificateFileUser?"_o=
 			{
-				"Names"_o= {"--certificate-file-user"}
+				"Names"_o= _o["--certificate-file-user"]
 				, "Default"_o= ""
 				, "Type"_o= ""
 				, "Description"_o= "The user that should own the certificate files.\n"
@@ -143,7 +143,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		;
 		auto SettingsOption_CertificateFileGroup = "CertificateFileGroup?"_o=
 			{
-				"Names"_o= {"--certificate-file-group"}
+				"Names"_o= _o["--certificate-file-group"]
 				, "Default"_o= ""
 				, "Type"_o= ""
 				, "Description"_o= "The group that should own the certificate files.\n"
@@ -155,15 +155,15 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		auto SettingsOption_CertificateFileAttributes = "CertificateFileAttributes?"_o=
 			{
-				"Names"_o= {"--certificate-file-attributes"}
-				, "Default"_o= CEJSONOrdered{"UserRead", "UserWrite", "GroupRead", "EveryoneRead"}
-				, "Type"_o= CEJSONOrdered{AllAttributes}
+				"Names"_o= _o["--certificate-file-attributes"]
+				, "Default"_o= _o["UserRead", "UserWrite", "GroupRead", "EveryoneRead"]
+				, "Type"_o= _o[AllAttributes]
 				, "Description"_o= "The file attributes that should be used for certificate files.\n"
 			}
 		;
 		auto SettingsOption_KeyFileUser = "KeyFileUser?"_o=
 			{
-				"Names"_o= {"--key-file-user"}
+				"Names"_o= _o["--key-file-user"]
 				, "Default"_o= ""
 				, "Type"_o= ""
 				, "Description"_o= "The user that should own the key files.\n"
@@ -171,7 +171,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		;
 		auto SettingsOption_KeyFileGroup = "KeyFileGroup?"_o=
 			{
-				"Names"_o= {"--key-file-group"}
+				"Names"_o= _o["--key-file-group"]
 				, "Default"_o= ""
 				, "Type"_o= ""
 				, "Description"_o= "The group that should own the key files.\n"
@@ -179,9 +179,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 		;
 		auto SettingsOption_KeyFileAttributes = "KeyFileAttributes?"_o=
 			{
-				"Names"_o= {"--key-file-attributes"}
-				, "Default"_o= CEJSONOrdered{"UserRead", "UserWrite"}
-				, "Type"_o= CEJSONOrdered{AllAttributes}
+				"Names"_o= _o["--key-file-attributes"]
+				, "Default"_o= _o["UserRead", "UserWrite"]
+				, "Type"_o= _o[AllAttributes]
 				, "Description"_o= "The file attributes that should be used for key files.\n"
 			}
 		;
@@ -198,13 +198,13 @@ namespace NMib::NWebApp::NWebCertificateManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_o= {"--domain-add"}
+					"Names"_o= _o["--domain-add"]
 					, "Description"_o= "Adds an application domain\n"
 					, "Options"_o=
 					{
 						"Domain"_o=
 						{
-							"Names"_o= {"--domain"}
+							"Names"_o= _o["--domain"]
 							, "Type"_o= ""
 							, "Description"_o= "The domain name"
 						}
@@ -232,13 +232,13 @@ namespace NMib::NWebApp::NWebCertificateManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_o= {"--domain-change-settings"}
+					"Names"_o= _o["--domain-change-settings"]
 					, "Description"_o= "Change settings for domain.\n"
 					, "Options"_o=
 					{
 						"Domain"_o=
 						{
-							"Names"_o= {"--domain"}
+							"Names"_o= _o["--domain"]
 							, "Type"_o= ""
 							, "Description"_o= "Unique name of the domain to change settings for."
 						}
@@ -267,19 +267,19 @@ namespace NMib::NWebApp::NWebCertificateManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_o= {"--domain-list"}
+					"Names"_o= _o["--domain-list"]
 					, "Description"_o= "List domains."
 					, "Options"_o=
 					{
 						"Verbose?"_o=
 						{
-							"Names"_o= {"--verbose", "-v"}
+							"Names"_o= _o["--verbose", "-v"]
 							, "Default"_o= false
 							, "Description"_o= "Display more extensive information about the domain."
 						}
 						, "Domain?"_o=
 						{
-							"Names"_o= {"--domain"}
+							"Names"_o= _o["--domain"]
 							, "Default"_o= ""
 							, "Description"_o= "Unique name of the domain to list. Leave empty to list all domains."
 						}
@@ -295,7 +295,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		DomainManagement.f_RegisterCommand
 			(
 				{
-					"Names"_o= {"--domain-remove"}
+					"Names"_o= _o["--domain-remove"]
 					, "Description"_o= "Remove the domain."
 					, "Parameters"_o=
 					{
