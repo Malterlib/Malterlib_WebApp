@@ -136,10 +136,10 @@ namespace NMib::NWebApp::NWebAppManager
 
 		{
 			OriginRequestConfig.m_Handler = "index.handler";
-			OriginRequestConfig.m_Runtime = "nodejs18.x";
+			OriginRequestConfig.m_Runtime = "nodejs22.x";
 			OriginRequestConfig.m_Role = AWSLambdaRole;
 			OriginRequestConfig.m_MemorySizeMB = 128;
-			OriginRequestConfig.m_TimeoutSeconds = 3;
+			OriginRequestConfig.m_TimeoutSeconds = 15;
 			OriginRequestConfig.m_bPublish = true;
 
 			CStr AlternateSourcesString;
@@ -222,10 +222,10 @@ exports.handler = (event, context, callback) => {
 
 		{
 			OriginResponseConfig.m_Handler = "index.handler";
-			OriginResponseConfig.m_Runtime = "nodejs18.x";
+			OriginResponseConfig.m_Runtime = "nodejs22.x";
 			OriginResponseConfig.m_Role = AWSLambdaRole;
 			OriginResponseConfig.m_MemorySizeMB = 128;
-			OriginResponseConfig.m_TimeoutSeconds = 3;
+			OriginResponseConfig.m_TimeoutSeconds = 15;
 			OriginResponseConfig.m_bPublish = true;
 
 			CStr AlternateSourcesString;
@@ -458,10 +458,10 @@ exports.handler = async (event) => {
 
 			{
 				ViewerResponseConfig.m_Handler = "index.handler";
-				ViewerResponseConfig.m_Runtime = "nodejs18.x";
+				ViewerResponseConfig.m_Runtime = "nodejs22.x";
 				ViewerResponseConfig.m_Role = AWSLambdaRole;
 				ViewerResponseConfig.m_MemorySizeMB = 128;
-				ViewerResponseConfig.m_TimeoutSeconds = 3;
+				ViewerResponseConfig.m_TimeoutSeconds = 15;
 				ViewerResponseConfig.m_bPublish = true;
 
 				ViewerResponseFiles["index.js"] = CStr(R"----(
