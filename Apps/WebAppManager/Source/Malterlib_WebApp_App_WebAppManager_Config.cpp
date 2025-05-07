@@ -77,7 +77,7 @@ namespace NMib::NWebApp::NWebAppManager
 		mp_MongoReplicaNameExternal = fp_GetConfigValue("MongoReplicaNameExternal", "DefaultReplica").f_String();
 
 		{
-			auto Hosts = fp_GetConfigValue("ExternalMongoHosts", EJSONType_Array);
+			auto Hosts = fp_GetConfigValue("ExternalMongoHosts", EJsonType_Array);
 			for (auto &Host : Hosts.f_Array())
 			{
 				if (!Host.f_IsString())
@@ -103,7 +103,7 @@ namespace NMib::NWebApp::NWebAppManager
 		fp_ParseConfig_DDPSelf();
 	}
 
-	CEJSONSorted CWebAppManagerActor::fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const
+	CEJsonSorted CWebAppManagerActor::fp_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const
 	{
 		if (_Default.f_IsNull())
 		{

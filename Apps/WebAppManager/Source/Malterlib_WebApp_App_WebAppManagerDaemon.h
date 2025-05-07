@@ -19,14 +19,14 @@ namespace NMib::NWebApp::NWebAppManager
 		~CWebAppManagerDaemonActor();
 
 	private:
-		TCFuture<void> fp_StartApp(NEncoding::CEJSONSorted const _Params) override;
+		TCFuture<void> fp_StartApp(NEncoding::CEJsonSorted const _Params) override;
 		TCFuture<void> fp_StopApp() override;
 		TCFuture<void> fp_PreStop() override;
 		void fp_PopulateAppInterfaceInfo
 			(
 				CDistributedAppInterfaceServer::CRegisterInfo &o_RegisterInfo
 				, CDistributedAppInterfaceServer::CConfigFiles &o_ConfigFiles
-				, NEncoding::CEJSONSorted const &_Params
+				, NEncoding::CEJsonSorted const &_Params
 			) override
 		;
 

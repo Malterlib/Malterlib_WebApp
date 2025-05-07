@@ -1,7 +1,7 @@
 // Copyright © 2020 Nonna Holding AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include <Mib/Cryptography/RandomID>
 #include <Mib/Concurrency/LogError>
 
@@ -9,7 +9,7 @@
 
 namespace NMib::NWebApp::NAcmeManager
 {
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainRemove(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainRemove(CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 

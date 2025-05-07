@@ -1,7 +1,7 @@
 // Copyright © 2020 Nonna Holding AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include <Mib/Concurrency/LogError>
 
 #include "Malterlib_WebApp_App_WebCertificateManager.h"
@@ -30,14 +30,14 @@ namespace NMib::NWebApp::NWebCertificateManager
 			}
 		;
 	}
-	EFileAttrib CWebCertificateManagerActor::fsp_ParseAttributes(CEJSONSorted const &_JSON, EFileAttrib _OriginalAttribs)
+	EFileAttrib CWebCertificateManagerActor::fsp_ParseAttributes(CEJsonSorted const &_Json, EFileAttrib _OriginalAttribs)
 	{
-		if (!_JSON.f_IsStringArray())
+		if (!_Json.f_IsStringArray())
 			return _OriginalAttribs;
 
 		EFileAttrib Attributes = EFileAttrib_None;
 
-		for (auto &Attribute : _JSON.f_Array())
+		for (auto &Attribute : _Json.f_Array())
 		{
 			bool bFound = false;
 			for (auto &Name : gc_AttributeNames)
@@ -57,9 +57,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 		return Attributes;
 	}
 
-	CEJSONSorted CWebCertificateManagerActor::fsp_GenerateAttributes(EFileAttrib _Attributes)
+	CEJsonSorted CWebCertificateManagerActor::fsp_GenerateAttributes(EFileAttrib _Attributes)
 	{
-		CEJSONSorted Return = EJSONType_Array;
+		CEJsonSorted Return = EJsonType_Array;
 
 		for (auto &Name : gc_AttributeNames)
 		{
@@ -70,67 +70,67 @@ namespace NMib::NWebApp::NWebCertificateManager
 		return Return;
 	}
 
-	void CWebCertificateManagerActor::fp_ParseSettings(CEJSONSorted const &_Params, CDomainSettings &o_Settings)
+	void CWebCertificateManagerActor::fp_ParseSettings(CEJsonSorted const &_Params, CDomainSettings &o_Settings)
 	{
-		auto fParseLocation = [&](CEJSONSorted const &_JSON) -> CCertificateLocation
+		auto fParseLocation = [&](CEJsonSorted const &_Json) -> CCertificateLocation
 			{
 				CCertificateLocation Location;
 
-				if (auto pValue = _JSON.f_GetMember("Key", EJSONType_String))
+				if (auto pValue = _Json.f_GetMember("Key", EJsonType_String))
 					Location.m_Key = pValue->f_String();
 
-				if (auto pValue = _JSON.f_GetMember("FullChain", EJSONType_String))
+				if (auto pValue = _Json.f_GetMember("FullChain", EJsonType_String))
 					Location.m_FullChain = pValue->f_String();
 
 				return Location;
 			}
 		;
 
-		if (_Params.f_GetMember("LocationEc", EJSONType_Null))
+		if (_Params.f_GetMember("LocationEc", EJsonType_Null))
 			o_Settings.m_Location_Ec.f_Clear();
-		else if (auto pValue = _Params.f_GetMember("LocationEc", EJSONType_Object))
+		else if (auto pValue = _Params.f_GetMember("LocationEc", EJsonType_Object))
 			o_Settings.m_Location_Ec = fParseLocation(*pValue);
 
-		if (_Params.f_GetMember("LocationRsa", EJSONType_Null))
+		if (_Params.f_GetMember("LocationRsa", EJsonType_Null))
 			o_Settings.m_Location_Rsa.f_Clear();
-		else if (auto pValue = _Params.f_GetMember("LocationRsa", EJSONType_Object))
+		else if (auto pValue = _Params.f_GetMember("LocationRsa", EJsonType_Object))
 			o_Settings.m_Location_Rsa = fParseLocation(*pValue);
 
-		if (_Params.f_GetMember("LocationNginxPid", EJSONType_Null))
+		if (_Params.f_GetMember("LocationNginxPid", EJsonType_Null))
 			o_Settings.m_Location_NginxPid.f_Clear();
-		else if (auto pValue = _Params.f_GetMember("LocationNginxPid", EJSONType_String))
+		else if (auto pValue = _Params.f_GetMember("LocationNginxPid", EJsonType_String))
 			o_Settings.m_Location_NginxPid = pValue->f_String();
 
-		auto fParseFileSettings = [&](CEJSONSorted const &_JSON) -> CCertificateFileSettings
+		auto fParseFileSettings = [&](CEJsonSorted const &_Json) -> CCertificateFileSettings
 			{
 				CCertificateFileSettings FileSettings;
 
-				if (auto pValue = _JSON.f_GetMember("User", EJSONType_String))
+				if (auto pValue = _Json.f_GetMember("User", EJsonType_String))
 					FileSettings.m_User = pValue->f_String();
 
-				if (auto pValue = _JSON.f_GetMember("Group", EJSONType_String))
+				if (auto pValue = _Json.f_GetMember("Group", EJsonType_String))
 					FileSettings.m_Group = pValue->f_String();
 
-				if (auto pValue = _JSON.f_GetMember("Attributes", EJSONType_Array))
+				if (auto pValue = _Json.f_GetMember("Attributes", EJsonType_Array))
 					FileSettings.m_Attributes = fsp_ParseAttributes(*pValue, FileSettings.m_Attributes);
 
 				return FileSettings;
 			}
 		;
 
-		if (auto pValue = _Params.f_GetMember("FileSettingsCertificate", EJSONType_Object))
+		if (auto pValue = _Params.f_GetMember("FileSettingsCertificate", EJsonType_Object))
 			o_Settings.m_FileSettings_Certificate = fParseFileSettings(*pValue);
-		if (auto pValue = _Params.f_GetMember("FileSettingsKey", EJSONType_Object))
+		if (auto pValue = _Params.f_GetMember("FileSettingsKey", EJsonType_Object))
 			o_Settings.m_FileSettings_Key = fParseFileSettings(*pValue);
 	}
 
-	CEJSONSorted CWebCertificateManagerActor::fp_SaveSettings(CDomainSettings const &_Settings)
+	CEJsonSorted CWebCertificateManagerActor::fp_SaveSettings(CDomainSettings const &_Settings)
 	{
-		CEJSONSorted Domain;
+		CEJsonSorted Domain;
 
-		auto fGenerateLocation = [&](CCertificateLocation const &_Location) -> CEJSONSorted
+		auto fGenerateLocation = [&](CCertificateLocation const &_Location) -> CEJsonSorted
 			{
-				CEJSONSorted Location;
+				CEJsonSorted Location;
 
 				Location["Key"] = _Location.m_Key;
 				Location["FullChain"] = _Location.m_FullChain;
@@ -154,9 +154,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 		else
 			Domain["LocationNginxPid"] = nullptr;
 
-		auto fGenerateFileSettings = [&](CCertificateFileSettings const &_FileSettings) -> CEJSONSorted
+		auto fGenerateFileSettings = [&](CCertificateFileSettings const &_FileSettings) -> CEJsonSorted
 			{
-				CEJSONSorted FileSettings;
+				CEJsonSorted FileSettings;
 
 				FileSettings["User"] = _FileSettings.m_User;
 				FileSettings["Group"] = _FileSettings.m_Group;
@@ -195,10 +195,10 @@ namespace NMib::NWebApp::NWebCertificateManager
 			if (!fg_IsValidHostname(Name))
 				DMibError("'{}' is not a valid Domain name"_f << Name);
 
-			auto &DomainJSON = DomainObject.f_Value();
+			auto &DomainJson = DomainObject.f_Value();
 
 			CDomainSettings Settings;
-			fp_ParseSettings(DomainJSON["Settings"], Settings);
+			fp_ParseSettings(DomainJson["Settings"], Settings);
 
 			auto &Domain = mp_Domains[Name];
 			Domain.m_Settings = fg_Move(Settings);

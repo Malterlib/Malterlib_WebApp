@@ -1,7 +1,7 @@
 // Copyright © 2020 Nonna Holding AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include "Malterlib_WebApp_App_AcmeManager.h"
 
 namespace NMib::NWebApp::NAcmeManager
@@ -33,30 +33,30 @@ namespace NMib::NWebApp::NAcmeManager
 		return "Unknown";
 	}
 
-	void CAcmeManagerActor::fp_ParseSettings(CEJSONSorted const &_Params, CDomainSettings &o_Settings)
+	void CAcmeManagerActor::fp_ParseSettings(CEJsonSorted const &_Params, CDomainSettings &o_Settings)
 	{
-		if (auto pValue = _Params.f_GetMember("GenerateRSA", EJSONType_Boolean))
+		if (auto pValue = _Params.f_GetMember("GenerateRSA", EJsonType_Boolean))
 			o_Settings.m_bGenerateRSA = pValue->f_Boolean();
 
-		if (auto pValue = _Params.f_GetMember("GenerateEC", EJSONType_Boolean))
+		if (auto pValue = _Params.f_GetMember("GenerateEC", EJsonType_Boolean))
 			o_Settings.m_bGenerateEC = pValue->f_Boolean();
 
-		if (auto pValue = _Params.f_GetMember("ManualDNSChallenge", EJSONType_Boolean))
+		if (auto pValue = _Params.f_GetMember("ManualDNSChallenge", EJsonType_Boolean))
 			o_Settings.m_bManualDNSChallenge = pValue->f_Boolean();
 
-		if (auto pValue = _Params.f_GetMember("AlternateChain", EJSONType_String))
+		if (auto pValue = _Params.f_GetMember("AlternateChain", EJsonType_String))
 			o_Settings.m_AlternateChain = pValue->f_String();
 
-		if (auto pValue = _Params.f_GetMember("IncludeWildcard", EJSONType_Boolean))
+		if (auto pValue = _Params.f_GetMember("IncludeWildcard", EJsonType_Boolean))
 			o_Settings.m_bIncludeWildcard = pValue->f_Boolean();
 
-		if (auto pValue = _Params.f_GetMember("EllipticCurveType", EJSONType_String))
+		if (auto pValue = _Params.f_GetMember("EllipticCurveType", EJsonType_String))
 			o_Settings.m_EllipticCurveType = fsp_EllipticCurveTypeFromStr(pValue->f_String());
 
-		if (auto pValue = _Params.f_GetMember("RSAKeyLength", EJSONType_Integer))
+		if (auto pValue = _Params.f_GetMember("RSAKeyLength", EJsonType_Integer))
 			o_Settings.m_RSASettings.m_KeyLength = pValue->f_Integer();
 
-		if (auto pValue = _Params.f_GetMember("AcmeDirectory", EJSONType_String))
+		if (auto pValue = _Params.f_GetMember("AcmeDirectory", EJsonType_String))
 		{
 			if (pValue->f_String() == "LetsEncrypt")
 			{
@@ -96,9 +96,9 @@ namespace NMib::NWebApp::NAcmeManager
 		}
 	}
 
-	CEJSONSorted CAcmeManagerActor::fp_SaveSettings(CDomainSettings const &_Settings)
+	CEJsonSorted CAcmeManagerActor::fp_SaveSettings(CDomainSettings const &_Settings)
 	{
-		CEJSONSorted Domain;
+		CEJsonSorted Domain;
 
 		Domain["GenerateRSA"] = _Settings.m_bGenerateRSA;
 		Domain["GenerateEC"] = _Settings.m_bGenerateEC;
@@ -155,10 +155,10 @@ namespace NMib::NWebApp::NAcmeManager
 			if (!fg_IsValidHostname(Name))
 				DMibError("'{}' is not a valid Domain name"_f << Name);
 
-			auto &DomainJSON = DomainObject.f_Value();
+			auto &DomainJson = DomainObject.f_Value();
 
 			CDomainSettings Settings;
-			fp_ParseSettings(DomainJSON["Settings"], Settings);
+			fp_ParseSettings(DomainJson["Settings"], Settings);
 
 			auto &Domain = mp_Domains[Name];
 			Domain.m_Settings = fg_Move(Settings);

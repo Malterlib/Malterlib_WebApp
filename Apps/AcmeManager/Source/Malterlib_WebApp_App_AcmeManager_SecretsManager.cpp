@@ -1,7 +1,7 @@
 // Copyright © 2020 Nonna Holding AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include <Mib/Concurrency/LogError>
 
 #include "Malterlib_WebApp_App_AcmeManager.h"

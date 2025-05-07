@@ -1,7 +1,7 @@
 // Copyright © 2020 Nonna Holding AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include <Mib/Cryptography/RandomID>
 #include <Mib/CommandLine/TableRenderer>
 
@@ -9,7 +9,7 @@
 
 namespace NMib::NWebApp::NWebCertificateManager
 {
-	void CWebCertificateManagerActor::fp_ParseCommandLineSettings(CEJSONSorted const &_Params, CDomainSettings &o_Settings)
+	void CWebCertificateManagerActor::fp_ParseCommandLineSettings(CEJsonSorted const &_Params, CDomainSettings &o_Settings)
 	{
 		CDomainSettings NewSettings = o_Settings;
 
@@ -20,14 +20,14 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 				auto fSetLocation = [&](CStr CCertificateLocation::*_pMember, CStr const &_MemberName)
 					{
-						if (auto pValue = _Params.f_GetMember(_MemberName, EJSONType_String))
+						if (auto pValue = _Params.f_GetMember(_MemberName, EJsonType_String))
 						{
 							if (!CFile::fs_IsPathAbsolute(pValue->f_String()))
 								DMibError("Path '{}' should be absolute"_f << pValue->f_String());
 							Location.*_pMember = pValue->f_String();
 							++nLocation;
 						}
-						else if (_Previous && !_Params.f_GetMember(_MemberName, EJSONType_Null))
+						else if (_Previous && !_Params.f_GetMember(_MemberName, EJsonType_Null))
 						{
 							Location.*_pMember = (*_Previous).*_pMember;
 							++nLocation;
@@ -50,9 +50,9 @@ namespace NMib::NWebApp::NWebCertificateManager
 		NewSettings.m_Location_Rsa = fParseLocation(NewSettings.m_Location_Rsa, "Rsa");
 		NewSettings.m_Location_Ec = fParseLocation(NewSettings.m_Location_Ec, "Ec");
 
-		if (_Params.f_GetMember("LocationNginxPid", EJSONType_Null))
+		if (_Params.f_GetMember("LocationNginxPid", EJsonType_Null))
 			NewSettings.m_Location_NginxPid.f_Clear();
-		else if (auto pValue = _Params.f_GetMember("LocationNginxPid", EJSONType_String))
+		else if (auto pValue = _Params.f_GetMember("LocationNginxPid", EJsonType_String))
 		{
 			if (!CFile::fs_IsPathAbsolute(pValue->f_String()))
 				DMibError("Path '{}' should be absolute"_f << pValue->f_String());
@@ -62,13 +62,13 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		auto fParseFileSettings = [&](CCertificateFileSettings &o_FileSettings, CStr const &_Type)
 			{
-				if (auto pValue = _Params.f_GetMember("{}FileUser"_f << _Type, EJSONType_String))
+				if (auto pValue = _Params.f_GetMember("{}FileUser"_f << _Type, EJsonType_String))
 					o_FileSettings.m_User = pValue->f_String();
 
-				if (auto pValue = _Params.f_GetMember("{}FileGroup"_f << _Type, EJSONType_String))
+				if (auto pValue = _Params.f_GetMember("{}FileGroup"_f << _Type, EJsonType_String))
 					o_FileSettings.m_Group = pValue->f_String();
 
-				if (auto pValue = _Params.f_GetMember("{}FileAttributes"_f << _Type, EJSONType_Array))
+				if (auto pValue = _Params.f_GetMember("{}FileAttributes"_f << _Type, EJsonType_Array))
 					o_FileSettings.m_Attributes = fsp_ParseAttributes(*pValue, o_FileSettings.m_Attributes);
 			}
 		;
@@ -151,7 +151,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 		;
 
 		COneOf AllAttributes;
-		AllAttributes.m_Config = CEJSONOrdered::fs_FromCompatible(fsp_GenerateAttributes(EFileAttrib_AllUnixPermissions));
+		AllAttributes.m_Config = CEJsonOrdered::fs_FromCompatible(fsp_GenerateAttributes(EFileAttrib_AllUnixPermissions));
 
 		auto SettingsOption_CertificateFileAttributes = "CertificateFileAttributes?"_o=
 			{
@@ -223,7 +223,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 						, SettingsOption_KeyFileAttributes
 					}
 				}
-				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
+				, [this](CEJsonSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
 					return fp_CommandLine_DomainAdd(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
@@ -257,7 +257,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 						, fStripDefault(SettingsOption_KeyFileAttributes)
 					}
 				}
-				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
+				, [this](CEJsonSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
 					return fp_CommandLine_DomainChangeSettings(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
@@ -286,7 +286,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 						, CTableRenderHelper::fs_OutputTypeOption()
 					}
 				}
-				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
+				, [this](CEJsonSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
 					return fp_CommandLine_DomainList(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
@@ -306,7 +306,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 						}
 					}
 				}
-				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
+				, [this](CEJsonSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
 					return fp_CommandLine_DomainRemove(fg_Move(_Params), fg_Move(_pCommandLine));
 				}

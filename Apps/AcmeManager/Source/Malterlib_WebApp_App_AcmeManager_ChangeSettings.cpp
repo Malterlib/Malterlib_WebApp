@@ -5,7 +5,7 @@
 
 namespace NMib::NWebApp::NAcmeManager
 {
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainCreateAccountKey(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainCreateAccountKey(CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 
@@ -27,7 +27,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return 0;
 	}
 
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainChangeSettings(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainChangeSettings(CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 

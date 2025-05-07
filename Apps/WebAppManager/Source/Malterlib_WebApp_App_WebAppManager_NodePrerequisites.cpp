@@ -6,7 +6,7 @@
 #include <Mib/File/ExeFS>
 #include <Mib/File/VirtualFS>
 #include <Mib/File/VirtualFSs/MalterlibFS>
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include <Mib/Compression/ZLib>
 
 namespace NMib::NWebApp::NWebAppManager
@@ -562,8 +562,8 @@ namespace NMib::NWebApp::NWebAppManager
 						{
 							try
 							{
-								auto PackageJSON = CJSONSorted::fs_FromString(CFile::fs_ReadStringFromFile(PackageFile, true), PackageFile);
-								if (auto pValue = PackageJSON.f_GetMember("main", EJSONType_String))
+								auto PackageJson = CJsonSorted::fs_FromString(CFile::fs_ReadStringFromFile(PackageFile, true), PackageFile);
+								if (auto pValue = PackageJson.f_GetMember("main", EJsonType_String))
 									PackageInfo.m_MainFile = pValue->f_String();
 							}
 							catch (NException::CException const &_Exception)

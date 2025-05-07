@@ -7,7 +7,7 @@
 #pragma warning(disable:4724)
 #endif
 
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include <Mib/Concurrency/LogError>
 #include "Malterlib_WebApp_App_AcmeManager.h"
 
@@ -20,12 +20,12 @@ namespace NMib::NWebApp::NAcmeManager
 
 	CAcmeManagerActor::~CAcmeManagerActor() = default;
 
-	CEJSONSorted CAcmeManagerActor::fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const
+	CEJsonSorted CAcmeManagerActor::fp_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const
 	{
 		return mp_State.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, _Default);
 	}
 
-	TCFuture<void> CAcmeManagerActor::fp_StartApp(NEncoding::CEJSONSorted const _Params)
+	TCFuture<void> CAcmeManagerActor::fp_StartApp(NEncoding::CEJsonSorted const _Params)
 	{
 		auto OnResume = co_await fg_OnResume
 			(
@@ -53,16 +53,16 @@ namespace NMib::NWebApp::NAcmeManager
 		mp_CurlActors.f_Construct(fg_Construct(fg_Construct(), "Curl actor"));
 		mp_Route53Actor = fg_Construct(*mp_CurlActors, AWSCredentials);
 
-		auto AccountEmailsJSON = fp_GetConfigValue("ACMEAccountEmails", _[]);
+		auto AccountEmailsJson = fp_GetConfigValue("ACMEAccountEmails", _[]);
 
-		TCVector<CEJSONSorted> const &AccountEmails = AccountEmailsJSON.f_Array();
+		TCVector<CEJsonSorted> const &AccountEmails = AccountEmailsJson.f_Array();
 		if (AccountEmails.f_IsEmpty())
 			co_return DMibErrorInstance("ACMEAccountEmails value must be specified in config");
 
-		if (!AccountEmailsJSON.f_IsStringArray())
+		if (!AccountEmailsJson.f_IsStringArray())
 			co_return DMibErrorInstance("ACMEAccountEmails is expected to be a string array");
 
-		mp_AcmeAccountEmails = AccountEmailsJSON.f_StringArray();
+		mp_AcmeAccountEmails = AccountEmailsJson.f_StringArray();
 
 		mp_SecretsManagerSubscription = co_await mp_State.m_TrustManager->f_SubscribeTrustedActors<CSecretsManager>();
 

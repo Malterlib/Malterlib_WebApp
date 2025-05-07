@@ -6,7 +6,7 @@
 #include <Mib/File/ExeFS>
 #include <Mib/File/VirtualFS>
 #include <Mib/File/VirtualFSs/MalterlibFS>
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include <Mib/Concurrency/LogError>
 
 namespace NMib::NWebApp::NWebAppManager
@@ -226,7 +226,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 	}
 
-	CEJSONSorted CWebAppManagerImpl::f_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const
+	CEJsonSorted CWebAppManagerImpl::f_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const
 	{
 		return mp_pThis->fp_GetConfigValue(_Name, _Default);
 	}
@@ -241,11 +241,11 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		if (mp_Options.m_bSaveUserPasswords)
 		{
-			if (auto pUsers = mp_AppState.m_StateDatabase.m_Data.f_GetMember("Users", EJSONType_Object))
+			if (auto pUsers = mp_AppState.m_StateDatabase.m_Data.f_GetMember("Users", EJsonType_Object))
 			{
-				if (auto pUser = pUsers->f_GetMember(_User, EJSONType_Object))
+				if (auto pUser = pUsers->f_GetMember(_User, EJsonType_Object))
 				{
-					if (auto pPassword = pUser->f_GetMember("Password", EJSONType_String))
+					if (auto pPassword = pUser->f_GetMember("Password", EJsonType_String))
 						return pPassword->f_String();
 				}
 			}
@@ -411,14 +411,14 @@ namespace NMib::NWebApp::NWebAppManager
 
 	void CWebAppManagerOptions::f_ParseSettings(CStr const &_Settings, CStr const &_FileName)
 	{
-		CEJSONSorted const Settings = CEJSONSorted::fs_FromString(_Settings, _FileName);
+		CEJsonSorted const Settings = CEJsonSorted::fs_FromString(_Settings, _FileName);
 
-		for (auto &PackageJSON : Settings["Packages"].f_Object())
+		for (auto &PackageJson : Settings["Packages"].f_Object())
 		{
-			auto &Package = m_Packages[PackageJSON.f_Name()];
-			auto &PackageSettings = PackageJSON.f_Value().f_Object();
+			auto &Package = m_Packages[PackageJson.f_Name()];
+			auto &PackageSettings = PackageJson.f_Value().f_Object();
 
-			auto &PackageType = PackageJSON.f_Value()["Type"].f_String();
+			auto &PackageType = PackageJson.f_Value()["Type"].f_String();
 			if (PackageType == "Meteor")
 				Package.m_Type = EPackageType_Meteor;
 			else if (PackageType == "FastCGI")
@@ -437,12 +437,12 @@ namespace NMib::NWebApp::NWebAppManager
 			if (auto *pValue = PackageSettings.f_GetMember("MemoryPerNode"))
 				Package.m_MemoryPerNode = pValue->f_AsFloat(1.5);
 
-			if (auto *pValue = PackageSettings.f_GetMember("PortConcurrency", EJSONType_Integer))
+			if (auto *pValue = PackageSettings.f_GetMember("PortConcurrency", EJsonType_Integer))
 				Package.m_PortConcurrency = pValue->f_Integer();
 
-			if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJSONType_Integer))
+			if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJsonType_Integer))
 				Package.m_Concurrency = pValue->f_Integer();
-			else if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJSONType_String))
+			else if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJsonType_String))
 			{
 				CStr Expression = pValue->f_String();
 				Expression = Expression.f_Replace("{PhysicalMemoryGB}", fg_Format("{}", fp64(NProcess::NPlatform::fg_Process_GetPhysicalMemory()) / (1024.0*1024.0*1024.0)));
@@ -704,26 +704,26 @@ namespace NMib::NWebApp::NWebAppManager
 		if (auto *pValue = Settings.f_GetMember("SaveUserPasswords"))
 			m_bSaveUserPasswords = pValue->f_Boolean();
 
-		auto &MongoJSON = Settings["Mongo"].f_Object();
-		if (auto *pValue = MongoJSON.f_GetMember("Directory"))
+		auto &MongoJson = Settings["Mongo"].f_Object();
+		if (auto *pValue = MongoJson.f_GetMember("Directory"))
 			m_Mongo.m_Directory = pValue->f_String();
-		if (auto *pValue = MongoJSON.f_GetMember("Host"))
+		if (auto *pValue = MongoJson.f_GetMember("Host"))
 			m_Mongo.m_Host = pValue->f_String();
-		if (auto *pValue = MongoJSON.f_GetMember("Port"))
+		if (auto *pValue = MongoJson.f_GetMember("Port"))
 			m_Mongo.m_Port = pValue->f_Integer();
-		if (auto *pValue = MongoJSON.f_GetMember("ToolsUser"))
+		if (auto *pValue = MongoJson.f_GetMember("ToolsUser"))
 			m_Mongo.m_ToolsUser = pValue->f_String();
-		if (auto *pValue = MongoJSON.f_GetMember("ToolsGroup"))
+		if (auto *pValue = MongoJson.f_GetMember("ToolsGroup"))
 			m_Mongo.m_ToolsGroup = pValue->f_String();
-		if (auto *pValue = MongoJSON.f_GetMember("SSLDirectory"))
+		if (auto *pValue = MongoJson.f_GetMember("SSLDirectory"))
 			m_Mongo.m_SSLDirectory = pValue->f_String();
-		if (auto *pValue = MongoJSON.f_GetMember("DatabaseSetupPackage"))
+		if (auto *pValue = MongoJson.f_GetMember("DatabaseSetupPackage"))
 			m_Mongo.m_DatabaseSetupPackage = pValue->f_String();
-		if (auto *pValue = MongoJSON.f_GetMember("DefaultDatabase"))
+		if (auto *pValue = MongoJson.f_GetMember("DefaultDatabase"))
 			m_Mongo.m_DefaultDatabase = pValue->f_String();
-		if (auto *pValue = MongoJSON.f_GetMember("DefaultMongoVersion"))
+		if (auto *pValue = MongoJson.f_GetMember("DefaultMongoVersion"))
 			m_Mongo.m_DefaultMongoVersion = pValue->f_String();
-		if (auto *pValue = MongoJSON.f_GetMember("DefaultReplicaName"))
+		if (auto *pValue = MongoJson.f_GetMember("DefaultReplicaName"))
 			m_Mongo.m_DefaultReplicaName = pValue->f_String();
 
 		TCSet<TCSet<CStr>> DefaultReqiredTags;
@@ -731,9 +731,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 		if (auto *pValue = Settings.f_GetMember("EnvironmentDefaultTags"))
 		{
-			for (auto &TagJSON : pValue->f_Array())
+			for (auto &TagJson : pValue->f_Array())
 			{
-				auto Tag = TagJSON.f_String();
+				auto Tag = TagJson.f_String();
 				if (Tag.f_StartsWith("!"))
 					DefaultForbiddenTags[Tag.f_Extract(1)];
 				else
@@ -747,23 +747,23 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 		if (auto *pValue = Settings.f_GetMember("Environment"))
 		{
-			for (auto &EnvVarJSON : fg_Const(pValue->f_Array()))
+			for (auto &EnvVarJson : fg_Const(pValue->f_Array()))
 			{
-				auto &EnvVar = m_Environment[EnvVarJSON["EnvVar"].f_String()];
-				EnvVar.m_Setting = EnvVarJSON["ConfigVar"].f_String();
-				if (auto *pValue = EnvVarJSON.f_GetMember("Default"))
+				auto &EnvVar = m_Environment[EnvVarJson["EnvVar"].f_String()];
+				EnvVar.m_Setting = EnvVarJson["ConfigVar"].f_String();
+				if (auto *pValue = EnvVarJson.f_GetMember("Default"))
 					EnvVar.m_Default = pValue->f_String();
 
 				EnvVar.m_RequiredTags = DefaultReqiredTags;
 				EnvVar.m_ForbiddenTags = DefaultForbiddenTags;
 
-				if (auto *pValue = EnvVarJSON.f_GetMember("Tags"))
+				if (auto *pValue = EnvVarJson.f_GetMember("Tags"))
 				{
-					for (auto &TagJSON : pValue->f_Array())
+					for (auto &TagJson : pValue->f_Array())
 					{
-						if (TagJSON.f_IsString())
+						if (TagJson.f_IsString())
 						{
-							CStr Tag = TagJSON.f_String();
+							CStr Tag = TagJson.f_String();
 
 							bool bAdd = true;
 							if (Tag.f_StartsWith("-"))
@@ -796,7 +796,7 @@ namespace NMib::NWebApp::NWebAppManager
 						}
 						else
 						{
-							auto Tags = TagJSON.f_StringArray();
+							auto Tags = TagJson.f_StringArray();
 							TCSet<CStr> TagSet;
 							bool bAdd = true;
 							for (auto Tag : Tags)
@@ -845,7 +845,7 @@ namespace NMib::NWebApp::NWebAppManager
 	void ICWebAppManagerCustomization::f_CalculateSettings
 		(
 			TCMap<CStr, CStr> &o_Settings
-			, CJSONSorted &o_MeteorSettings
+			, CJsonSorted &o_MeteorSettings
 			, CStr const &_PackageName
 			, CWebAppManagerOptions::CPackage const &_PackageOptions
 			, ICWebAppManager const &_WebAppManager

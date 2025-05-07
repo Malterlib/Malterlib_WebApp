@@ -7,7 +7,7 @@
 #pragma warning(disable:4724)
 #endif
 
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include "Malterlib_WebApp_App_AcmeManager.h"
 
 namespace NMib::NWebApp::NAcmeManager
@@ -104,7 +104,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 			auto Sets = co_await mp_Route53Actor(&CAwsRoute53Actor::f_ListResourceRecordSets, Zone.m_ID, Params);
 
-			CEJSONSorted State = EJSONType_Object;
+			CEJsonSorted State = EJsonType_Object;
 
 			CAwsRoute53Actor::CChangeResourceRecordSetsParams SetParams;
 			auto &Change = SetParams.m_Changes.f_Insert();
@@ -130,9 +130,9 @@ namespace NMib::NWebApp::NAcmeManager
 						CStr Base64 = CStr::fs_Join(Record.f_RemovePrefix("\"State\" \"").f_RemoveSuffix("\"").f_Split("\" \""), "");
 						try
 						{
-							State = CEJSONSorted::fs_FromString(fg_Base64Decode(Base64));
+							State = CEJsonSorted::fs_FromString(fg_Base64Decode(Base64));
 							if (!State.f_IsObject())
-								State = EJSONType_Object;
+								State = EJsonType_Object;
 						}
 						catch (CException const &)
 						{
@@ -142,15 +142,15 @@ namespace NMib::NWebApp::NAcmeManager
 
 				auto SourceDates = fg_Move(State["AddedDates"]);
 				if (!SourceDates.f_IsObject())
-					SourceDates = EJSONType_Object;
-				auto &DestinationDates = (State["AddedDates"] = EJSONType_Object);
+					SourceDates = EJsonType_Object;
+				auto &DestinationDates = (State["AddedDates"] = EJsonType_Object);
 
 				for (auto &Record : Set.m_ResourceRecords)
 				{
 					if (Record.f_StartsWith("\"State\" "))
 						continue;
 
-					auto *pDate = SourceDates.f_GetMember(Record, EEJSONType_Date);
+					auto *pDate = SourceDates.f_GetMember(Record, EEJsonType_Date);
 
 					if (pDate && pDate->f_Date() < ExpireDate)
 						continue;
@@ -219,7 +219,7 @@ namespace NMib::NWebApp::NAcmeManager
 			, CPublicKeySetting _PublicKeySettings
 			, TCActor<CAcmeClientActor> _AcmeClient
 			, CDomainSettings _DomainSettings
-			, CEJSONSorted _DomainSettingsJson
+			, CEJsonSorted _DomainSettingsJson
 		)
 	{
 		CDomain *pDomain = nullptr;
@@ -328,7 +328,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return {};
 	}
 
-	TCFuture<bool> CAcmeManagerActor::fp_UpdateDomain_IsAlreadyUpToDate(CStr _DomainName, CEJSONSorted _DomainSettingsJson, CStr _CertificateType)
+	TCFuture<bool> CAcmeManagerActor::fp_UpdateDomain_IsAlreadyUpToDate(CStr _DomainName, CEJsonSorted _DomainSettingsJson, CStr _CertificateType)
 	{
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
@@ -517,7 +517,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return {};
 	}
 
-	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainReleaseDNSChallenge(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
+	TCFuture<uint32> CAcmeManagerActor::fp_CommandLine_DomainReleaseDNSChallenge(CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine)
 	{
 		auto Auditor = f_Auditor();
 

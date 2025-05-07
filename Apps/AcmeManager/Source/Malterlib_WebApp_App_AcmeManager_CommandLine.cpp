@@ -1,7 +1,7 @@
 // Copyright © 2020 Nonna Holding AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include <Mib/Cryptography/RandomID>
 #include <Mib/CommandLine/TableRenderer>
 
@@ -132,7 +132,7 @@ namespace NMib::NWebApp::NAcmeManager
 						, SettingsOption_AlternateChain
 					}
 				}
-				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
+				, [this](CEJsonSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
 					return fp_CommandLine_DomainAdd(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
@@ -153,7 +153,7 @@ namespace NMib::NWebApp::NAcmeManager
 						}
 					}
 				}
-				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
+				, [this](CEJsonSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
 					return fp_CommandLine_DomainCreateAccountKey(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
@@ -174,7 +174,7 @@ namespace NMib::NWebApp::NAcmeManager
 						}
 					}
 				}
-				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
+				, [this](CEJsonSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
 					return fp_CommandLine_DomainReleaseDNSChallenge(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
@@ -204,7 +204,7 @@ namespace NMib::NWebApp::NAcmeManager
 						, fStripDefault(SettingsOption_AlternateChain)
 					}
 				}
-				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
+				, [this](CEJsonSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
 					return fp_CommandLine_DomainChangeSettings(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
@@ -233,7 +233,7 @@ namespace NMib::NWebApp::NAcmeManager
 						, CTableRenderHelper::fs_OutputTypeOption()
 					}
 				}
-				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
+				, [this](CEJsonSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
 					return fp_CommandLine_DomainList(fg_Move(_Params), fg_Move(_pCommandLine));
 				}
@@ -253,7 +253,7 @@ namespace NMib::NWebApp::NAcmeManager
 						}
 					}
 				}
-				, [this](CEJSONSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
+				, [this](CEJsonSorted &&_Params, NStorage::TCSharedPointer<CCommandLineControl> &&_pCommandLine)
 				{
 					return fp_CommandLine_DomainRemove(fg_Move(_Params), fg_Move(_pCommandLine));
 				}

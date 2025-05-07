@@ -334,7 +334,7 @@ namespace NMib::NWebApp::NWebAppManager
 				continue;
 			}
 
-			CEJSONSorted Value;
+			CEJsonSorted Value;
 			if (EnvVar.m_Default)
 				Value = fp_GetConfigValue(EnvVar.m_Setting, *EnvVar.m_Default);
 			else
@@ -365,7 +365,7 @@ namespace NMib::NWebApp::NWebAppManager
 			if (nParsed != 3)
 				continue;
 
-			CEJSONSorted MetaData;
+			CEJsonSorted MetaData;
 			MetaData["URLTemplate"] = "{Host}:{Port}";
 
 			TCFuture<void> OldSubscriptionDestroy;
@@ -692,7 +692,7 @@ namespace NMib::NWebApp::NWebAppManager
 				CalculatedSettings["MongoSSLClientKeyFile"] = LaunchHomePath / "certificates/admin.key";
 			}
 
-			CJSONSorted MeteorSettings;
+			CJsonSorted MeteorSettings;
 			{
 				auto &PublicMeteorSettings = MeteorSettings["public"];
 
@@ -710,9 +710,9 @@ namespace NMib::NWebApp::NWebAppManager
 				PublicMeteorSettings["gitCommit"] = GitCommit;
 
 				{
-					auto &VersionHistory = (PublicMeteorSettings["appVersionHistory"] = EJSONType_Array).f_Array();
+					auto &VersionHistory = (PublicMeteorSettings["appVersionHistory"] = EJsonType_Array).f_Array();
 					for (auto const &HistoryEntry : mp_VersionHistory)
-						VersionHistory.f_Insert(CJSONSorted(HistoryEntry));
+						VersionHistory.f_Insert(CJsonSorted(HistoryEntry));
 				}
 
 				if (mp_bIsStaging)

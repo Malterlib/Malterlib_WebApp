@@ -1,7 +1,7 @@
 // Copyright © 2020 Nonna Holding AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
-#include <Mib/Encoding/JSONShortcuts>
+#include <Mib/Encoding/JsonShortcuts>
 #include <Mib/Concurrency/LogError>
 #include "Malterlib_WebApp_App_WebCertificateManager.h"
 
@@ -14,12 +14,12 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 	CWebCertificateManagerActor::~CWebCertificateManagerActor() = default;
 
-	CEJSONSorted CWebCertificateManagerActor::fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const
+	CEJsonSorted CWebCertificateManagerActor::fp_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const
 	{
 		return mp_State.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, _Default);
 	}
 
-	TCFuture<void> CWebCertificateManagerActor::fp_StartApp(NEncoding::CEJSONSorted const _Params)
+	TCFuture<void> CWebCertificateManagerActor::fp_StartApp(NEncoding::CEJsonSorted const _Params)
 	{
 		auto OnResume = co_await fg_OnResume
 			(

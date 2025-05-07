@@ -81,19 +81,19 @@ namespace NMib::NWebApp::NAcmeManager
 
 		void fp_BuildCommandLine(CDistributedAppCommandLineSpecification &o_CommandLine) override;
 
-		TCFuture<void> fp_StartApp(NEncoding::CEJSONSorted const _Params) override;
+		TCFuture<void> fp_StartApp(NEncoding::CEJsonSorted const _Params) override;
 		TCFuture<void> fp_StopApp() override;
 
-		TCFuture<uint32> fp_CommandLine_DomainList(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainAdd(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainCreateAccountKey(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainReleaseDNSChallenge(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainChangeSettings(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
-		TCFuture<uint32> fp_CommandLine_DomainRemove(CEJSONSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainList(CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainAdd(CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainCreateAccountKey(CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainReleaseDNSChallenge(CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainChangeSettings(CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
+		TCFuture<uint32> fp_CommandLine_DomainRemove(CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine);
 
 		TCFuture<void> fp_ReadState();
-		void fp_ParseSettings(CEJSONSorted const &_Params, CDomainSettings &o_Settings);
-		CEJSONSorted fp_SaveSettings(CDomainSettings const &_Settings);
+		void fp_ParseSettings(CEJsonSorted const &_Params, CDomainSettings &o_Settings);
+		CEJsonSorted fp_SaveSettings(CDomainSettings const &_Settings);
 		void fp_SaveState(CDomain const &_Domain);
 
 		static EPublicKeyType fsp_EllipticCurveTypeFromStr(CStr const &_String);
@@ -108,7 +108,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		void fp_UpdateDomainStatus(CDomain &o_Domain, CHostInfo const &_HostInfo, EStatusSeverity _Severity, CStr const &_Status);
 
-		CEJSONSorted fp_GetConfigValue(CStr const &_Name, CEJSONSorted const &_Default) const;
+		CEJsonSorted fp_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const;
 
 		[[nodiscard]] NException::CExceptionPointer fp_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState);
 		TCFuture<bool> fp_UpdateDomain_HandleChallenge
@@ -125,10 +125,10 @@ namespace NMib::NWebApp::NAcmeManager
 				, CPublicKeySetting _PublicKeySettings
 				, TCActor<CAcmeClientActor> _AcmeClient
 				, CDomainSettings _DomainSettings
-				, CEJSONSorted _DomainSettingsJson
+				, CEJsonSorted _DomainSettingsJson
 			)
 		;
-		TCFuture<bool> fp_UpdateDomain_IsAlreadyUpToDate(CStr _DomainName, CEJSONSorted _DomainSettingsJson, CStr _CertificateType);
+		TCFuture<bool> fp_UpdateDomain_IsAlreadyUpToDate(CStr _DomainName, CEJsonSorted _DomainSettingsJson, CStr _CertificateType);
 		TCFuture<void> fp_UpdateDomain(CStr _DomainName, bool _bCreateAccountKey);
 
 		TCMap<CStr, CDomain> mp_Domains;
