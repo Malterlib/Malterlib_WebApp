@@ -948,7 +948,7 @@ exports.handler = async (event) => {
 		DMibLogWithCategory(S3Upload, Info, "Listing bucket {fe2} s", Clock.f_GetTime());
 		Clock.f_Start();
 
-		TCFutureMap<CStr, CAwsS3Actor::CObjectInfoMetaData> MetaDataResults;
+		TCFutureMap<CStr, CAwsS3Actor::CObjectInfoMetadata> MetadataResults;
 
 		TCMap<CStr, CStr> ExistingObjects;
 		for (auto &Object : Bucket.m_Objects)
@@ -958,7 +958,7 @@ exports.handler = async (event) => {
 
 		TCMap<CStr, TCOptional<CByteVector>> FilesToUpdate;
 
-		mint nMetaDataQueries = 0;
+		mint nMetadataQueries = 0;
 		for (auto &NewFile : SourceCheckResults.m_DirectoryManifest.m_Files)
 		{
 			if (!NewFile.f_IsFile())
@@ -1041,26 +1041,26 @@ exports.handler = async (event) => {
 				continue;
 			}
 
-			++nMetaDataQueries;
+			++nMetadataQueries;
 			mp_S3MetadataSequencer.f_RunSequenced
 				(
-					g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<CAwsS3Actor::CObjectInfoMetaData>
+					g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<CAwsS3Actor::CObjectInfoMetadata>
 					{
 						(void) _Subscription;
-						co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetaData, BucketName, DestinationFileName);
+						co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetadata, BucketName, DestinationFileName);
 					}
 				)
-				> MetaDataResults[DestinationFileName]
+				> MetadataResults[DestinationFileName]
 			;
 		}
 
-		if (nMetaDataQueries)
-			DMibLogWithCategory(S3Upload, Info, "Querying object meta data for {} objects", nMetaDataQueries);
+		if (nMetadataQueries)
+			DMibLogWithCategory(S3Upload, Info, "Querying object metadata for {} objects", nMetadataQueries);
 
-		auto MetaData = co_await (fg_AllDoneWrapped(MetaDataResults) % "Failed to get file meta data");
+		auto Metadata = co_await (fg_AllDoneWrapped(MetadataResults) % "Failed to get file metadata");
 
-		if (nMetaDataQueries)
-			DMibLogWithCategory(S3Upload, Info, "Querying object meta data for {} objects {fe2} s", nMetaDataQueries, Clock.f_GetTime());
+		if (nMetadataQueries)
+			DMibLogWithCategory(S3Upload, Info, "Querying object metadata for {} objects {fe2} s", nMetadataQueries, Clock.f_GetTime());
 		Clock.f_Start();
 
 		TCSet<CStr> FilesToDelete;
@@ -1106,17 +1106,17 @@ exports.handler = async (event) => {
 
 			if (!pModifiedFileContents)
 			{
-				auto pMetaData = MetaData.f_FindEqual(FileName);
-				if (pMetaData)
+				auto pMetadata = Metadata.f_FindEqual(FileName);
+				if (pMetadata)
 				{
-					if (*pMetaData)
+					if (*pMetadata)
 					{
-						auto &MetaData = **pMetaData;
+						auto &Metadata = **pMetadata;
 						if
 							(
-								MetaData.m_CacheControl.f_Get("") == PutInfo.m_CacheControl.f_Get("")
-								&& MetaData.m_ContentEncoding.f_Get("") == PutInfo.m_ContentEncoding.f_Get("")
-								&& MetaData.m_ContentType.f_Get("") == PutInfo.m_ContentType.f_Get("")
+								Metadata.m_CacheControl.f_Get("") == PutInfo.m_CacheControl.f_Get("")
+								&& Metadata.m_ContentEncoding.f_Get("") == PutInfo.m_ContentEncoding.f_Get("")
+								&& Metadata.m_ContentType.f_Get("") == PutInfo.m_ContentType.f_Get("")
 							)
 						{
 							continue; // Already up to date
@@ -1133,11 +1133,11 @@ exports.handler = async (event) => {
 									"   Content Encoding: {} <=> {}"
 									"   Content Type: {} <=> {}"
 									, FileName
-									, MetaData.m_CacheControl.f_Get("")
+									, Metadata.m_CacheControl.f_Get("")
 									, PutInfo.m_CacheControl.f_Get("")
-									, MetaData.m_ContentEncoding.f_Get("")
+									, Metadata.m_ContentEncoding.f_Get("")
 									, PutInfo.m_ContentEncoding.f_Get("")
-									, MetaData.m_ContentType.f_Get("")
+									, Metadata.m_ContentType.f_Get("")
 									, PutInfo.m_ContentType.f_Get("")
 								)
 							;
@@ -1149,10 +1149,10 @@ exports.handler = async (event) => {
 							(
 								S3Upload
 								, Info
-								, "Meta data query failed so will re-upload: {}\n"
+								, "Metadata query failed so will re-upload: {}\n"
 								"   Error: {}"
 								, FileName
-								, pMetaData->f_GetExceptionStr()
+								, pMetadata->f_GetExceptionStr()
 							)
 						;
 					}

@@ -519,7 +519,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CSequencer mp_S3FileReadSequencer{"WebAppManagerActor S3FileReadSequencer", 8};
 		CSequencer mp_S3PrioritySequencer{"WebAppManagerActor S3PrioritySequencer"};
 		CSequencer mp_S3DeleteSequencer{"WebAppManagerActor S3DeleteSequencer", 32};
-		TCSequencer<CAwsS3Actor::CObjectInfoMetaData> mp_S3MetadataSequencer{"WebAppManagerActor S3MetadataSequencer", 32};
+		TCSequencer<CAwsS3Actor::CObjectInfoMetadata> mp_S3MetadataSequencer{"WebAppManagerActor S3MetadataSequencer", 32};
 
 		CUser mp_NodeUser;
 		CUser mp_FastCGIUser;

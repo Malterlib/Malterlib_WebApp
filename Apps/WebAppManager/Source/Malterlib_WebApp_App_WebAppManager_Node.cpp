@@ -365,8 +365,8 @@ namespace NMib::NWebApp::NWebAppManager
 			if (nParsed != 3)
 				continue;
 
-			CEJsonSorted MetaData;
-			MetaData["URLTemplate"] = "{Host}:{Port}";
+			CEJsonSorted Metadata;
+			Metadata["URLTemplate"] = "{Host}:{Port}";
 
 			TCFuture<void> OldSubscriptionDestroy;
 			if (_AppLaunch.m_TunnelSubscription)
@@ -374,7 +374,7 @@ namespace NMib::NWebApp::NWebAppManager
 			else
 				OldSubscriptionDestroy = g_Void;
 
-			fg_Move(OldSubscriptionDestroy) > [this, pAppLaunch = &_AppLaunch, MetaData = fg_Move(MetaData)](TCAsyncResult<void> &&) mutable
+			fg_Move(OldSubscriptionDestroy) > [this, pAppLaunch = &_AppLaunch, Metadata = fg_Move(Metadata)](TCAsyncResult<void> &&) mutable
 				{
 					mp_NetworkTunnelsServer
 						(
@@ -382,7 +382,7 @@ namespace NMib::NWebApp::NWebAppManager
 							, pAppLaunch->m_LogCategory
 							, fp_GetAppIPAddress(*pAppLaunch, false)
 							, 5599
-							, fg_Move(MetaData)
+							, fg_Move(Metadata)
 						)
 						> fg_LogError("Network Tunnel", "Publish network tunnel") / [pAppLaunch](CActorSubscription &&_Subscription)
 						{
