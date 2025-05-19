@@ -539,15 +539,15 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			auto BlockingActorCheckout = fg_BlockingActor();
 			SetupResults = co_await
 				(
-					g_Dispatch(BlockingActorCheckout) / [User = mp_NginxUser]() mutable -> CResults
+					g_Dispatch(BlockingActorCheckout) / [User = mp_NginxUser, bRunningEleveated = mp_bRunningElevated]() mutable -> CResults
 					{
 						CResults Results;
 
 						Results.m_User = User;
 		#ifdef DPlatformFamily_Windows
-						fsp_SetupUser(Results.m_User, Results.m_UserPassword);
+						fsp_SetupUser(Results.m_User, bRunningEleveated, Results.m_UserPassword);
 		#else
-						fsp_SetupUser(Results.m_User);
+						fsp_SetupUser(Results.m_User, bRunningEleveated);
 		#endif
 						return Results;
 					}
@@ -1249,7 +1249,10 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 #ifdef DPlatformFamily_Windows
 		ConfigContents = ConfigContents.f_Replace("{NginxUserLine}", "");
 #else
-		ConfigContents = ConfigContents.f_Replace("{NginxUserLine}", ("user {} {};"_f << mp_NginxUser.m_UserName << mp_NginxUser.m_GroupName).f_GetStr());
+		if (mp_bRunningElevated)
+			ConfigContents = ConfigContents.f_Replace("{NginxUserLine}", ("user {} {};"_f << mp_NginxUser.m_UserName << mp_NginxUser.m_GroupName).f_GetStr());
+		else
+			ConfigContents = ConfigContents.f_Replace("{NginxUserLine}", "");
 #endif
 
 		{
@@ -1372,12 +1375,14 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			auto BlockingActorCheckout = fg_BlockingActor();
 			co_await
 				(
-					g_Dispatch(BlockingActorCheckout) / [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_UserName, GroupName = mp_NginxUser.m_GroupName, NginxDirectory]()
+					g_Dispatch(BlockingActorCheckout)
+					/ [ConfigFile, ConfigContents, UserName = mp_NginxUser.m_UserName, GroupName = mp_NginxUser.m_GroupName, NginxDirectory, bRunningElevated = mp_bRunningElevated]()
 					{
 						CFile::fs_WriteStringToFile(ConfigFile, ConfigContents, false);
 
 						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory, UserName, GroupName);
-						CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", GroupName);
+						if (bRunningElevated)
+							CFile::fs_SetOwnerAndGroupRecursive(NginxDirectory + "/certificates", "root", GroupName);
 					}
 				)
 			;

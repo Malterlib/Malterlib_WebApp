@@ -31,6 +31,7 @@ namespace NMib::NWebApp::NWebAppManager
 					, ThisActor = fg_ThisActor(this)
 					, FastCGIUser = mp_FastCGIUser
 					, MongoSSLDirectory = fp_GetMongoSSLDirectory()
+					, bRunningElevated = mp_bRunningElevated
 				]
 				() mutable -> TCFuture<CInfo>
 				{
@@ -42,9 +43,9 @@ namespace NMib::NWebApp::NWebAppManager
 					try
 					{
 	#ifdef DPlatformFamily_Windows
-						fsp_SetupPrerequisites_ServerUser(Info.m_User, Info.m_UserPassword, FastCGIDirectory, MongoSSLDirectory);
+						fsp_SetupPrerequisites_ServerUser(Info.m_User, bRunningElevated, Info.m_UserPassword, FastCGIDirectory, MongoSSLDirectory);
 	#else
-						fsp_SetupPrerequisites_ServerUser(Info.m_User, FastCGIDirectory, MongoSSLDirectory);
+						fsp_SetupPrerequisites_ServerUser(Info.m_User, bRunningElevated, FastCGIDirectory, MongoSSLDirectory);
 	#endif
 						co_return fg_Move(Info);
 					}

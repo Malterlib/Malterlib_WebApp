@@ -61,6 +61,7 @@ namespace NMib::NWebApp::NWebAppManager
 	void CWebAppManagerActor::fsp_SetupPrerequisites_ServerUser
 		(
 			CUser &_User
+			, bool _bRunningElevated
 #ifdef DPlatformFamily_Windows
 			, CStrSecure &o_Password
 #endif
@@ -69,9 +70,9 @@ namespace NMib::NWebApp::NWebAppManager
 		)
 	{
 #ifdef DPlatformFamily_Windows
-		fsp_SetupUser(_User, o_Password);
+		fsp_SetupUser(_User, _bRunningElevated, o_Password);
 #else
-		fsp_SetupUser(_User);
+		fsp_SetupUser(_User, _bRunningElevated);
 #endif
 
 		CStr TmpDirectory = _Directory + "/.tmp";
@@ -159,7 +160,16 @@ namespace NMib::NWebApp::NWebAppManager
 			NodeInfo = co_await
 				(
 					g_Dispatch(BlockingActorCheckout)
-					/ [ProgramDirectory, NodeDirectory, ThisActor = fg_ThisActor(this), NodeUser = mp_NodeUser, MongoSSLDirectory = fp_GetMongoSSLDirectory(), bNeedNode]
+					/
+					[
+						ProgramDirectory
+						, NodeDirectory
+						, ThisActor = fg_ThisActor(this)
+						, NodeUser = mp_NodeUser
+						, MongoSSLDirectory = fp_GetMongoSSLDirectory()
+						, bNeedNode
+						, bRunningElevated = mp_bRunningElevated
+					]
 					() mutable -> TCFuture<CNodeInfo>
 					{
 						DLog(Info, "Extracting node distribution");
@@ -176,9 +186,9 @@ namespace NMib::NWebApp::NWebAppManager
 						auto CaptureExceptions = co_await g_CaptureExceptions;
 
 		#ifdef DPlatformFamily_Windows
-						fsp_SetupPrerequisites_ServerUser(NodeInfo.m_User, NodeInfo.m_UserPassword, NodeDirectory, MongoSSLDirectory);
+						fsp_SetupPrerequisites_ServerUser(NodeInfo.m_User, bRunningElevated, NodeInfo.m_UserPassword, NodeDirectory, MongoSSLDirectory);
 		#else
-						fsp_SetupPrerequisites_ServerUser(NodeInfo.m_User, NodeDirectory, MongoSSLDirectory);
+						fsp_SetupPrerequisites_ServerUser(NodeInfo.m_User, bRunningElevated, NodeDirectory, MongoSSLDirectory);
 		#endif
 
 						auto Files = CFile::fs_FindFiles(ProgramDirectory + "/node-*.tar.gz");
@@ -329,6 +339,7 @@ namespace NMib::NWebApp::NWebAppManager
 						, SocketRootDirectory = PackageOptions.m_bUnixSocket && PackageOptions.m_Concurrency ? fp_GetPackageSocketRoot(_PackageName) : CStr()
 						, NginxUserGroup = mp_NginxUser.m_GroupName
 						, Concurrency = PackageOptions.m_Concurrency
+						, bRunningElevated = mp_bRunningElevated
 					]
 					() mutable -> TCFuture<CPackageInfo>
 					{
@@ -357,10 +368,10 @@ namespace NMib::NWebApp::NWebAppManager
 							PackageInfo.m_User = PackageUser;
 	#ifdef DPlatformFamily_Windows
 							PackageInfo.m_UserPassword = PackagePassword;
-							fsp_SetupPrerequisites_ServerUser(PackageInfo.m_User, PackageInfo.m_UserPassword, PackageHomeDirectory, MongoSSLDirectory);
+							fsp_SetupPrerequisites_ServerUser(PackageInfo.m_User, bRunningElevated, PackageInfo.m_UserPassword, PackageHomeDirectory, MongoSSLDirectory);
 							PackageInfo.m_bPasswordChanged = PackageInfo.m_UserPassword != PackagePassword;
 	#else
-							fsp_SetupPrerequisites_ServerUser(PackageInfo.m_User, PackageHomeDirectory, MongoSSLDirectory);
+							fsp_SetupPrerequisites_ServerUser(PackageInfo.m_User, bRunningElevated, PackageHomeDirectory, MongoSSLDirectory);
 	#endif
 							User = PackageInfo.m_User;
 							UserHomePath = PackageHomeDirectory;

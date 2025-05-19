@@ -243,6 +243,7 @@ namespace NMib::NWebApp::NWebAppManager
 		bool m_bAllowRobots = false;
 		bool m_bNeedsMongo = false;
 		bool m_bAllowRedirectsOutsideOfDomain = true;
+		bool m_bAllowUnelevated = false;
 	};
 
 	struct ICWebAppManager
@@ -394,7 +395,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_Destroy() override;
 
 		void fp_ParseConfig_DDPSelf();
-		void fp_ParseConfig();
+		TCFuture<void> fp_ParseConfig();
 
 		CStr fp_GetDataPath(CStr const &_Path) const;
 		CStr fp_ConcatOutput(CStr const &_StdOut, CStr const &_StdErr) const;
@@ -411,6 +412,7 @@ namespace NMib::NWebApp::NWebAppManager
 		static void fsp_SetupUser
 			(
 				CUser &_User
+				, bool _bRunningElevated
 #ifdef DPlatformFamily_Windows
 				, CStrSecure &o_Password
 #endif
@@ -430,6 +432,7 @@ namespace NMib::NWebApp::NWebAppManager
 		static void fsp_SetupPrerequisites_ServerUser
 			(
 				CUser &_User
+				, bool _bRunningElevated
 #ifdef DPlatformFamily_Windows
 				, CStrSecure &o_Password
 #endif
@@ -607,6 +610,7 @@ namespace NMib::NWebApp::NWebAppManager
 		bool mp_bStartNginx = true;
 		bool mp_bEnableIPV6 = true;
 		bool mp_bCheckForInvalidHost = true;
+		bool mp_bRunningElevated = false;
 	};
 }
 

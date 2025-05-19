@@ -61,10 +61,7 @@ namespace NMib::NWebApp::NWebAppManager
 			)
 		;
 
-		{
-			auto CaptureScope = co_await (g_CaptureExceptions % "Failed to parse config");
-			fp_ParseConfig();
-		}
+		co_await fp_ParseConfig();
 
 		fp_CreateAppLaunches();
 
@@ -275,11 +272,19 @@ namespace NMib::NWebApp::NWebAppManager
 	void CWebAppManagerActor::fsp_SetupUser
 		(
 			CUser &_User
+			, bool _bRunningElevated
 #ifdef DPlatformFamily_Windows
 			, CStrSecure &o_Password
 #endif
 		)
 	{
+		if (!_bRunningElevated)
+		{
+			_User.m_GroupName = NSys::fg_UserManagement_GetProcessEffectiveGroupName();
+			_User.m_UserName = NSys::fg_UserManagement_GetProcessEffectiveUserName();
+			return;
+		}
+
 		if (!NSys::fg_UserManagement_GroupExists(_User.m_GroupName, _User.m_GroupID))
 			NSys::fg_UserManagement_CreateGroup(_User.m_GroupName, _User.m_GroupID);
 
@@ -587,6 +592,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 		if (auto pValue = Settings.f_GetMember("AllowRobotsSitemap"))
 			m_RobotsSitemap = pValue->f_String();
+
+		if (auto pValue = Settings.f_GetMember("AllowUnelevated"))
+			m_bAllowUnelevated = pValue->f_Boolean();
 
 		m_RobotsAllow = Settings["AllowRobotsAllow"].f_StringArray();
 		m_RobotsDisallow = Settings["AllowRobotsDisallow"].f_StringArray();

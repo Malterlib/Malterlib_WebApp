@@ -38,6 +38,7 @@ Type
 		WebAppManagerAllowRobots: bool?
 		WebAppManagerNeedsMongo: bool?
 		WebAppManagerAllowRobotsSitemap: string?
+		WebAppManagerAllowUnelevated: bool?
 
 		WebAppManagerMongoDirectory: string?
 		WebAppManagerMongoHost: string?
@@ -1120,6 +1121,10 @@ Property
 				WebAppSettings =+ {AllowRobotsSitemap: WebAppManagerAllowRobotsSitemap}
 				{
 					!WebAppManagerAllowRobotsSitemap undefined
+				}
+				WebAppSettings =+ {AllowUnelevated: WebAppManagerAllowUnelevated}
+				{
+					!WebAppManagerAllowUnelevated undefined
 				}
 				WebAppSettings =+ {LoopbackPrefix: WebAppManagerLoopbackPrefix}
 				{

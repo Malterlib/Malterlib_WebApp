@@ -27,7 +27,15 @@ namespace NMib::NWebApp::NWebAppManager
 			NodeInfo = co_await
 				(
 					g_Dispatch(BlockingActorCheckout)
-					/ [ProgramDirectory, WebsocketDirectory, ThisActor = fg_ThisActor(this), WebsocketUser = mp_WebsocketUser, MongoSSLDirectory = fp_GetMongoSSLDirectory()]
+					/
+					[
+						ProgramDirectory
+						, WebsocketDirectory
+						, ThisActor = fg_ThisActor(this)
+						, WebsocketUser = mp_WebsocketUser
+						, MongoSSLDirectory = fp_GetMongoSSLDirectory()
+						, bRunningElevated = mp_bRunningElevated
+					]
 					() mutable -> TCFuture<CInfo>
 					{
 						DLog(Info, "Setting up websocket user");
@@ -38,9 +46,9 @@ namespace NMib::NWebApp::NWebAppManager
 						try
 						{
 		#ifdef DPlatformFamily_Windows
-							fsp_SetupPrerequisites_ServerUser(Info.m_User, Info.m_UserPassword, WebsocketDirectory, MongoSSLDirectory);
+							fsp_SetupPrerequisites_ServerUser(Info.m_User, bRunningElevated, Info.m_UserPassword, WebsocketDirectory, MongoSSLDirectory);
 		#else
-							fsp_SetupPrerequisites_ServerUser(Info.m_User, WebsocketDirectory, MongoSSLDirectory);
+							fsp_SetupPrerequisites_ServerUser(Info.m_User, bRunningElevated, WebsocketDirectory, MongoSSLDirectory);
 		#endif
 							co_return fg_Move(Info);
 						}

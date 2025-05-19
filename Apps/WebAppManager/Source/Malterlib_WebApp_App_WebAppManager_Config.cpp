@@ -16,8 +16,10 @@ namespace NMib::NWebApp::NWebAppManager
 			mp_DDPSelf = fg_Format("{}:{}", mp_DDPSelf, mp_WebSSLPort);
 	}
 
-	void CWebAppManagerActor::fp_ParseConfig()
+	TCFuture<void> CWebAppManagerActor::fp_ParseConfig()
 	{
+		auto CaptureScope = co_await (g_CaptureExceptions % "Failed to parse config");
+
 #ifdef DMibDebug
 		mp_Tags["Debug"];
 #endif
@@ -29,6 +31,16 @@ namespace NMib::NWebApp::NWebAppManager
 
 		if (mp_Tags.f_FindEqual("Staging"))
 			mp_bIsStaging = true;
+
+#ifdef DPlatformFamily_Windows
+		mp_bRunningElevated = true;
+#else
+		auto Elevation = NMib::NProcess::NPlatform::fg_Process_GetElevation();
+		if (Elevation == NMib::NProcess::EProcessElevation_IsRoot || Elevation == NMib::NProcess::EProcessElevation_IsElevated)
+			mp_bRunningElevated = true;
+		else if (!mp_Options.m_bAllowUnelevated)
+			co_return DMibErrorInstance("{} needs to run as elevated (as root)"_f << mp_Options.m_FullManagerName);
+#endif
 
 		mp_bAllowRobots = fp_GetConfigValue("AllowRobots", true).f_Boolean();
 		mp_bStartNginx = fp_GetConfigValue("StartNginx", mp_Options.m_bStartNginx).f_Boolean();
@@ -101,6 +113,8 @@ namespace NMib::NWebApp::NWebAppManager
 		mp_bCheckForInvalidHost = fp_GetConfigValue("CheckForInvalidHost", true).f_Boolean();
 
 		fp_ParseConfig_DDPSelf();
+
+		co_return {};
 	}
 
 	CEJsonSorted CWebAppManagerActor::fp_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const
