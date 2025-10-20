@@ -127,6 +127,7 @@ Property
 		FirstDependencyExecutable: string?
 		WebAppBuildDirectory: string
 		MalterlibWebAppToolBuildName: string
+		MalterlibWebAppToolUseSystemNode: bool = false
 	}
 }
 
@@ -315,6 +316,7 @@ Property
 		ExportScriptEnvironment =+ "MalterlibWebAppMeteorDebugBundle"
 		ExportScriptEnvironment =+ "MalterlibWebAppNodePackagePath"
 		ExportScriptEnvironment =+ "MalterlibWebAppHostNodePackagePath"
+		ExportScriptEnvironment =+ "MalterlibWebAppToolUseSystemNode"
 		ExportScriptEnvironment =+ "MalterlibWebAppToolDependencies"
 		ExportScriptEnvironment =+ "MalterlibWebAppToolDependenciesFiles"
 		ExportScriptEnvironment =+ "MalterlibWebAppManagerDevDepenencesInPackage"
@@ -1229,6 +1231,7 @@ Property
 			, MalterlibWebAppMeteorSharedPackages: MalterlibWebAppMeteorSharedPackages
 			, MalterlibWebAppCustomBuildScript: IsDefined(`CustomBuildScript_@(_Build<Name>)`) ? CustomBuildScript_@(_Build<Name>) : undefined
 			, MalterlibWebAppToolDependencies: IsDefined(`Dependencies_@(_Build<Name>)`) ? Dependencies_@(_Build<Name>) : []
+			, MalterlibWebAppToolUseSystemNode: IsDefined(`UseSystemNode_@(_Build<Name>)`) ? UseSystemNode_@(_Build<Name>) : false
 			, MalterlibWebAppMeteorCheckedOutPath: MalterlibWebAppMeteorCheckedOutPath
 			, MalterlibWebAppMeteorDebugBundle: MalterlibWebAppMeteorDebugBundle
 			, MalterlibWebAppNodePackagePath: MalterlibWebAppNodePackagePath

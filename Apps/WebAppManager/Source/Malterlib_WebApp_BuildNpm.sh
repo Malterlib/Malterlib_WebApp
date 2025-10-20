@@ -75,7 +75,7 @@ fi
 OldPath="$PATH"
 export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
-if [[ "$MalterlibWebAppHostNodePackagePath" != "" ]]; then
+if [[ "$MalterlibWebAppHostNodePackagePath" != "" ]] && [[ "$MalterlibWebAppToolUseSystemNode" != "true" ]]; then
 	NodeDirectory="`mktemp -d`"
 	function clean_up () {
 	    ARG=$?
