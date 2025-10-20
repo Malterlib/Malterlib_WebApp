@@ -25,6 +25,11 @@ Type
 	}
 }
 
+Property
+{
+	MalterlibWebAppManagerDevDepenencesInPackage: bool = !MalterlibBuildServerBuild // User(WebAppManager)=false: Allow dev dependencies in npm package. This allows fast builds without npm ci
+}
+
 %Group "{Malterlib}/{WebApp}/{WebAppManagerVariables}"
 {
 	Property
@@ -214,7 +219,7 @@ Type
 		{
 			!!HostPlatformFamily "macOS"
 		}
-		
+
 		MalterlibExportEnvironmentMinGW true
 
 		Target_MatchesDependenciesMatchTargetToMatch: string
@@ -306,6 +311,7 @@ Type
 		ExportScriptEnvironment =+ "MalterlibWebAppHostNodePackagePath"
 		ExportScriptEnvironment =+ "MalterlibWebAppToolDependencies"
 		ExportScriptEnvironment =+ "MalterlibWebAppToolDependenciesFiles"
+		ExportScriptEnvironment =+ "MalterlibWebAppManagerDevDepenencesInPackage"
 		ExportScriptEnvironment =+ "NpmBuildType"
 
 		Group `WebApp/@(MalterlibWebAppManagerName)/@(MalterlibWebAppToolBuildName)`

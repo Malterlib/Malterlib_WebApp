@@ -118,25 +118,63 @@ done
 
 export NPM_CONFIG_PROGRESS=false
 
+function RunNpmBuild()
+{
+	if [[ "$MalterlibWebAppManagerDevDepenencesInPackage" == "true" ]]; then
+		# Dev mode - skip clean reinstalls and only reinstall if package files changed
+
+		# Calculate hash of package files
+		if [[ "$PlatformFamily" != "Windows" ]]; then
+			CurrentHash=$(cat package.json package-lock.json 2>/dev/null | md5 -q)
+		else
+			CurrentHash=$(cat package.json package-lock.json 2>/dev/null | md5sum | cut -d' ' -f1)
+		fi
+
+		HashFile="node_modules/.package-hash"
+		NeedInstall=false
+
+		# Check if hash file exists and compare
+		if [[ ! -f "$HashFile" ]]; then
+			NeedInstall=true
+			echo "Hash file not found, running npm ci"
+		else
+			StoredHash=$(cat "$HashFile")
+			if [[ "$CurrentHash" != "$StoredHash" ]]; then
+				NeedInstall=true
+				echo "Package files changed, running npm ci"
+			else
+				echo "Dependencies unchanged, skipping npm ci"
+			fi
+		fi
+
+		# Install dependencies if needed
+		if [[ "$NeedInstall" == "true" ]]; then
+			rm -rf node_modules
+			npm ci
+			# Store the hash
+			echo "$CurrentHash" > "$HashFile"
+		fi
+
+		# Run the build
+		npm run $1
+	else
+		rm -rf node_modules
+		npm ci
+		npm run $1
+		rm -rf node_modules
+		npm ci --production
+	fi
+}
+
 if [[ "$NpmBuildType" == "Start" ]]; then
 	SourceDir=.
-	rm -rf node_modules
-	npm ci
-	npm run prestart
-	rm -rf node_modules
-	npm ci --production
+	RunNpmBuild prestart
 elif [[ "$NpmBuildType" == "Compile" ]]; then
 	SourceDir=build
-	rm -rf build
-	rm -rf node_modules
-	npm ci
-	npm run compile
+	RunNpmBuild compile
 elif [[ "$NpmBuildType" == "Build" ]]; then
 	SourceDir=build
-	rm -rf build
-	rm -rf node_modules
-	npm ci
-	npm run build
+	RunNpmBuild build
 else
 	echo "Unknown NpmBuildType: '$NpmBuildType'"
 	exit 1
