@@ -269,6 +269,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		o_Arguments.f_Insert("--trace-deprecation");
 		o_Arguments.f_Insert("--trace-warnings");
+		o_Arguments.f_Insert("--enable-source-maps");
 
 		if (!_AppLaunch.m_bUnixSocket)
 		{
