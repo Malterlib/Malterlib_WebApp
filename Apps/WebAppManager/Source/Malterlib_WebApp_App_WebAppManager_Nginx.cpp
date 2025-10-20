@@ -44,7 +44,7 @@ ch8 const *g_pServerTemplate[2] =
 R"---(
 {AlternateSources}
 
-		location ~* "^/{SubPath}/([a-z0-9]{40}\.(css|js))$"
+		location ~ "^/{SubPath}/([A-Za-z0-9]{40}\.(css|js))$"
 		{
 			gzip_static {GZipStatic};
 			expires max;
@@ -114,13 +114,15 @@ R"---(
 {StaticPackages}
 {SubPackages}
 
-		location ~* "^/[a-z0-9]{40}\.(css|js)$"
+		location ~ "{StaticUriRegex}"
 		{
 			gzip_static {GZipStatic};
 			expires max;
 {SecurityHeaders}
 			add_header Cache-Control public;
-			root "{StaticRoot}";
+			try_files "$uri" "$uri/index.html" "/index.html";
+
+			alias "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
 		}
 
@@ -239,7 +241,7 @@ R"---(
 ch8 const *g_pFastCGIServerTemplate[2] =
 	{
 R"---(
-		location ~* "^/{SubPath}(/[a-z0-9]{40}\.(css|js))$"
+		location ~ "^/{SubPath}(/[A-Za-z0-9]{40}\.(css|js))$"
 		{
 			gzip_static {GZipStatic};
 			expires max;
@@ -306,13 +308,15 @@ R"---(
 {StaticPackages}
 {SubPackages}
 
-		location ~* "^/[a-z0-9]{40}\.(css|js)$"
+		location ~ "{StaticUriRegex}"
 		{
 			gzip_static {GZipStatic};
 			expires max;
 {SecurityHeaders}
 			add_header Cache-Control public;
-			root "{StaticRoot}";
+			try_files "$uri" "$uri/index.html" "/index.html";
+
+			alias "{StaticRoot}";
 			access_log logs/static_access_{PackageName}.log;
 		}
 
@@ -480,11 +484,13 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			return 200 "User-agent: *\\nDisallow: /";
 		}
 
-		location ~* "^/[a-z0-9]{40}\.(css|js)$"
+		location ~ "{StaticUriRegex}"
 		{
 			gzip_static {GZipStatic};
 			expires max;
-			root "{StaticRoot}";
+			try_files "$uri" "$uri/index.html" "/index.html";
+
+			alias "{StaticRoot}";
 		}
 
 		location ~ "^/packages/.*\.(jpg|jpeg|png|gif|mp3|ico|pdf|svg|eot|woff|woff2|ttf|otf)$"
@@ -1114,7 +1120,18 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					else if (bIsMeteor)
 						Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/programs/web.browser", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
 					else
-						Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/static", ProgramDirectory, Package.f_GetName()).f_EscapeStrNoQuotes());
+					{
+						CStr StaticSourcePath = Package.m_StaticSourcePath;
+						if (!StaticSourcePath)
+							StaticSourcePath = "static";
+						Server = Server.f_Replace("{StaticRoot}", fg_Format("{}/{}/{}", ProgramDirectory, Package.f_GetName(), StaticSourcePath).f_EscapeStrNoQuotes());
+					}
+
+					auto StaticUriRegex = Package.m_StaticUriRegex;
+					if (!StaticUriRegex)
+						StaticUriRegex = "^/[A-Za-z0-9]{40}\\.(css|js)$";
+
+					Server = Server.f_Replace("{StaticUriRegex}", StaticUriRegex.f_EscapeStrNoQuotes());
 
 					VariablesToReplace[fg_Format("{{ServerName_{}}", Package.f_GetName())] = ServerName;
 					VariablesToReplace[fg_Format("{{ServerNameEscaped_{}}", Package.f_GetName())] = ServerName.f_Replace(".", "\\.");
@@ -1136,7 +1153,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 							StaticPackages += "		location {}\n"_f << Package.m_StaticPath;
 							StaticPackages += "		{\n";
-							StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << Package.f_GetName();
+							StaticPackages += "			alias {}/{};\n"_f << ProgramDirectory << (Package.f_GetName() / Package.m_StaticSourcePath);
 							if (Package.f_IsStatic())
 								StaticPackages += "			gzip_static {GZipStatic};\n";
 							StaticPackages += "{SecurityHeaders}\n";

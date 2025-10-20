@@ -344,7 +344,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 					if (CFile::fs_FileExists(ProgramDirectory / "mongo/6.0/bin/mongo"))
 						CFile::fs_DeleteFile(ProgramDirectory / "mongo/6.0/bin/mongo");
-					
+
 					CFileSystemInterface_VirtualFS MalterlibFS(ExeFS.m_FileSystem);
 					CFileSystemInterface_Disk DiskFS;
 					CTime SourceFileTime = MalterlibFS.f_GetWriteTime("");
@@ -376,7 +376,7 @@ namespace NMib::NWebApp::NWebAppManager
 				}
 			)
 		;
-		
+
 		co_return {};
 	}
 
@@ -552,6 +552,15 @@ namespace NMib::NWebApp::NWebAppManager
 
 			if (auto *pValue = PackageSettings.f_GetMember("StaticPath"))
 				Package.m_StaticPath = pValue->f_String();
+
+			if (auto *pValue = PackageSettings.f_GetMember("StaticSourcePath"))
+				Package.m_StaticSourcePath = pValue->f_String();
+
+			if (auto *pValue = PackageSettings.f_GetMember("StaticUriRegex"))
+				Package.m_StaticUriRegex = pValue->f_String();
+
+			if (auto *pValue = PackageSettings.f_GetMember("PackageSubDir"))
+				Package.m_PackageSubDir = pValue->f_String();
 
 			if (auto *pValue = PackageSettings.f_GetMember("AllowRobots"))
 				Package.m_bAllowRobots = pValue->f_Boolean();

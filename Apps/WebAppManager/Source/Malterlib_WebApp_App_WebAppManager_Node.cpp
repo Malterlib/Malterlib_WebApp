@@ -426,7 +426,7 @@ namespace NMib::NWebApp::NWebAppManager
 			fp_SetupNodeArguments(Arguments, _AppLaunch, PackageOptions);
 			bIsNode = true;
 
-			Arguments.f_Insert(ProgramDirectory / LaunchKey.m_PackageName / PackageOptions.m_MainFile);
+			Arguments.f_Insert(ProgramDirectory / LaunchKey.m_PackageName / PackageOptions.m_PackageSubDir / PackageOptions.m_MainFile);
 		}
 		else if (PackageOptions.m_Type == CWebAppManagerOptions::EPackageType_Custom)
 		{

@@ -153,6 +153,9 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_StickyCookie;
 			CStr m_StickyHeader;
 			CStr m_StaticPath;
+			CStr m_StaticSourcePath;
+			CStr m_StaticUriRegex;
+			CStr m_PackageSubDir;
 			CStr m_MainFile;
 			CStr m_ExternalRoot;
 			CStr m_UploadS3Prefix;
@@ -172,7 +175,6 @@ namespace NMib::NWebApp::NWebAppManager
 			bool m_bMalterlibDistributedApp = false;
 			bool m_bUnixSocket = false;
 			bool m_bDefaultServer = false;
-			bool m_bNeedMongo = false;
 			bool m_bUseSystemNode = false;
 		};
 

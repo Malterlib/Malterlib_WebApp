@@ -304,7 +304,7 @@ namespace NMib::NWebApp::NWebAppManager
 				, mp_pUniqueUserGroup->f_GetGroup("{}pkg_{}_{}"_f << mp_Options.m_UserNamePrefix << mp_Options.m_ManagerName << _PackageName)
 			}
 		;
-		auto DefaultUser = (_Type == CWebAppManagerOptions::EPackageType_FastCGI) 
+		auto DefaultUser = (_Type == CWebAppManagerOptions::EPackageType_FastCGI)
 			? mp_FastCGIUser
 			: (_Type == CWebAppManagerOptions::EPackageType_Websocket) ? mp_WebsocketUser : mp_NodeUser
 		;
@@ -339,6 +339,7 @@ namespace NMib::NWebApp::NWebAppManager
 						, SocketRootDirectory = PackageOptions.m_bUnixSocket && PackageOptions.m_Concurrency ? fp_GetPackageSocketRoot(_PackageName) : CStr()
 						, NginxUserGroup = mp_NginxUser.m_GroupName
 						, Concurrency = PackageOptions.m_Concurrency
+						, PackageSubDir = PackageOptions.m_PackageSubDir
 						, bRunningElevated = mp_bRunningElevated
 					]
 					() mutable -> TCFuture<CPackageInfo>
@@ -568,7 +569,7 @@ namespace NMib::NWebApp::NWebAppManager
 							CFile::fs_WriteStringToFile(PackageChecksumFileName, NewChecksum, false);
 						}
 
-						CStr PackageFile = PackageDirectory / "package.json";
+						CStr PackageFile = PackageDirectory / PackageSubDir / "package.json";
 						if (CFile::fs_FileExists(PackageFile))
 						{
 							try

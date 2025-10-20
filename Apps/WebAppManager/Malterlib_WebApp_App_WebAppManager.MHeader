@@ -835,6 +835,21 @@ Property
 					!!true IsDefined(`StaticPath_@(_PackageName)`)
 				}
 
+				PackageSettings	=+ {StaticSourcePath: StaticSourcePath_@(_PackageName)}
+				{
+					!!true IsDefined(`StaticSourcePath_@(_PackageName)`)
+				}
+
+				PackageSettings	=+ {StaticUriRegex: StaticUriRegex_@(_PackageName)}
+				{
+					!!true IsDefined(`StaticUriRegex_@(_PackageName)`)
+				}
+
+				PackageSettings	=+ {PackageSubDir: PackageSubDir_@(_PackageName)}
+				{
+					!!true IsDefined(`PackageSubDir_@(_PackageName)`)
+				}
+
 				PackageSettings	=+ {UploadS3: CheckIsBool(UploadS3_@(_PackageName))}
 				{
 					!!true IsDefined(`UploadS3_@(_PackageName)`)
