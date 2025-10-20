@@ -103,10 +103,11 @@ fi
 echo "Building $Name bundle"
 rm -rf "${OutputDir}$Name"
 cd "$AppDir"
+mkdir -p "$AppDir/build-lock"
 
 SECONDS=0
 LastSeconds=-1
-while ! LockFile "$AppDir/build.lock"; do
+while ! LockFile "$AppDir/build-lock/build.lock"; do
 	ThisSeconds=$SECONDS
 	if [[ "$ThisSeconds" != "$LastSeconds" ]] && [[ "$(($ThisSeconds % 10))" == "0" ]]; then
 		echo Waiting for other build in $AppDir to finish: $ThisSeconds s
@@ -218,7 +219,7 @@ else
 fi
 
 ExcludePatterns="*/bin;*/node_modules"
-ExcludePatterns="$ExcludePatterns;*/.DS_Store"
+ExcludePatterns="$ExcludePatterns;*/.DS_Store;*/build-lock"
 
 MTool BuildDependencies "OutputFile=`ConvertPath \"$ScriptDependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Find:`ConvertPath \"$AppDir\"`/*;RIF;33;$ExcludePatterns"
 
