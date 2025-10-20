@@ -297,6 +297,7 @@ namespace NMib::NWebApp::NWebAppManager
 			)
 		;
 		virtual CStr f_DoStringReplacements(CStr const &_Headers, ICWebAppManager const &_WebAppManager);
+		virtual TCUnsafeFuture<void> f_SetupPrerequisitesAsync(TCSet<CStr> _Tags, TCMap<CStr, CUser> _Users);
 	};
 
 	TCSharedPointer<ICWebAppManagerCustomization> fg_CreateWebAppManagerCustomization();

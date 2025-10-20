@@ -606,7 +606,7 @@ namespace NMib::NWebApp::NWebAppManager
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_Customization()
 	{
 		if (!mp_pCustomization)
-		co_return {};
+			co_return {};
 
 		TCMap<CStr, CUser> Users;
 
@@ -618,7 +618,7 @@ namespace NMib::NWebApp::NWebAppManager
 		for (auto &Package : mp_Options.m_Packages)
 		{
 			if (!Package.m_bSeparateUser)
-			continue;
+				continue;
 			Users(("package_{}"_f << mp_Options.m_Packages.fs_GetKey(Package)).f_GetStr(), Package.m_User);
 		}
 
@@ -631,6 +631,8 @@ namespace NMib::NWebApp::NWebAppManager
 				}
 			)
 		;
+
+		co_await mp_pCustomization->f_SetupPrerequisitesAsync(mp_Tags, Users);
 
 		co_return {};
 	}

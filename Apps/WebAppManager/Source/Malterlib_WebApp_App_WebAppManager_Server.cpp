@@ -888,4 +888,9 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		return _Headers;
 	}
+
+	TCUnsafeFuture<void> ICWebAppManagerCustomization::f_SetupPrerequisitesAsync(TCSet<CStr> _Tags, TCMap<CStr, CUser> _Users)
+	{
+		co_return {};
+	}
 }
