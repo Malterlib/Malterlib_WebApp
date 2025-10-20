@@ -27,7 +27,7 @@ MeteorCheckedOutPath="$MalterlibWebAppMeteorCheckedOutPath"
 MeteorDebugPackage="$MalterlibWebAppMeteorDebugBundle"
 NodePackage="$MalterlibWebAppNodePackagePath"
 
-OutputBundleTar="${OutputDir}${Name}.tar.gz"
+OutputBundleTar="${OutputDir}${Name}.tar.zst"
 
 export METEOR_PACKAGE_DIRS="$SharedPackagesDir"
 
@@ -160,7 +160,7 @@ fi
 
 mv "${OutputDir}bundle" "${OutputDir}$Name"
 cd "$OutputDir"
-tar $TarOptions -czf "$OutputBundleTar" "$Name"
+bsdtar $TarOptions -caf "$OutputBundleTar" "$Name"
 
 if [[ "$PlatformFamily" == "Linux" ]] ; then
 	if [[ "$BUILDSERVER" == "TRUE" ]] ; then

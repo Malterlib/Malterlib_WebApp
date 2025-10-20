@@ -148,8 +148,14 @@ Property
 			!!MalterlibPostCopyProject undefined
 		}
 
-		MalterlibPostCopySources =+ {Pattern: `@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.*`}
-		MalterlibBuildServerPutSources =+ {Pattern: `@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.*`}
+		MalterlibPostCopySources =+ [
+			{Pattern: `@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.zst`}
+			, {Pattern: `@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.zst.*`}
+		]
+		MalterlibBuildServerPutSources =+ [
+			{Pattern: `@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.zst`}
+			, {Pattern: `@(Target.OutputDirectory)@(MalterlibWebAppToolBuildName).tar.zst.*`}
+		]
 		WebAppBuildDirectory MalterlibWebAppToolBuildDirectory->MakeAbsolute(MalterlibWebAppSourceRoot)
 	}
 	Property

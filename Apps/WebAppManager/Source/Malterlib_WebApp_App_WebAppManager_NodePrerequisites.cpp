@@ -397,9 +397,9 @@ namespace NMib::NWebApp::NWebAppManager
 						}
 
 						CStr PackageDirectory = ProgramDirectory + "/" + _PackageName;
-						CStr PackageFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz";
+						CStr PackageFileName = ProgramDirectory + "/" + _PackageName + ".tar.zst";
 						CStr NewChecksum = fsp_GetFileChecksum(PackageFileName).f_GetString();
-						CStr PackageChecksumFileName = ProgramDirectory + "/" + _PackageName + ".tar.gz.installed.md5";
+						CStr PackageChecksumFileName = ProgramDirectory + "/" + _PackageName + ".tar.zst.installed.md5";
 						bool bDoInstall = false;
 
 						if (bForceAppsReinstall)

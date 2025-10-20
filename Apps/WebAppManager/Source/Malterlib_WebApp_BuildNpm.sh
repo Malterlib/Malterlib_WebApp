@@ -9,7 +9,7 @@ AppDir="$WebAppBuildDirectory"
 
 mkdir -p "$OutputDir"
 
-OutputBundleTar="${OutputDir}${Name}.tar.gz"
+OutputBundleTar="${OutputDir}${Name}.tar.zst"
 
 unset TOOLCHAINS
 export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
@@ -184,16 +184,24 @@ rm -f lastrun.md5
 
 export PATH="$OldPath"
 
-cp -r $SourceDir "${OutputDir}$Name"
-
-cd "${OutputDir}"
-
 SysName=$(uname -s)
 if [[ $SysName ==  Darwin* ]] ; then
 	TarOptions="--disable-copyfile"
 fi
 
-tar $TarOptions -czf "$OutputBundleTar" "$Name"
+cd "$SourceDir"
+
+# Build exclusion patterns for archive
+ExcludeArgs=""
+ExcludeArgs="$ExcludeArgs --exclude .git"
+ExcludeArgs="$ExcludeArgs --exclude .DS_Store"
+ExcludeArgs="$ExcludeArgs --exclude '*.log'"
+ExcludeArgs="$ExcludeArgs --exclude .env"
+ExcludeArgs="$ExcludeArgs --exclude .env.*"
+ExcludeArgs="$ExcludeArgs --exclude build.lock"
+ExcludeArgs="$ExcludeArgs --exclude build-lock"
+
+bsdtar $TarOptions $ExcludeArgs -s "|^\./|$Name/|" -caf "$OutputBundleTar" .
 
 if [[ "$PlatformFamily" != "Windows" ]] ; then
 	md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"

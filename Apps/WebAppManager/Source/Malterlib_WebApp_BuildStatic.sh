@@ -9,7 +9,7 @@ AppDir="$WebAppBuildDirectory"
 
 mkdir -p "$OutputDir"
 
-OutputBundleTar="${OutputDir}${Name}.tar.gz"
+OutputBundleTar="${OutputDir}${Name}.tar.zst"
 
 unset TOOLCHAINS
 export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
@@ -56,7 +56,7 @@ if [[ $SysName ==  Darwin* ]] ; then
 	TarOptions="--disable-copyfile"
 fi
 
-tar $TarOptions -czf "$OutputBundleTar" "$Name"
+bsdtar $TarOptions -caf "$OutputBundleTar" "$Name"
 
 if [[ "$PlatformFamily" != "Windows" ]] ; then
 	md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"

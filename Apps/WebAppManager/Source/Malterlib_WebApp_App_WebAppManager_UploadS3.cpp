@@ -717,7 +717,7 @@ exports.handler = async (event) => {
 
 			ManifestConfig.m_IncludeWildcards[RelativePath / "^*"_f] = StaticPath;
 
-			CStr ChecksumFile = ProgramDirectory / ("{}.tar.gz"_f << Package.f_GetName());
+			CStr ChecksumFile = ProgramDirectory / ("{}.tar.zst"_f << Package.f_GetName());
 			ChecksumFiles[ChecksumFile];
 
 			if (bIsMainServer && Package.m_bAllowRobots)
