@@ -2,6 +2,8 @@
 
 set -e
 
+ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 Action="$1"
 OutputDir="$OutputDirectory"
 Name="$MalterlibWebAppToolBuildName"
@@ -121,49 +123,87 @@ export NPM_CONFIG_PROGRESS=false
 
 function RunNpmBuild()
 {
-	if [[ "$MalterlibWebAppManagerDevDepenencesInPackage" == "true" ]]; then
-		# Dev mode - skip clean reinstalls and only reinstall if package files changed
-
-		# Calculate hash of package files
-		if [[ "$PlatformFamily" != "Windows" ]]; then
-			CurrentHash=$(cat package.json package-lock.json 2>/dev/null | md5 -q)
-		else
-			CurrentHash=$(cat package.json package-lock.json 2>/dev/null | md5sum | cut -d' ' -f1)
-		fi
-
-		HashFile="node_modules/.package-hash"
-		NeedInstall=false
-
-		# Check if hash file exists and compare
-		if [[ ! -f "$HashFile" ]]; then
-			NeedInstall=true
-			echo "Hash file not found, running npm ci"
-		else
-			StoredHash=$(cat "$HashFile")
-			if [[ "$CurrentHash" != "$StoredHash" ]]; then
-				NeedInstall=true
-				echo "Package files changed, running npm ci"
-			else
-				echo "Dependencies unchanged, skipping npm ci"
-			fi
-		fi
-
-		# Install dependencies if needed
-		if [[ "$NeedInstall" == "true" ]]; then
-			rm -rf node_modules
-			npm ci
-			# Store the hash
-			echo "$CurrentHash" > "$HashFile"
-		fi
-
-		# Run the build
-		npm run $1
-	else
+	if [[ "$PlatformFamily" == "Linux" ]] && [[ "$HostPlatformFamily" == "macOS" ]]; then
 		rm -rf node_modules
 		npm ci
 		npm run $1
 		rm -rf node_modules
-		npm ci --production
+
+		container system start --enable-kernel-install
+		container image pull ubuntu:24.04
+
+		PathHash=`echo "$OutputDir" | sha256sum --quiet`
+		ContainerName="${Name}-${PathHash::8}"
+
+		TempDir="${HOME}/.malterlib/local/container/$ContainerName"
+		mkdir -p "$TempDir"
+
+		rm -rf "$TempDir/"*
+		cp -r "." "$TempDir/App"
+		cp "$ScriptDir/Malterlib_WebApp_ContainerNpmInstall.sh" "$TempDir/"
+
+		if [[ `container inspect "$ContainerName"` == "[]" ]]; then
+			ContainerArchitecture="$Architecture"
+			if [[ "$Architecture" == "x64" ]]; then
+				ContainerArchitecture="amd64"
+			fi
+
+			container create --name "$ContainerName" -m 1G -c 4 -a $ContainerArchitecture -v "$TempDir:/opt/work" ubuntu:24.04 --entrypoint /bin/bash -- -c "trap : TERM INT; sleep infinity & wait"
+		fi
+
+		if [[ `container inspect "$ContainerName" | jq -r '.[0].["status"]'` != "running" ]]; then
+			container start "$ContainerName"
+		fi
+
+		container exec --cwd /opt/work --env "NpmInstallInContainer=true" --env "Architecture=$Architecture" -- "$ContainerName" "/opt/work/Malterlib_WebApp_ContainerNpmInstall.sh" "$TempOutputBundleTarRemote" "$TempXNodePackageRemote" "$MeteorBuildName"
+		container stop "$ContainerName"
+
+		cp -r "$TempDir/App/node_modules" .
+	else
+		if [[ "$MalterlibWebAppManagerDevDepenencesInPackage" == "true" ]]; then
+			# Dev mode - skip clean reinstalls and only reinstall if package files changed
+
+			# Calculate hash of package files
+			if [[ "$PlatformFamily" != "Windows" ]]; then
+				CurrentHash=$(cat package.json package-lock.json 2>/dev/null | md5 -q)
+			else
+				CurrentHash=$(cat package.json package-lock.json 2>/dev/null | md5sum | cut -d' ' -f1)
+			fi
+
+			HashFile="node_modules/.package-hash"
+			NeedInstall=false
+
+			# Check if hash file exists and compare
+			if [[ ! -f "$HashFile" ]]; then
+				NeedInstall=true
+				echo "Hash file not found, running npm ci"
+			else
+				StoredHash=$(cat "$HashFile")
+				if [[ "$CurrentHash" != "$StoredHash" ]]; then
+					NeedInstall=true
+					echo "Package files changed, running npm ci"
+				else
+					echo "Dependencies unchanged, skipping npm ci"
+				fi
+			fi
+
+			# Install dependencies if needed
+			if [[ "$NeedInstall" == "true" ]]; then
+				rm -rf node_modules
+				npm ci
+				# Store the hash
+				echo "$CurrentHash" > "$HashFile"
+			fi
+
+			# Run the build
+			npm run $1
+		else
+			rm -rf node_modules
+			npm ci
+			npm run $1
+			rm -rf node_modules
+			npm ci --production
+		fi
 	fi
 }
 

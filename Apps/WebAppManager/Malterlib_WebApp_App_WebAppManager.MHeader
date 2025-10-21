@@ -312,6 +312,8 @@ Property
 		ExportScriptEnvironment =+ "MeteorOverridePath"
 		ExportScriptEnvironment =+ "PlatformFamily"
 		ExportScriptEnvironment =+ "Architecture"
+		ExportScriptEnvironment =+ "HostPlatformFamily"
+		ExportScriptEnvironment =+ "HostArchitecture"
 		ExportScriptEnvironment =+ "MalterlibWebAppMeteorCheckedOutPath"
 		ExportScriptEnvironment =+ "MalterlibWebAppMeteorDebugBundle"
 		ExportScriptEnvironment =+ "MalterlibWebAppNodePackagePath"
