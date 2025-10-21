@@ -1407,8 +1407,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		mp_CertificateDeployActor = fg_Construct(mp_AppState.m_DistributionManager, mp_AppState.m_TrustManager);
 
-		co_await mp_CertificateDeployActor(&CWebCertificateDeployActor::f_Start);
-
 		{
 			auto fGetFilesSettings = [&](CStr const &_Path)
 				{
@@ -1458,6 +1456,8 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 			mp_CertificateDeploySubscription = co_await mp_CertificateDeployActor(&CWebCertificateDeployActor::f_AddDomain, fg_Move(DomainSettings));
 		}
+
+		co_await mp_CertificateDeployActor(&CWebCertificateDeployActor::f_Start);
 
 		co_return {};
 	}
