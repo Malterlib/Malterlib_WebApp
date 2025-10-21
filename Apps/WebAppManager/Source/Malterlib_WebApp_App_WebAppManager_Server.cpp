@@ -61,6 +61,8 @@ namespace NMib::NWebApp::NWebAppManager
 			)
 		;
 
+		CLogError LogError("");
+
 		co_await fp_ParseConfig();
 
 		fp_CreateAppLaunches();
@@ -74,7 +76,13 @@ namespace NMib::NWebApp::NWebAppManager
 		DLog(Info, "Done extracting ExeFS, setting up nginx user");
 		co_await (fp_SetupPrerequisites_NginxUser() % "Failed to setup nginx user");
 
-		DLog(Info, "Done setting up nginx user, setting up node prerequisites and updating version history");
+		DLog(Info, "Done setting up nginx user, waiting for initial connection");
+		// We need to wait for connections to finish so we have access to secrets from secrets managers
+		co_await mp_AppState.m_TrustManager(&CDistributedActorTrustManager::f_WaitForInitialConnection).f_Timeout(15.0, "Timed out waiting for initial connection").f_Wrap()
+			> LogError.f_Warning("Failed to wait for initial connection")
+		;
+
+		DLog(Info, "Done waiting for initial connection, setting up node prerequisites and updating version history");
 		co_await (fp_SetupPrerequisites_Servers() + fp_UpdateVersionHistory());
 
 		DLog(Info, "Done setting up node prerequisites and updating version history, setting up customization prerequisites");
