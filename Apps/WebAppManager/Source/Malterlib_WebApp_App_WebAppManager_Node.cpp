@@ -747,6 +747,15 @@ namespace NMib::NWebApp::NWebAppManager
 			return;
 		}
 
+		_AppLaunch.m_LaunchEnvironment = CLaunchEnvironment
+			{
+				.m_Environment = Params.m_Environment
+				, .m_RunAsUser = Params.m_RunAsUser
+				, .m_RunAsUserPassword = Params.m_RunAsUserPassword
+				, .m_RunAsGroup = Params.m_RunAsGroup
+			}
+		;
+
 		if (_AppLaunch.m_bMalterlibDistributedApp)
 		{
 			if (!mp_AppLaunchHelper)

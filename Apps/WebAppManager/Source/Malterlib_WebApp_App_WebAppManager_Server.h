@@ -348,6 +348,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<CStr> f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir);
 
 		TCFuture<void> f_InvalidateCloudFrontCaches();
+		TCFuture<uint32> f_LaunchAsApp(NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine, CStr _Application, CStr _Executable, TCVector<CStr> _Params, CStr _WorkingDir);
 
 	private:
 		enum EHostnamePrefix
@@ -371,6 +372,14 @@ namespace NMib::NWebApp::NWebAppManager
 			CActorSubscription m_Subscription;
 		};
 
+		struct CLaunchEnvironment
+		{
+			CSystemEnvironment m_Environment;
+			NStr::CStr m_RunAsUser;
+			NStr::CStrSecure m_RunAsUserPassword;
+			NStr::CStr m_RunAsGroup;
+		};
+
 		struct CAppLaunch
 		{
 			CAppLaunchKey const &f_GetKey() const
@@ -384,6 +393,7 @@ namespace NMib::NWebApp::NWebAppManager
 			}
 
 			TCVariant<void, CNormalProcessLaunch, TCUniquePointer<CDistributedApp_LaunchInfo>> m_Launch;
+			TCOptional<CLaunchEnvironment> m_LaunchEnvironment;
 			CActorSubscription m_TunnelSubscription;
 			CStr m_LogCategory;
 			CStr m_BackendIdentifier;
