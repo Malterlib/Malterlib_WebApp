@@ -809,7 +809,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 							Options.m_KeySetting = KeySettings;
 
 							CCertificateSignOptions SignOptions;
-							SignOptions.m_Serial = 1;
+							SignOptions.m_Serial = 2;
 							SignOptions.m_Days = 824;
 							SignOptions.f_AddExtension_AuthorityKeyIdentifier();
 							Options.f_AddExtension_BasicConstraints(false);
