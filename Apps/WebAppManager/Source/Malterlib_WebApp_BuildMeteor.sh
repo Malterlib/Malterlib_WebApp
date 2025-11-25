@@ -151,6 +151,10 @@ else
 	$MeteorCommand build "$OutputDir" --server-only --architecture "$METEOR_ARCH" --directory
 fi
 
+if [ -f "server/dbversion.js" ]; then
+	cp "server/dbversion.js" "${OutputDir}bundle/"
+fi
+
 export PATH="$OldPath"
 
 SysName=$(uname -s)
