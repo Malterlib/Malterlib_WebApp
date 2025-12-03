@@ -26,8 +26,6 @@ NodeDirectory="`mktemp -d`"
 SysName=$(uname -s)
 if [[ $SysName ==  Darwin* ]] ; then
 	TarOptions="--disable-copyfile"
-else
-	TarExtractOptions="--pax-option=delete=SCHILY.*,delete=LIBARCHIVE.*"
 fi
 
 OldPath="$PATH"
