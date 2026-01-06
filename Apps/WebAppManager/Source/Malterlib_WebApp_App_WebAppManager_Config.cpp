@@ -67,7 +67,7 @@ namespace NMib::NWebApp::NWebAppManager
 		{
 			if (!Package.f_IsServer())
 				continue;
-			
+
 			CStr Hostname = fp_GetPackageHostname(Package.f_GetName(), EHostnamePrefix_None);
 			DMibLog(Info, "URL for {}: {}", Package.f_GetName(), fp_GetRootURL(Hostname, Package.m_SubPath));
 		}

@@ -128,7 +128,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 				for (auto &OnRelease : Domain.m_DomainState->m_OnReleaseDNSChallenge)
 					OnRelease.f_SetException(DMibErrorInstance("Shutting down"));
-				
+
 				Domain.m_DomainState->m_OnReleaseDNSChallenge.f_Clear();
 			}
 

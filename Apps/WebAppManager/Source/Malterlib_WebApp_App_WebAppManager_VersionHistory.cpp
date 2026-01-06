@@ -28,7 +28,7 @@ namespace NMib::NWebApp::NWebAppManager
 	}
 
 	TCFuture<void> CWebAppManagerActor::fp_UpdateVersionHistory()
-	{ 
+	{
 		auto BlockingActorCheckout = fg_BlockingActor();
 		mp_VersionHistory = co_await
 			(
