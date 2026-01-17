@@ -302,6 +302,7 @@ Property
 		CommandLine_ReBuild `@(BashScriptPrefix)@(BuildScript) Rebuild`
 		CommandLine_Clean `@(BashScriptPrefix)@(BuildScript) Clean`
 		CommandLine_Outputs =+ ScriptDependencyFile
+		CommandLine_Outputs =+ `@(OutputDirectory)@(MalterlibWebAppToolBuildName).tar.zst`
 
 		ExportScriptEnvironment =+ "MeteorCommand"
 		ExportScriptEnvironment =+ "OutputDirectory"
