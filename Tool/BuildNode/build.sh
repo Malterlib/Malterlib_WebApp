@@ -84,9 +84,10 @@ function BuildBoringSSL()
 	popd > /dev/null
 
 	mkdir -p "$OpenSSLBuildDir/bin"
-	cp "$OpenSSLBuildDir/crypto/libcrypto.a" "$OpenSSLBuildDir/bin"
-	cp "$OpenSSLBuildDir/ssl/libssl.a" "$OpenSSLBuildDir/bin"
-	cp "$OpenSSLBuildDir/decrepit/libdecrepit.a" "$OpenSSLBuildDir/bin"
+	cp "$OpenSSLBuildDir/libcrypto.a" "$OpenSSLBuildDir/bin"
+	cp "$OpenSSLBuildDir/libssl.a" "$OpenSSLBuildDir/bin"
+	cp "$OpenSSLBuildDir/libdecrepit.a" "$OpenSSLBuildDir/bin"
+	cp "$OpenSSLBuildDir/libpki.a" "$OpenSSLBuildDir/bin"
 }
 
 function BuildNode()
