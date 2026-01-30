@@ -140,7 +140,7 @@ fi
 export NPM_CONFIG_PROGRESS=false
 
 rm -rf node_modules
-$MeteorCommand npm ci --production
+$MeteorCommand npm ci
 
 mkdir -p "${OutputDir}bundle"
 
