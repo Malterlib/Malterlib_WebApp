@@ -298,9 +298,9 @@ Property
 	{
 		Type "Tool"
 		BaseName `BuildWebApp_@(MalterlibWebAppManagerName)_@(MalterlibWebAppToolBuildName)`
-		CommandLine_Build `@(BashScriptPrefix)@(BuildScript) Build`
-		CommandLine_ReBuild `@(BashScriptPrefix)@(BuildScript) Rebuild`
-		CommandLine_Clean `@(BashScriptPrefix)@(BuildScript) Clean`
+		CommandLine_Build `@(BashScriptPrefix)@(BuildScript->fg_EscapeCommand()) Build`
+		CommandLine_ReBuild `@(BashScriptPrefix)@(BuildScript->fg_EscapeCommand()) Rebuild`
+		CommandLine_Clean `@(BashScriptPrefix)@(BuildScript->fg_EscapeCommand()) Clean`
 		CommandLine_Outputs =+ ScriptDependencyFile
 		CommandLine_Outputs =+ `@(OutputDirectory)@(MalterlibWebAppToolBuildName).tar.zst`
 
