@@ -64,6 +64,7 @@ if [[ "$HostPlatformFamily" != "Windows" ]] ; then
 	else
 		md5sum "$OutputBundleTar" | cut '-d ' -f 1 > "$OutputBundleTar.md5"
 	fi
+
 	function ConvertPath()
 	{
 		echo "$1"

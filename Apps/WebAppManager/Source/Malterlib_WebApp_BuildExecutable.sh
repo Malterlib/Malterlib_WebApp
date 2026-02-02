@@ -113,7 +113,11 @@ fi
 bsdtar $TarOptions -caf "$OutputBundleTar" "$Name"
 
 if [[ "$PlatformFamily" != "Windows" ]] ; then
-	md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"
+	if [[ "$HostPlatformFamily" == "macOS" ]] ; then
+		md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"
+	else
+		md5sum "$OutputBundleTar" | cut '-d ' -f 1 > "$OutputBundleTar.md5"
+	fi
 else
 	md5sum "$OutputBundleTar" | cut '-d ' -f 1 > "$OutputBundleTar.md5"
 fi

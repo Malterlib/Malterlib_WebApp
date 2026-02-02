@@ -162,7 +162,7 @@ function RunNpmBuild()
 			# Dev mode - skip clean reinstalls and only reinstall if package files changed
 
 			# Calculate hash of package files
-			if [[ "$PlatformFamily" != "Windows" ]]; then
+			if [[ "$HostPlatformFamily" == "macOS" ]]; then
 				CurrentHash=$(cat package.json package-lock.json 2>/dev/null | md5 -q)
 			else
 				CurrentHash=$(cat package.json package-lock.json 2>/dev/null | md5sum | cut -d' ' -f1)
@@ -242,8 +242,13 @@ ExcludeArgs="$ExcludeArgs --exclude build-lock"
 
 bsdtar $TarOptions $ExcludeArgs -s "|^\./|$Name/|" -caf "$OutputBundleTar" .
 
-if [[ "$PlatformFamily" != "Windows" ]] ; then
-	md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"
+if [[ "$HostPlatformFamily" != "Windows" ]] ; then
+	if [[ "$HostPlatformFamily" == "macOS" ]] ; then
+		md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"
+	else
+		md5sum "$OutputBundleTar" | cut '-d ' -f 1 > "$OutputBundleTar.md5"
+	fi
+
 	function ConvertPath()
 	{
 		echo "$1"

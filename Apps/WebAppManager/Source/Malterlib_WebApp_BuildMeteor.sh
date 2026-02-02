@@ -178,8 +178,13 @@ else
 	"$ScriptDir/Malterlib_WebApp_BuildMeteorNpmInstall.sh" "$OutputBundleTar" "$NodePackage" "$Name"
 fi
 
-if [[ "$PlatformFamily" != "Windows" ]] ; then
-	md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"
+if [[ "$HostPlatformFamily" != "Windows" ]] ; then
+	if [[ "$HostPlatformFamily" == "macOS" ]] ; then
+		md5 -q "$OutputBundleTar" > "$OutputBundleTar.md5"
+	else
+		md5sum "$OutputBundleTar" | cut '-d ' -f 1 > "$OutputBundleTar.md5"
+	fi
+
 	function ConvertPath()
 	{
 		echo "$1"
