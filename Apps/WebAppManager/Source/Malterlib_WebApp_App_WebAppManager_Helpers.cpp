@@ -13,7 +13,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 	}
 
-	void CUser::f_Format(NStr::CStrAggregate &o_Str) const
+	void CUser::f_Format(NStr::CStr &o_Str) const
 	{
 		o_Str += "[{}, {}]"_f << m_UserName << m_GroupName;
 	}

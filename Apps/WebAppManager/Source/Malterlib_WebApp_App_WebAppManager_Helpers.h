@@ -13,7 +13,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		CUser(CStr const &_UserName, CStr const &_GroupName);
 
-		void f_Format(NStr::CStrAggregate &o_Str) const;
+		void f_Format(NStr::CStr &o_Str) const;
 
 		CStr m_UserName;
 		CStr m_GroupName;
