@@ -19,7 +19,7 @@
 #include <Mib/Web/AWS/S3>
 #include <Mib/Web/AWS/CloudFront>
 #include <Mib/Web/AWS/Lambda>
-#include <Mib/Web/Curl>
+#include <Mib/Web/HttpClient>
 #include <Mib/WebApp/WebCertificateDeploy>
 #include <Mib/Cloud/NetworkTunnelsServer>
 #include <Mib/Concurrency/DistributedAppLaunchHelper>
@@ -568,7 +568,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCActor<CProcessLaunchActor> mp_NginxLaunch;
 		CActorSubscription mp_NginxLaunchSubscription;
 
-		TCRoundRobinActors<CCurlActor> mp_CurlActors{4};
+		TCRoundRobinActors<CHttpClientActor> mp_HttpClientActors{4};
 		TCRoundRobinActors<CAwsS3Actor> mp_S3Actors{4};
 
 		TCSet<CStr> mp_LastCloudFrontDistributions;

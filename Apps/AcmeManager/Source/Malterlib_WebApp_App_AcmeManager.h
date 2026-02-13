@@ -12,7 +12,7 @@
 #include <Mib/Cryptography/Certificate>
 #include <Mib/Web/AWS/Route53>
 #include <Mib/Web/ACME>
-#include <Mib/Web/Curl>
+#include <Mib/Web/HttpClient>
 
 namespace NMib::NWebApp::NAcmeManager
 {
@@ -137,7 +137,7 @@ namespace NMib::NWebApp::NAcmeManager
 		TCMap<TCWeakDistributedActor<CActor>, CStr> mp_LastSecretsManagerError;
 		TCSet<TCWeakDistributedActor<CActor>> mp_RetryingSecretsManagers;
 
-		TCRoundRobinActors<CCurlActor> mp_CurlActors{2};
+		TCRoundRobinActors<CHttpClientActor> mp_HttpClientActors{2};
 		TCActor<CAwsRoute53Actor> mp_Route53Actor;
 
 		TCVector<CStr> mp_AcmeAccountEmails;

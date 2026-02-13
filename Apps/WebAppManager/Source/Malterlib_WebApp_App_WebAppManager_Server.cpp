@@ -162,7 +162,7 @@ namespace NMib::NWebApp::NWebAppManager
 			if (mp_LambdaActor)
 				fg_Move(mp_LambdaActor).f_Destroy() > Destroys;
 
-			mp_CurlActors.f_Destroy() > Destroys;
+			mp_HttpClientActors.f_Destroy() > Destroys;
 
 			co_await fg_AllDone(Destroys).f_Wrap() > LogError.f_Warning("Failed to destroy web app manager");
 		}

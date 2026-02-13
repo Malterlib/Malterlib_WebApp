@@ -458,7 +458,7 @@ namespace NMib::NWebApp::NAcmeManager
 			{
 				CAcmeClientActor::CDependencies AcmeDependencies(DomainSettings.m_AcmeDirectory, DomainSettings.m_AcmeCustomDirectory);
 
-				AcmeDependencies.m_CurlActor = *mp_CurlActors;
+				AcmeDependencies.m_HttpClientActor = *mp_HttpClientActors;
 				AcmeDependencies.m_AccountInfo.m_AccountPrivateKey = pDomainState->m_ACMEAccountPrivateKey;
 				AcmeDependencies.m_AccountInfo.m_Emails = mp_AcmeAccountEmails;
 

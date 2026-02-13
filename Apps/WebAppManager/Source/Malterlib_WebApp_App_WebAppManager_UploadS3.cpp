@@ -126,7 +126,7 @@ namespace NMib::NWebApp::NWebAppManager
 		auto AWSCredentials = _AWSCredentials;
 		AWSCredentials.m_Region = "us-east-1";
 
-		mp_LambdaActor = fg_Construct(*mp_CurlActors, AWSCredentials);
+		mp_LambdaActor = fg_Construct(*mp_HttpClientActors, AWSCredentials);
 
 		CStr PrefixLambdaSuffix = _Prefix ? CStr(".{}"_f << _Prefix) : CStr();
 
@@ -916,11 +916,11 @@ exports.handler = async (event) => {
 		DMibLogWithCategory(S3Upload, Info, "Getting source checksums {fe2} s", Clock.f_GetTime());
 		Clock.f_Start();
 
-		if (!mp_CurlActors.f_IsConstructed())
-			mp_CurlActors.f_Construct(fg_Construct(fg_Construct(), "S3/CloudFront curl actor"));
+		if (!mp_HttpClientActors.f_IsConstructed())
+			mp_HttpClientActors.f_Construct(fg_Construct(fg_Construct(), "S3/CloudFront curl actor"));
 
 		mp_LastCloudFrontDistributions = CloudFrontDistributions;
-		mp_CloudFrontActor = fg_Construct(*mp_CurlActors, AWSCredentials);
+		mp_CloudFrontActor = fg_Construct(*mp_HttpClientActors, AWSCredentials);
 
 		if (SourceCheckResults.m_bUpToDate)
 		{
@@ -934,7 +934,7 @@ exports.handler = async (event) => {
 				(
 					[&]
 					{
-						return fg_Construct(*mp_CurlActors, AWSCredentials);
+						return fg_Construct(*mp_HttpClientActors, AWSCredentials);
 					}
 				)
 			;
