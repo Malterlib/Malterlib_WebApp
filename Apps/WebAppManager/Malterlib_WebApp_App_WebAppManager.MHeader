@@ -296,6 +296,8 @@ Property
 	}
 	Target
 	{
+		BuildPriority 10000
+
 		Type "Tool"
 		BaseName `BuildWebApp_@(MalterlibWebAppManagerName)_@(MalterlibWebAppToolBuildName)`
 		CommandLine_Build `@(BashScriptPrefix)@(BuildScript->fg_EscapeCommand()) Build`
