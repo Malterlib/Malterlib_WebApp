@@ -204,6 +204,7 @@ ExcludePatterns="$ExcludePatterns;*/.npm"
 ExcludePatterns="$ExcludePatterns;*/.git"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 ExcludePatterns="$ExcludePatterns;*/*.MRepoState"
+ExcludePatterns="$ExcludePatterns;*/build.lock"
 
 DependencyCommands=("OutputFile=`ConvertPath \"$ScriptDependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Input:`ConvertPath \"$ScriptDir/Malterlib_WebApp_BuildMeteorNpmInstall.sh\"`" "Find:`ConvertPath \"$MeteorDir\"`/*;RIF;33;$ExcludePatterns")
 echo $DependencyCommands
