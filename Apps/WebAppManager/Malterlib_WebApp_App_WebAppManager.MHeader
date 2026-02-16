@@ -306,26 +306,24 @@ Property
 		CommandLine_Outputs =+ ScriptDependencyFile
 		CommandLine_Outputs =+ `@(OutputDirectory)@(MalterlibWebAppToolBuildName).tar.zst`
 
-		ExportScriptEnvironment =+ "MeteorCommand"
-		ExportScriptEnvironment =+ "OutputDirectory"
-		ExportScriptEnvironment =+ "MalterlibWebAppToolBuildName"
-		ExportScriptEnvironment =+ "ScriptDependencyFile"
-		ExportScriptEnvironment =+ "WebAppBuildDirectory"
-		ExportScriptEnvironment =+ "MalterlibWebAppMeteorSharedPackages"
-		ExportScriptEnvironment =+ "MeteorOverridePath"
-		ExportScriptEnvironment =+ "PlatformFamily"
-		ExportScriptEnvironment =+ "Architecture"
-		ExportScriptEnvironment =+ "HostPlatformFamily"
-		ExportScriptEnvironment =+ "HostArchitecture"
-		ExportScriptEnvironment =+ "MalterlibWebAppMeteorCheckedOutPath"
-		ExportScriptEnvironment =+ "MalterlibWebAppMeteorDebugBundle"
-		ExportScriptEnvironment =+ "MalterlibWebAppNodePackagePath"
-		ExportScriptEnvironment =+ "MalterlibWebAppHostNodePackagePath"
-		ExportScriptEnvironment =+ "MalterlibWebAppToolUseSystemNode"
-		ExportScriptEnvironment =+ "MalterlibWebAppToolDependencies"
-		ExportScriptEnvironment =+ "MalterlibWebAppToolDependenciesFiles"
-		ExportScriptEnvironment =+ "MalterlibWebAppManagerDevDepenencesInPackage"
-		ExportScriptEnvironment =+ "NpmBuildType"
+		ExportScriptEnvironment =+ [
+			"MeteorCommand"
+			, "OutputDirectory"
+			, "MalterlibWebAppToolBuildName"
+			, "ScriptDependencyFile"
+			, "WebAppBuildDirectory"
+			, "MalterlibWebAppMeteorSharedPackages"
+			, "MeteorOverridePath"
+			, "MalterlibWebAppMeteorCheckedOutPath"
+			, "MalterlibWebAppMeteorDebugBundle"
+			, "MalterlibWebAppNodePackagePath"
+			, "MalterlibWebAppHostNodePackagePath"
+			, "MalterlibWebAppToolUseSystemNode"
+			, "MalterlibWebAppToolDependencies"
+			, "MalterlibWebAppToolDependenciesFiles"
+			, "MalterlibWebAppManagerDevDepenencesInPackage"
+			, "NpmBuildType"
+		]
 
 		Group `WebApp/@(MalterlibWebAppManagerName)/@(MalterlibWebAppToolBuildName)`
 	}
