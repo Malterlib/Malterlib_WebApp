@@ -210,7 +210,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		Environment["MONGO_URL"] = Address;
 
-		auto Clock = CClock{true};
+		CStopwatch Stopwatch{true};
 
 		while (true)
 		{
@@ -241,7 +241,7 @@ namespace NMib::NWebApp::NWebAppManager
 							|| StdOutResult.f_GetExceptionStr().f_Find("not master and slaveOk=false") >= 0
 						)
 						&& _Timeout != 0.0f
-						&& Clock.f_GetTime() < _Timeout
+						&& Stopwatch.f_GetTime() < _Timeout
 					)
 				{
 					co_await fg_Timeout(0.1);

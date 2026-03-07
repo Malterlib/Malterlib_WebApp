@@ -730,7 +730,7 @@ exports.handler = async (event) => {
 			co_return {};
 
 		DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3");
-		NTime::CClock GlobalClock{true};
+		NTime::CStopwatch GlobalStopwatch{true};
 
 		CAwsCredentials AWSCredentials;
 
@@ -757,7 +757,7 @@ exports.handler = async (event) => {
 		}
 
 		DMibLogWithCategory(S3Upload, Info, "Getting source checksums");
-		NTime::CClock Clock{true};
+		NTime::CStopwatch Stopwatch{true};
 
 		CStr AlternateSourcesString;
 		if (!fp_FormatAlternateSources(AlternateSourcesString, AlternateSources))
@@ -913,8 +913,8 @@ exports.handler = async (event) => {
 			;
 		}
 
-		DMibLogWithCategory(S3Upload, Info, "Getting source checksums {fe2} s", Clock.f_GetTime());
-		Clock.f_Start();
+		DMibLogWithCategory(S3Upload, Info, "Getting source checksums {fe2} s", Stopwatch.f_GetTime());
+		Stopwatch.f_Start();
 
 		if (!mp_HttpClientActors.f_IsConstructed())
 			mp_HttpClientActors.f_Construct(fg_Construct(fg_Construct(), "S3/CloudFront curl actor"));
@@ -945,8 +945,8 @@ exports.handler = async (event) => {
 		DMibLogWithCategory(S3Upload, Info, "Listing bucket");
 		auto Bucket = co_await (*mp_S3Actors)(&CAwsS3Actor::f_ListBucket, BucketName);
 
-		DMibLogWithCategory(S3Upload, Info, "Listing bucket {fe2} s", Clock.f_GetTime());
-		Clock.f_Start();
+		DMibLogWithCategory(S3Upload, Info, "Listing bucket {fe2} s", Stopwatch.f_GetTime());
+		Stopwatch.f_Start();
 
 		TCFutureMap<CStr, CAwsS3Actor::CObjectInfoMetadata> MetadataResults;
 
@@ -1060,8 +1060,8 @@ exports.handler = async (event) => {
 		auto Metadata = co_await (fg_AllDoneWrapped(MetadataResults) % "Failed to get file metadata");
 
 		if (nMetadataQueries)
-			DMibLogWithCategory(S3Upload, Info, "Querying object metadata for {} objects {fe2} s", nMetadataQueries, Clock.f_GetTime());
-		Clock.f_Start();
+			DMibLogWithCategory(S3Upload, Info, "Querying object metadata for {} objects {fe2} s", nMetadataQueries, Stopwatch.f_GetTime());
+		Stopwatch.f_Start();
 
 		TCSet<CStr> FilesToDelete;
 		for (auto &Object : Bucket.m_Objects)
@@ -1255,8 +1255,8 @@ exports.handler = async (event) => {
 		co_await fg_AllDone(UploadResults);
 
 		if (bUploadFiles)
-			DMibLogWithCategory(S3Upload, Info, "Reading files and uploading {fe2} s", Clock.f_GetTime());
-		Clock.f_Start();
+			DMibLogWithCategory(S3Upload, Info, "Reading files and uploading {fe2} s", Stopwatch.f_GetTime());
+		Stopwatch.f_Start();
 
 		TCFutureVector<void> DeleteFilesResults;
 		for (auto &File : FilesToDelete)
@@ -1289,21 +1289,21 @@ exports.handler = async (event) => {
 		auto [Results, LambdaUpdateResults] = co_await (fg_AllDoneWrapped(DeleteFilesResults) + fg_AllDoneWrapped(LambdaUpdateResultsVector));
 
 		if (bDeleteFiles)
-			DMibLogWithCategory(S3Upload, Info, "Deleting files and updating Lambda@Edge {fe2} s", Clock.f_GetTime());
+			DMibLogWithCategory(S3Upload, Info, "Deleting files and updating Lambda@Edge {fe2} s", Stopwatch.f_GetTime());
 		else
-			DMibLogWithCategory(S3Upload, Info, "Updating Lambda@Edge {fe2} s", Clock.f_GetTime());
-		Clock.f_Start();
+			DMibLogWithCategory(S3Upload, Info, "Updating Lambda@Edge {fe2} s", Stopwatch.f_GetTime());
+		Stopwatch.f_Start();
 
 		co_await (fg_Move(Results) | g_Unwrap);
 		co_await (fg_Move(LambdaUpdateResults) | g_Unwrap);
 
 		DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache");
 		co_await fp_InvalidateCloudfrontDistributionsWithRetry(CloudFrontDistributions);
-		DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
+		DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Stopwatch.f_GetTime());
 
-		fg_Timeout(60.0) > [this, CloudFrontDistributions = CloudFrontDistributions, Clock]() mutable -> TCFuture<void>
+		fg_Timeout(60.0) > [this, CloudFrontDistributions = CloudFrontDistributions, Stopwatch]() mutable -> TCFuture<void>
 			{
-				Clock.f_Start();
+				Stopwatch.f_Start();
 				DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again");
 				fp_InvalidateCloudfrontDistributionsWithRetry(CloudFrontDistributions) > [=](TCAsyncResult<void> &&_Result)
 					{
@@ -1312,7 +1312,7 @@ exports.handler = async (event) => {
 							DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again failed: {}", _Result.f_GetExceptionStr());
 							return;
 						}
-						DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again {fe2} s", Clock.f_GetTime());
+						DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache again {fe2} s", Stopwatch.f_GetTime());
 					}
 				;
 
@@ -1326,7 +1326,7 @@ exports.handler = async (event) => {
 				g_Dispatch(BlockingActorCheckout) / [=]()
 				{
 					CFile::fs_WriteStringToFile(SourceCheckResults.m_ChecksumFile, SourceCheckResults.m_ChecksumStr, false);
-					DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3 took {fe2} s in total", GlobalClock.f_GetTime());
+					DMibLogWithCategory(S3Upload, Info, "Uploading static files to S3 took {fe2} s in total", GlobalStopwatch.f_GetTime());
 				}
 			)
 		;
@@ -1402,10 +1402,10 @@ exports.handler = async (event) => {
 			(
 				g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<void>
 				{
-					NTime::CClock Clock{true};
+					NTime::CStopwatch Stopwatch{true};
 					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache out of band");
 					co_await fp_InvalidateCloudfrontDistributionsWithRetry(mp_LastCloudFrontDistributions);
-					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Clock.f_GetTime());
+					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Stopwatch.f_GetTime());
 
 					(void)_Subscription;
 
