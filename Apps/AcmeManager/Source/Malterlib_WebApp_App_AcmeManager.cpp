@@ -148,25 +148,7 @@ namespace NMib::NWebApp::NAcmeManager
 		Status.m_Severity = _Severity;
 	}
 
-	auto CAcmeManagerActor::CDomainSettings::f_Tuple() const
-	{
-		return fg_TupleReferences
-			(
-				m_EllipticCurveType
-				, m_RSASettings
-				, m_bGenerateRSA
-				, m_bGenerateEC
-				, m_bIncludeWildcard
-				, m_bManualDNSChallenge
-				, m_AlternateChain
-				, m_AcmeDirectory
-				, m_AcmeCustomDirectory
-				, m_AccountKeySettings
-			)
-		;
-	}
-
-	bool CAcmeManagerActor::CDomainSettings::operator == (CAcmeManagerActor::CDomainSettings const &_Right) const
+	bool CAcmeManagerActor::CDomainSettings::operator == (CAcmeManagerActor::CDomainSettings const &_Right) const noexcept
 	{
 		return f_Tuple() == _Right.f_Tuple();
 	}

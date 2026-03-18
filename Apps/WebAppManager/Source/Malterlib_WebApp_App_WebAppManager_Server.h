@@ -363,7 +363,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_PackageName;
 			mint m_iAppSequence = 0;
 
-			auto operator <=> (CAppLaunchKey const &_Right) const = default;
+			auto operator <=> (CAppLaunchKey const &_Right) const noexcept = default;
 		};
 
 		struct CNormalProcessLaunch

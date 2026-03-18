@@ -47,8 +47,7 @@ namespace NMib::NWebApp
 
 		struct CDomainStatus
 		{
-			auto f_Tuple() const;
-			bool operator == (CDomainStatus const &_Right) const;
+			auto operator <=> (CDomainStatus const &_Right) const noexcept = default;
 
 			NStr::CStr m_Description;
 			EStatusSeverity m_Severity = EStatusSeverity_Info;

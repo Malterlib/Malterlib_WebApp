@@ -59,32 +59,17 @@ namespace NMib::NWebApp::NWebCertificateManager
 		co_return {};
 	}
 
-	auto CWebCertificateManagerActor::CDomainSettings::f_Tuple() const
-	{
-		return fg_TupleReferences(m_Location_Ec, m_Location_Rsa, m_Location_NginxPid, m_FileSettings_Certificate, m_FileSettings_Key);
-	}
-
-	bool CWebCertificateManagerActor::CDomainSettings::operator == (CWebCertificateManagerActor::CDomainSettings const &_Right) const
+	bool CWebCertificateManagerActor::CDomainSettings::operator == (CWebCertificateManagerActor::CDomainSettings const &_Right) const noexcept
 	{
 		return f_Tuple() == _Right.f_Tuple();
 	}
 
-	auto CWebCertificateManagerActor::CCertificateLocation::f_Tuple() const
-	{
-		return fg_TupleReferences(m_Key, m_FullChain);
-	}
-
-	bool CWebCertificateManagerActor::CCertificateLocation::operator == (CCertificateLocation const &_Right) const
+	bool CWebCertificateManagerActor::CCertificateLocation::operator == (CCertificateLocation const &_Right) const noexcept
 	{
 		return f_Tuple() == _Right.f_Tuple();
 	}
 
-	auto CWebCertificateManagerActor::CCertificateFileSettings::f_Tuple() const
-	{
-		return fg_TupleReferences(m_User, m_Group, m_Attributes);
-	}
-
-	bool CWebCertificateManagerActor::CCertificateFileSettings::operator == (CCertificateFileSettings const &_Right) const
+	bool CWebCertificateManagerActor::CCertificateFileSettings::operator == (CCertificateFileSettings const &_Right) const noexcept
 	{
 		return f_Tuple() == _Right.f_Tuple();
 	}

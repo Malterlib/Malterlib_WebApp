@@ -44,16 +44,6 @@ namespace NMib::NWebApp
 			o_Domain.m_Settings.m_fOnStatusChange(_HostInfo, Status) > fg_LogError("Mib/WebApp/WebCertificateDeploy", "On status change failed");
 	}
 
-	auto CWebCertificateDeployActor::CDomainStatus::f_Tuple() const
-	{
-		return fg_TupleReferences(m_Severity, m_Description);
-	}
-
-	bool CWebCertificateDeployActor::CDomainStatus::operator == (CDomainStatus const &_Right) const
-	{
-		return f_Tuple() == _Right.f_Tuple();
-	}
-
 	CStr const &CWebCertificateDeployActor::CInternal::CDomain::f_GetName() const
 	{
 		return TCMap<CStr, CDomain>::fs_GetKey(*this);

@@ -21,8 +21,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		struct CCertificateLocation
 		{
-			auto f_Tuple() const;
-			bool operator == (CCertificateLocation const &_Right) const;
+			auto operator <=> (CCertificateLocation const &_Right) const noexcept = default;
 
 			CStr m_Key;
 			CStr m_FullChain;
@@ -31,8 +30,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		struct CCertificateFileSettings
 		{
-			auto f_Tuple() const;
-			bool operator == (CCertificateFileSettings const &_Right) const;
+			auto operator <=> (CCertificateFileSettings const &_Right) const noexcept = default;
 
 			CStr m_User;
 			CStr m_Group;
@@ -41,8 +39,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		struct CDomainSettings
 		{
-			auto f_Tuple() const;
-			bool operator == (CDomainSettings const &_Right) const;
+			auto operator <=> (CDomainSettings const &_Right) const noexcept = default;
 
 			TCOptional<CCertificateLocation> m_Location_Ec;
 			TCOptional<CCertificateLocation> m_Location_Rsa;

@@ -24,8 +24,8 @@ namespace NMib::NWebApp::NAcmeManager
 	private:
 		struct CDomainSettings
 		{
-			bool operator == (CDomainSettings const &_Right) const;
-			auto f_Tuple() const;
+			auto operator <=> (CDomainSettings const &_Right) const noexcept = default;
+
 			CPublicKeySetting f_PublicKeySettings() const;
 
 			EPublicKeyType m_EllipticCurveType;
