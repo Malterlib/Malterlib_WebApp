@@ -9,7 +9,7 @@
 
 namespace NMib::NWebApp::NWebAppManager
 {
-	mint CWebAppManagerActor::fs_GetNodeFileLimits()
+	umint CWebAppManagerActor::fs_GetNodeFileLimits()
 	{
 		return 65536 + 8192;
 	}
@@ -109,7 +109,7 @@ namespace NMib::NWebApp::NWebAppManager
 			return fg_Format("127.{}.{}.1", mp_LoopbackPrefix, 2 + LaunchKey.m_iAppSequence);
 	}
 
-	CStr CWebAppManagerActor::fp_GetAppLocalURL(CAppLaunch const &_AppLaunch, mint _iPort) const
+	CStr CWebAppManagerActor::fp_GetAppLocalURL(CAppLaunch const &_AppLaunch, umint _iPort) const
 	{
 		return fg_Format("http://{}{}{}/", fp_GetAppIPAddress(_AppLaunch, false), (_AppLaunch.m_bUnixSocket ? "." : ":"), mp_LocalPort + _iPort);
 	}
@@ -117,7 +117,7 @@ namespace NMib::NWebApp::NWebAppManager
 	CStr CWebAppManagerActor::fp_GetPackageLocalURL(CStr const &_PackageName) const
 	{
 		auto &CurrentURL = mp_CurrentPackageLocalURL[_PackageName];
-		mint iURL = CurrentURL;
+		umint iURL = CurrentURL;
 
 		auto &Package = mp_Options.m_Packages[_PackageName];
 		++CurrentURL;
@@ -143,7 +143,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 			CAppLaunchKey LaunchKey;
 			LaunchKey.m_PackageName = Package.f_GetName();
-			for (mint i = 0; i < Package.m_Concurrency; ++i)
+			for (umint i = 0; i < Package.m_Concurrency; ++i)
 			{
 				LaunchKey.m_iAppSequence = mp_AppSequence++;
 				auto &AppLaunch = mp_AppLaunches[LaunchKey];
@@ -157,7 +157,7 @@ namespace NMib::NWebApp::NWebAppManager
 				AppLaunch.m_bMalterlibDistributedApp = Package.m_bMalterlibDistributedApp;
 				AppLaunch.m_bUnixSocket = Package.m_bUnixSocket;
 
-				for (mint i = 0; i < Package.m_PortConcurrency; ++i)
+				for (umint i = 0; i < Package.m_PortConcurrency; ++i)
 					mp_PackageLocalURLs[LaunchKey.m_PackageName].f_Insert(fp_GetAppLocalURL(AppLaunch, i));
 			}
 		}

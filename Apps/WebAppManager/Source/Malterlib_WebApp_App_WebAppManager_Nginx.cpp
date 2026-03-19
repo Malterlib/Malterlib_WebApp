@@ -8,14 +8,14 @@
 
 namespace NMib::NWebApp::NWebAppManager
 {
-	mint CWebAppManagerActor::fs_GetNginxWorkerFileLimits()
+	umint CWebAppManagerActor::fs_GetNginxWorkerFileLimits()
 	{
-		mint nFilesPerConnection = 2; // nginx incoming + nginx proxy -> node
+		umint nFilesPerConnection = 2; // nginx incoming + nginx proxy -> node
 
 		return 65536*nFilesPerConnection + 8192;
 	}
 
-	mint CWebAppManagerActor::fs_GetNginxFileLimits(mint _nNodes)
+	umint CWebAppManagerActor::fs_GetNginxFileLimits(umint _nNodes)
 	{
 		return fs_GetNginxWorkerFileLimits() * _nNodes + 8192;
 	}
@@ -954,14 +954,14 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 				if (Package.m_StickyHeader.f_IsEmpty() && Package.m_StickyCookie.f_IsEmpty())
 					UpstreamServers += "		ip_hash; # for sticky sessions\n";
 
-				mint nUpstream = 0;
+				umint nUpstream = 0;
 				for (auto &AppLaunch : mp_AppLaunches)
 				{
 					if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 						continue;
 					++nUpstream;
 					CStr IPAddress = fp_GetAppIPAddress(AppLaunch, false);
-					for (mint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
+					for (umint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
 						UpstreamServers += "\t\tserver {}{}{} max_fails=30 fail_timeout=30s;\n"_f << IPAddress << AppLaunch.f_PortDelim() << iPort;
 					PackageIPs[Package.f_GetName()] = IPAddress;
 				}
@@ -984,7 +984,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					{
 						if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 							continue;
-						for (mint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
+						for (umint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
 							UpstreamServers += "		{} {}{}{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch, false) << AppLaunch.f_PortDelim() << iPort;
 					}
 
@@ -1003,7 +1003,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					{
 						if (AppLaunch.f_GetKey().m_PackageName != Package.f_GetName())
 							continue;
-						for (mint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
+						for (umint iPort = mp_LocalPort; iPort < mp_LocalPort + Package.m_PortConcurrency; ++iPort)
 							UpstreamServers += "		{} {}{}{};\n"_f << AppLaunch.m_BackendIdentifier << fp_GetAppIPAddress(AppLaunch, false) << AppLaunch.f_PortDelim() << iPort;
 					}
 

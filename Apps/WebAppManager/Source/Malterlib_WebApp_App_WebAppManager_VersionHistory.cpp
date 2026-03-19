@@ -68,8 +68,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 					CRegistry NewHistoryRegistry;
 
-					mint nMaxVersions = 10;
-					mint nVersions = 0;
+					umint nMaxVersions = 10;
+					umint nVersions = 0;
 
 					TCVector<CStr> VersionHistory;
 

@@ -465,7 +465,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 				CStr EvaluatedExpression = fg_Format(Expression.f_GetStr(), 0.0);
 
-				Package.m_Concurrency = fg_Min(fg_Max(mint(EvaluatedExpression.f_ToFloat().f_ToInt()), 1u), NSys::fg_Thread_GetVirtualCores());
+				Package.m_Concurrency = fg_Min(fg_Max(umint(EvaluatedExpression.f_ToFloat().f_ToInt()), 1u), NSys::fg_Thread_GetVirtualCores());
 			}
 
 			if (auto *pValue = PackageSettings.f_GetMember("NpmBuildType"))

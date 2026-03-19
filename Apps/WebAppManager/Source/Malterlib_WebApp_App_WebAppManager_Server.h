@@ -165,8 +165,8 @@ namespace NMib::NWebApp::NWebAppManager
 			TCVector<CStr> m_ExcludeGzipPatterns;
 			TCMap<CStr, int64> m_UploadS3Priority;
 			fp64 m_MemoryPerNode = 1.5;
-			mint m_Concurrency = 1;
-			mint m_PortConcurrency = 1;
+			umint m_Concurrency = 1;
+			umint m_PortConcurrency = 1;
 			EPackageType m_Type = EPackageType_Meteor;
 			bool m_bSeparateUser = false;
 			bool m_bOwnPackageDirectory = false;
@@ -324,9 +324,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 		static void fs_SetupEnvironment(CProcessLaunchParams &_Params);
 
-		static mint fs_GetNodeFileLimits();
-		static mint fs_GetNginxWorkerFileLimits();
-		static mint fs_GetNginxFileLimits(mint _nNodes);
+		static umint fs_GetNodeFileLimits();
+		static umint fs_GetNginxWorkerFileLimits();
+		static umint fs_GetNginxFileLimits(umint _nNodes);
 
 		TCFuture<CStr> f_LaunchTool
 			(
@@ -361,7 +361,7 @@ namespace NMib::NWebApp::NWebAppManager
 		struct CAppLaunchKey
 		{
 			CStr m_PackageName;
-			mint m_iAppSequence = 0;
+			umint m_iAppSequence = 0;
 
 			auto operator <=> (CAppLaunchKey const &_Right) const noexcept = default;
 		};
@@ -438,8 +438,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 		CEJsonSorted fp_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const;
 
-		mint fp_GetNumNodes() const;
-		mint fp_NeedsLocalIPs() const;
+		umint fp_GetNumNodes() const;
+		umint fp_NeedsLocalIPs() const;
 
 		static CHashDigest_MD5 fsp_GetFileChecksum(CStr const &_File);
 		static void fsp_SetupPrerequisites_ServerUser
@@ -494,7 +494,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr fp_GetPackageLocalURL(CStr const &_PackageName) const;
 		CStr fp_GetRootURL(CStr const &_Hostname, CStr const &_SubPath) const;
 		CStr fp_GetAppIPAddress(CAppLaunch const &_AppLaunch, bool _bForMalterlib) const;
-		CStr fp_GetAppLocalURL(CAppLaunch const &_AppLaunch, mint _iPort) const;
+		CStr fp_GetAppLocalURL(CAppLaunch const &_AppLaunch, umint _iPort) const;
 		void fp_UpdateAppLaunch(CExceptionPointer const &_pException);
 		void fp_LaunchApp(CAppLaunch &_AppLaunch, bool _bInitialLaunch);
 		void fp_SetupNodeArguments(TCVector<CStr> &o_Arguments, CAppLaunch const &_AppLaunch, CWebAppManagerOptions::CPackage const &_PackageOptions);
@@ -560,7 +560,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCMap<CStr, zmint> mp_OutstandingLaunches;
 		mutable TCMap<CStr, zmint> mp_CurrentPackageLocalURL;
 		TCMap<CStr, TCVector<CStr>> mp_PackageLocalURLs;
-		mint mp_AppSequence = 0;
+		umint mp_AppSequence = 0;
 		TCPromise<void> mp_AppLaunchesPromise;
 
 		CStr mp_InstanceId;

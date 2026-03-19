@@ -43,22 +43,22 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		o_RegisterInfo.m_UpdateType = EDistributedAppUpdateType_AllAtOnce;
 
-		mint nNodes = 0;
+		umint nNodes = 0;
 
 		for (auto &Package : mp_Options.m_Packages)
 			nNodes += Package.m_Concurrency;
 
-		mint nMaxFilesNeeded = 8192;
+		umint nMaxFilesNeeded = 8192;
 		nMaxFilesNeeded += CWebAppManagerActor::fs_GetNginxFileLimits(nNodes);
 		nMaxFilesNeeded += CWebAppManagerActor::fs_GetNodeFileLimits() * nNodes;
 
-		mint nFilesPerProc = 0;
+		umint nFilesPerProc = 0;
 		nFilesPerProc = fg_Max(nFilesPerProc, CWebAppManagerActor::fs_GetNginxWorkerFileLimits());
 		nFilesPerProc = fg_Max(nFilesPerProc, CWebAppManagerActor::fs_GetNodeFileLimits());
 
-		mint nMaxThreads = 1024;
+		umint nMaxThreads = 1024;
 
-		mint nMaxPids = 32 + nNodes;
+		umint nMaxPids = 32 + nNodes;
 
 		o_RegisterInfo.m_Resources_Files = nMaxFilesNeeded;
 		o_RegisterInfo.m_Resources_Threads = nMaxThreads;

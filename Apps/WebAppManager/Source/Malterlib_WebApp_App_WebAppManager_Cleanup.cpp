@@ -10,7 +10,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		void fg_CleanupOldProcesses(TCVector<CStr> const &_Executables)
 		{
-			mint nKilled = 0;
+			umint nKilled = 0;
 			// Kill old managers
 			nKilled += CProcessLaunch::fs_KillProcessesInDirectory(CFile::fs_GetFile(CFile::fs_GetProgramPath()));
 

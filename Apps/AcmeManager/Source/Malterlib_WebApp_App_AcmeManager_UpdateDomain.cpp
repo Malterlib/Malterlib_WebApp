@@ -170,7 +170,7 @@ namespace NMib::NWebApp::NAcmeManager
 			Change.m_RecordSet.m_ResourceRecords.f_Insert(TokenToAdd);
 			State["AddedDates"][_Challenge.m_Token] = Now;
 
-			constexpr mint c_MaxTxtRecordSubStringLength = 250;
+			constexpr umint c_MaxTxtRecordSubStringLength = 250;
 
 			CStr EncodedRecord = "\"State\"";
 			for (CStr WholeString = fg_Base64Encode(State.f_ToString(nullptr)); WholeString; WholeString = WholeString.f_Extract(c_MaxTxtRecordSubStringLength))

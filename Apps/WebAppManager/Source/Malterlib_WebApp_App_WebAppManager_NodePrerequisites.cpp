@@ -11,15 +11,15 @@
 
 namespace NMib::NWebApp::NWebAppManager
 {
-	mint CWebAppManagerActor::fp_GetNumNodes() const
+	umint CWebAppManagerActor::fp_GetNumNodes() const
 	{
-		mint nNodes = 0;
+		umint nNodes = 0;
 		for (auto &Package : mp_Options.m_Packages)
 			nNodes += Package.m_Concurrency;
 		return nNodes;
 	}
 
-	mint CWebAppManagerActor::fp_NeedsLocalIPs() const
+	umint CWebAppManagerActor::fp_NeedsLocalIPs() const
 	{
 		for (auto &Package : mp_Options.m_Packages)
 		{
@@ -436,7 +436,7 @@ namespace NMib::NWebApp::NWebAppManager
 							co_await ThisActor(&CWebAppManagerActor::f_ExtractTar, PackageFileName, ProgramDirectory);
 
 							TCVector<CBlockingActorCheckout> BlockingActorCheckouts;
-							auto fGetCheckout = [&, iCheckout = mint(0), nMaxCheckouts = NSys::fg_Thread_GetVirtualCores()]() mutable -> CBlockingActorCheckout &
+							auto fGetCheckout = [&, iCheckout = umint(0), nMaxCheckouts = NSys::fg_Thread_GetVirtualCores()]() mutable -> CBlockingActorCheckout &
 								{
 									if (BlockingActorCheckouts.f_GetLen() < nMaxCheckouts)
 									{

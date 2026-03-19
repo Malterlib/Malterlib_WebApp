@@ -18,7 +18,7 @@ namespace NMib::NWebApp::NAcmeManager
 		CTableRenderHelper TableRenderer = _pCommandLine->f_TableRenderer();
 
 		TCVector<CStr> Headings;
-		TCSet<mint> VerboseHeadings;
+		TCSet<umint> VerboseHeadings;
 
 		auto fAddHeading = [&](CStr const &_Name, bool _bVerbose = true)
 			{

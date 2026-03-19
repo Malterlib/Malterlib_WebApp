@@ -958,7 +958,7 @@ exports.handler = async (event) => {
 
 		TCMap<CStr, TCOptional<CByteVector>> FilesToUpdate;
 
-		mint nMetadataQueries = 0;
+		umint nMetadataQueries = 0;
 		for (auto &NewFile : SourceCheckResults.m_DirectoryManifest.m_Files)
 		{
 			if (!NewFile.f_IsFile())
@@ -1350,7 +1350,7 @@ exports.handler = async (event) => {
 
 		TCVector<TCAsyncResult<CStr>> Errors;
 
-		for (mint iRetry = 10; iRetry >= 0; --iRetry)
+		for (umint iRetry = 10; iRetry >= 0; --iRetry)
 		{
 			TCFutureMap<CStr, CStr> Results;
 			for (auto &Distribution : ToInvalidate)
