@@ -1355,7 +1355,7 @@ Property
 	{
 		NginxPostCopyDestination: string
 		NginxPostCopyDestination "bin/"
-		NginxPostCopyDestination `@(MalterlibPostCopyDestination)@(NginxPostCopyDestination)`
+		NginxPostCopyDestination MalterlibPostCopyDestination / NginxPostCopyDestination
 		{
 			!MalterlibPostCopyDestination undefined
 		}
