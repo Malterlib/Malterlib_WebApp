@@ -58,21 +58,6 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		co_return {};
 	}
-
-	bool CWebCertificateManagerActor::CDomainSettings::operator == (CWebCertificateManagerActor::CDomainSettings const &_Right) const noexcept
-	{
-		return f_Tuple() == _Right.f_Tuple();
-	}
-
-	bool CWebCertificateManagerActor::CCertificateLocation::operator == (CCertificateLocation const &_Right) const noexcept
-	{
-		return f_Tuple() == _Right.f_Tuple();
-	}
-
-	bool CWebCertificateManagerActor::CCertificateFileSettings::operator == (CCertificateFileSettings const &_Right) const noexcept
-	{
-		return f_Tuple() == _Right.f_Tuple();
-	}
 }
 
 namespace NMib::NWebApp

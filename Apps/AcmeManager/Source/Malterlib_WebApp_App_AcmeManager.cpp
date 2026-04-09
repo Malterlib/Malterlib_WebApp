@@ -148,11 +148,6 @@ namespace NMib::NWebApp::NAcmeManager
 		Status.m_Severity = _Severity;
 	}
 
-	bool CAcmeManagerActor::CDomainSettings::operator == (CAcmeManagerActor::CDomainSettings const &_Right) const noexcept
-	{
-		return f_Tuple() == _Right.f_Tuple();
-	}
-
 	CStr CAcmeManagerActor::CDomain::f_GetSecretFolder() const
 	{
 		return "org.malterlib.certificate/{}"_f << f_GetName();
