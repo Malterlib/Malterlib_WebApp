@@ -8,6 +8,7 @@
 
 namespace NMib::NWebApp::NWebAppManager
 {
+#ifdef DMibWebAppManager_SupportMongo
 	CStr CWebAppManagerActor::fp_GetMongoExecutable(CStr const &_ExecutableName) const
 	{
 		if (!mp_MongoDirectory.f_IsEmpty())
@@ -130,17 +131,23 @@ namespace NMib::NWebApp::NWebAppManager
 
 		co_return {};
 	}
+#endif
 
 	CStr CWebAppManagerActor::fp_GetMongoSSLDirectory() const
 	{
+#ifdef DMibWebAppManager_SupportMongo
 		CStr MongoSSLDirectory = mp_MongoSSLDirectory;
 
 		if (!MongoSSLDirectory.f_IsEmpty())
 			return CFile::fs_GetExpandedPath(MongoSSLDirectory, CFile::fs_GetProgramDirectory());
 
 		return CFile::fs_GetProgramDirectory() / "mongo/certificates";
+#else
+		return {};
+#endif
 	}
 
+#ifdef DMibWebAppManager_SupportMongo
 	NWeb::NHTTP::CURL CWebAppManagerActor::fp_GetDBAddressURL(CStr _Database, CStr _HomePath)
 	{
 		if (mp_bConnectToExternalMongo)
@@ -257,4 +264,5 @@ namespace NMib::NWebApp::NWebAppManager
 
 		co_return {};
 	}
+#endif
 }

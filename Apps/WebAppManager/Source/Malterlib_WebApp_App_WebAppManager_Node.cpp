@@ -683,6 +683,7 @@ namespace NMib::NWebApp::NWebAppManager
 				CalculatedSettings[fg_Format("LocalURL_{}", Package.f_GetName())] = fp_GetPackageLocalURL(Package.f_GetName());
 			}
 
+#ifdef DMibWebAppManager_SupportMongo
 			CalculatedSettings["MongoURL"] = fp_GetDBAddress(mp_MongoDatabase, LaunchHomePath / "certificates");
 			CalculatedSettings["MongoOplogURL"] = fp_GetDBAddress("local", LaunchHomePath / "certificates");
 
@@ -692,6 +693,7 @@ namespace NMib::NWebApp::NWebAppManager
 				CalculatedSettings["MongoSSLClientCertFile"] = LaunchHomePath / "certificates/admin.crt";
 				CalculatedSettings["MongoSSLClientKeyFile"] = LaunchHomePath / "certificates/admin.key";
 			}
+#endif
 
 			CJsonSorted MeteorSettings;
 			{

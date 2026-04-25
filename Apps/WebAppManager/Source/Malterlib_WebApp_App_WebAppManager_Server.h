@@ -12,8 +12,10 @@
 #include <Mib/Daemon/Daemon>
 #include <Mib/Process/ProcessLaunch>
 #include <Mib/File/ChangeNotificationActor>
+#ifdef DMibWebAppManager_SupportMongo
 #include <Mib/Mongo/Client>
 #include <Mib/Mongo/MongoCertificateDeploy>
+#endif
 #include <Mib/Storage/Optional>
 #include <Mib/Security/UniqueUserGroup>
 #include <Mib/Web/AWS/S3>
@@ -178,6 +180,7 @@ namespace NMib::NWebApp::NWebAppManager
 			bool m_bUseSystemNode = false;
 		};
 
+#ifdef DMibWebAppManager_SupportMongo
 		struct CMongo
 		{
 			void f_SetDefaults(CWebAppManagerOptions const &_Options);
@@ -193,6 +196,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_DefaultReplicaName = "DefaultReplica";
 			CStr m_DefaultMongoVersion = "6.0";
 		};
+#endif
 
 		CWebAppManagerOptions(CStr const &_ManagerName, CStr const &_ManagerDescription);
 		void f_ParseSettings(CStr const &_Settings, CStr const &_FileName);
@@ -205,7 +209,9 @@ namespace NMib::NWebApp::NWebAppManager
 		TCVector<CStr> m_RobotsAllow;
 		TCVector<CStr> m_RobotsDisallow;
 		TCMap<CStr, CEnvironmentVariable> m_Environment;
+#ifdef DMibWebAppManager_SupportMongo
 		CMongo m_Mongo;
+#endif
 		CStr m_DefaultDomain;
 		CStr m_HTTPRedirectReferrerCookie;
 		CStr m_S3BucketPrefix;
@@ -243,7 +249,9 @@ namespace NMib::NWebApp::NWebAppManager
 		bool m_bServeAllSubdomains = false;
 		bool m_bStartNginx = true;
 		bool m_bAllowRobots = false;
+#ifdef DMibWebAppManager_SupportMongo
 		bool m_bNeedsMongo = false;
+#endif
 		bool m_bAllowRedirectsOutsideOfDomain = true;
 		bool m_bAllowUnelevated = false;
 	};
@@ -461,7 +469,9 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_SetupPrerequisites_Nginx();
 		TCFuture<void> fp_SetupPrerequisites_Customization();
 		TCFuture<void> fp_SetupPrerequisites_NodeExtract();
+#ifdef DMibWebAppManager_SupportMongo
 		TCFuture<void> fp_SetupPrerequisites_Mongo();
+#endif
 		TCFuture<void> fp_SetupPrerequisites_Packages();
 		TCFuture<void> fp_SetupPrerequisites_UploadS3();
 		TCFuture<void> fp_SetupPrerequisites_UploadS3Perform();
@@ -475,13 +485,15 @@ namespace NMib::NWebApp::NWebAppManager
 
 		CStr fp_GetAllowRobots(bool _bAllow);
 
-		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
 		CStr fp_GetMongoSSLDirectory() const;
+#ifdef DMibWebAppManager_SupportMongo
+		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
 		NWeb::NHTTP::CURL fp_GetDBAddressURL(CStr _Database, CStr _HomePath);
 		CStr fp_GetDBAddress(CStr _Database, CStr _HomePath);
 		TCFuture<void> fp_RunNodeMongoScript(CStr _ScriptName, CStr _Script, TCVector<CStr> _Params, CStr _Database, fp32 _Timeout);
 
 		TCFuture<void> fp_SetupMongo();
+#endif
 
 		static CStr fsp_GetVersionString();
 		TCFuture<void> fp_UpdateVersionHistory();
@@ -590,6 +602,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr mp_DomainCookie;
 		CStr mp_DDPSelf;
 
+#ifdef DMibWebAppManager_SupportMongo
 		CStr mp_MongoDirectory;
 		CStr mp_MongoHost;
 		uint16 mp_MongoPort;
@@ -601,12 +614,13 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr mp_MongoAdminUserName;
 		CStr mp_MongoVersion = "6.0";
 		bool mp_bConnectToExternalMongo = false;
-		TCVector<CMongoServerHost> mp_ExternalMongoHosts;
 		CStr mp_MongoReplicaNameExternal;
+		TCVector<CMongoServerHost> mp_ExternalMongoHosts;
 
 		// Mongo certificate deploy
 		TCActor<CMongoCertificateDeployActor> mp_MongoCertificateDeployActor;
 		CActorSubscription mp_MongoCertificateDeploySubscription_Admin;
+#endif
 
 		CStr mp_BindTo;
 

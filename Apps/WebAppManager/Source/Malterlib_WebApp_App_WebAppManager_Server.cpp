@@ -95,10 +95,14 @@ namespace NMib::NWebApp::NWebAppManager
 		if (mp_bNeedNode)
 			co_await fp_CheckVersion(fp_GetNodeExecutable("node", false), "--version", "v{}.{}.{}", mp_Version_Node);
 
+#ifdef DMibWebAppManager_SupportMongo
 		DLog(Info, "Done checking node version, setting up mongo");
 		co_await fp_SetupMongo();
 
 		DLog(Info, "Done setting up mongo, starting apps");
+#else
+		DLog(Info, "Done checking node version, starting apps");
+#endif
 		co_await (fp_StartApps() + fp_SetupNetworkTunnels());
 
 		DLog(Info, "Done starting apps, starting nginx");
@@ -145,11 +149,13 @@ namespace NMib::NWebApp::NWebAppManager
 			if (mp_CertificateDeployActor)
 				fg_Move(mp_CertificateDeployActor).f_Destroy() > Destroys;
 
+#ifdef DMibWebAppManager_SupportMongo
 			if (mp_MongoCertificateDeploySubscription_Admin)
 				fg_Exchange(mp_MongoCertificateDeploySubscription_Admin, nullptr)->f_Destroy() > Destroys;
 
 			if (mp_MongoCertificateDeployActor)
 				fg_Move(mp_MongoCertificateDeployActor).f_Destroy() > Destroys;
+#endif
 
 			for (auto &ToolLaunch : mp_ToolLaunches)
 				fg_Move(ToolLaunch.m_ProcessLaunch).f_Destroy() > Destroys;
@@ -238,7 +244,11 @@ namespace NMib::NWebApp::NWebAppManager
 
 	NWeb::NHTTP::CURL CWebAppManagerImpl::f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const
 	{
+#ifdef DMibWebAppManager_SupportMongo
 		return mp_pThis->fp_GetDBAddressURL(_Database, _HomePath);
+#else
+		return {};
+#endif
 	}
 
 #ifdef DPlatformFamily_Windows
@@ -604,8 +614,10 @@ namespace NMib::NWebApp::NWebAppManager
 		if (auto pValue = Settings.f_GetMember("AllowRobots"))
 			m_bAllowRobots = pValue->f_Boolean();
 
+#ifdef DMibWebAppManager_SupportMongo
 		if (auto pValue = Settings.f_GetMember("NeedsMongo"))
 			m_bNeedsMongo = pValue->f_Boolean();
+#endif
 
 		if (auto pValue = Settings.f_GetMember("AllowRobotsSitemap"))
 			m_RobotsSitemap = pValue->f_String();
@@ -729,6 +741,7 @@ namespace NMib::NWebApp::NWebAppManager
 		if (auto *pValue = Settings.f_GetMember("SaveUserPasswords"))
 			m_bSaveUserPasswords = pValue->f_Boolean();
 
+#ifdef DMibWebAppManager_SupportMongo
 		auto &MongoJson = Settings["Mongo"].f_Object();
 		if (auto *pValue = MongoJson.f_GetMember("Directory"))
 			m_Mongo.m_Directory = pValue->f_String();
@@ -750,6 +763,7 @@ namespace NMib::NWebApp::NWebAppManager
 			m_Mongo.m_DefaultMongoVersion = pValue->f_String();
 		if (auto *pValue = MongoJson.f_GetMember("DefaultReplicaName"))
 			m_Mongo.m_DefaultReplicaName = pValue->f_String();
+#endif
 
 		TCSet<TCSet<CStr>> DefaultReqiredTags;
 		TCSet<CStr> DefaultForbiddenTags;

@@ -639,7 +639,9 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerActor::fp_SetupPrerequisites_Servers()
 	{
+#ifdef DMibWebAppManager_SupportMongo
 		co_await fp_SetupPrerequisites_Mongo(); // This is needed first because we need the mongo certificates
+#endif
 
 		co_await
 			(

@@ -28,6 +28,7 @@ Type
 Property
 {
 	MalterlibWebAppManagerDevDepenencesInPackage: bool = !MalterlibBuildServerBuild // User(WebAppManager)=false: Allow dev dependencies in npm package. This allows fast builds without npm ci
+	MalterlibWebAppManagerMongoSupport: bool = MalterlibModules->ContainsListElement("Mongo")
 }
 
 %Group "{Malterlib}/{WebApp}/{WebAppManagerVariables}"
@@ -402,6 +403,8 @@ Property
 	}
 	%Dependency "Lib_Malterlib_Mongo"
 	{
+		!!MalterlibWebAppManagerMongoSupport true
+
 		Dependency.Indirect true
 	}
 	%Dependency "Lib_Malterlib_WebApp"
@@ -714,6 +717,11 @@ Property
 		PreprocessorDefines += "DMibWebAppManager_UseInternalNode"
 		{
 			!NodeBinariesPath undefined
+		}
+
+		PreprocessorDefines += "DMibWebAppManager_SupportMongo"
+		{
+			!!MalterlibWebAppManagerMongoSupport true
 		}
 	}
 	%Group "Source"

@@ -72,6 +72,7 @@ namespace NMib::NWebApp::NWebAppManager
 			DMibLog(Info, "URL for {}: {}", Package.f_GetName(), fp_GetRootURL(Hostname, Package.m_SubPath));
 		}
 
+#ifdef DMibWebAppManager_SupportMongo
 		mp_bConnectToExternalMongo = fp_GetConfigValue("ConnectToExternalMongo", false).f_Boolean();
 
 		mp_MongoDirectory = fp_GetConfigValue("MongoDirectory", mp_Options.m_Mongo.m_Directory).f_String();
@@ -105,6 +106,7 @@ namespace NMib::NWebApp::NWebAppManager
 					mp_ExternalMongoHosts.f_Insert({HostPorts[0], HostPorts[1].f_ToInt(CMongoServerHost::mc_DefaultPort)});
 			}
 		}
+#endif
 
 		mp_LoopbackPrefix = fp_GetConfigValue("LoopbackPrefix", mp_Options.m_LoopbackPrefix).f_Integer();
 		mp_LocalPort = fp_GetConfigValue("LocalPort", 8080).f_Integer();
