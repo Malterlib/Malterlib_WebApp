@@ -830,7 +830,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 						CFile::fs_SetUnixAttributesRecursive(NginxDirectory + "/certificates", EFileAttrib_UserRead, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
 
-						Results.m_ConfigContents = CFile::fs_ReadStringFromFile(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_Nginx.conf");
+						Results.m_ConfigContents = CFile::fs_ReadStringFromFile(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_Nginx.conf", true);
 						CFile::fs_DiffCopyFileOrDirectory(ProgramDirectory + "/Source/Malterlib_WebApp_App_WebAppManager_FastCGI.conf", FastCGIFile, nullptr);
 
 						{
@@ -847,7 +847,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 									try
 									{
-										CJsonSorted const RedirectJson = CJsonSorted::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath), RedirectPath);
+										CJsonSorted const RedirectJson = CJsonSorted::fs_FromString(CFile::fs_ReadStringFromFile(RedirectPath, true), RedirectPath);
 
 										for (auto const &Redirect : RedirectJson["redirects"].f_Array())
 										{

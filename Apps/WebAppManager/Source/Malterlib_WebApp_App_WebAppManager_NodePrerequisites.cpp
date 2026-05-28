@@ -54,7 +54,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		CStr ChecksumFileName = _File + ".md5";
 		if (CFile::fs_FileExists(ChecksumFileName))
-			return CHashDigest_MD5::fs_FromString(CFile::fs_ReadStringFromFile(ChecksumFileName).f_Left(32));
+			return CHashDigest_MD5::fs_FromString(CFile::fs_ReadStringFromFile(ChecksumFileName, true).f_Left(32));
 		return CFile::fs_GetFileChecksum(_File);
 	}
 
