@@ -130,6 +130,15 @@ Property
 		MalterlibWebAppToolBuildName: string
 		MalterlibWebAppToolUseSystemNode: bool = false
 	}
+	Compile
+	{
+		!!CompileDialect "C"
+
+		PreprocessorDefines += "DMibWebAppManager_SupportMongo"
+		{
+			!!MalterlibWebAppManagerMongoSupport true
+		}
+	}
 }
 
 %Target "Tool_Malterlib_BuildWebApp"
@@ -717,11 +726,6 @@ Property
 		PreprocessorDefines += "DMibWebAppManager_UseInternalNode"
 		{
 			!NodeBinariesPath undefined
-		}
-
-		PreprocessorDefines += "DMibWebAppManager_SupportMongo"
-		{
-			!!MalterlibWebAppManagerMongoSupport true
 		}
 	}
 	%Group "Source"
@@ -1354,6 +1358,10 @@ Property
 
 	%Dependency "Lib_Malterlib_WebAppManager"
 	%Dependency "Lib_Malterlib_Cloud"
+	%Dependency "Lib_Malterlib_Mongo"
+	{
+		!!MalterlibWebAppManagerMongoSupport true
+	}
 	%Dependency "Lib_Malterlib"
 	%Dependency BuildDependencies
 	{
