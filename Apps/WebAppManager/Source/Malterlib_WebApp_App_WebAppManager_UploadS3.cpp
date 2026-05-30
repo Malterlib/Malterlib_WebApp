@@ -232,7 +232,7 @@ exports.handler = (event, context, callback) => {
 			if (!fp_FormatAlternateSourcesSearchReplace(AlternateSourcesString, AlternateSources))
 				co_return {};
 
-			CStr ContentSecurityPolicy = "default-src 'none' {};"_f << mp_Options.m_ContentSecurity_DefaultSrc;
+			CStr ContentSecurityPolicy = "default-src {};"_f << (mp_Options.m_ContentSecurity_DefaultSrc ? mp_Options.m_ContentSecurity_DefaultSrc : "'none'");
 			ContentSecurityPolicy += " prefetch-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_PrefetchSrc;
 			ContentSecurityPolicy += " img-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ImgSrc;
 			ContentSecurityPolicy += " font-src 'self' data: *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FontSrc;
@@ -244,7 +244,7 @@ exports.handler = (event, context, callback) => {
 			ContentSecurityPolicy += " child-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ChildSrc;
 			ContentSecurityPolicy += " form-action 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_FormAction;
 			ContentSecurityPolicy += " manifest-src 'self' *.{0} {0} {1} ;"_f << mp_Domain << mp_Options.m_ContentSecurity_ManifestSrc;
-			ContentSecurityPolicy += " object-src 'none' {} ;"_f << mp_Options.m_ContentSecurity_ObjectSrc;
+			ContentSecurityPolicy += " object-src {} ;"_f << (mp_Options.m_ContentSecurity_ObjectSrc ? mp_Options.m_ContentSecurity_ObjectSrc : "'none'");
 
 			if (mp_Options.m_ContentSecurity_ReportURI)
 			{

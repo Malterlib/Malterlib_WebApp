@@ -1308,7 +1308,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 		{
 			CStr SecurityHeaders;
-			CStr ContentSecurityPolicy = "default-src 'none' {};"_f << mp_Options.m_ContentSecurity_DefaultSrc;
+			CStr ContentSecurityPolicy = "default-src {};"_f << (mp_Options.m_ContentSecurity_DefaultSrc ? mp_Options.m_ContentSecurity_DefaultSrc : "'none'");
 			ContentSecurityPolicy += " prefetch-src 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_PrefetchSrc;
 			ContentSecurityPolicy += " img-src 'self' data: https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_ImgSrc;
 			ContentSecurityPolicy += " font-src 'self' data: https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_FontSrc;
@@ -1320,7 +1320,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 			ContentSecurityPolicy += " child-src 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_ChildSrc;
 			ContentSecurityPolicy += " manifest-src 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_ManifestSrc;
 			ContentSecurityPolicy += " form-action 'self' https://*.{0} https://{0} {1} ;"_f << CspSelfHost << mp_Options.m_ContentSecurity_FormAction;
-			ContentSecurityPolicy += " object-src 'none' {} ;"_f << mp_Options.m_ContentSecurity_ObjectSrc;
+			ContentSecurityPolicy += " object-src {} ;"_f << (mp_Options.m_ContentSecurity_ObjectSrc ? mp_Options.m_ContentSecurity_ObjectSrc : "'none'");
 
 			if (mp_Options.m_ContentSecurity_ReportURI)
 			{
