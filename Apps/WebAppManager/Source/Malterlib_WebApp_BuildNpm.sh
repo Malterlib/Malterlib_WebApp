@@ -56,6 +56,39 @@ function LockFile
 	return 0
 }
 
+function InspectContainerIfExists()
+{
+	local ContainerName="$1"
+	local ContainerInfo ContainerCount
+	if ! ContainerInfo="$(container inspect "$ContainerName" 2> /dev/null)"; then
+		return 1
+	fi
+
+	if ! ContainerCount="$(echo "$ContainerInfo" | jq -r 'if type == "array" then length else 1 end')"; then
+		return 1
+	fi
+
+	if [[ "$ContainerCount" == "0" ]]; then
+		return 1
+	fi
+
+	echo "$ContainerInfo"
+}
+
+function GetContainerStatus()
+{
+	echo "$1" | jq -r '
+		def container: if type == "array" then .[0] else . end;
+		(container.status // container.Status // empty) |
+		if type == "object" then .state // .State // empty else . end
+	'
+}
+
+function ContainerCreateSupportsOption()
+{
+	container create --help | grep -q -- "$1"
+}
+
 if [[ "$Action" == "Rebuild" || "$Action" == "Clean" ]]; then
 	if [ -e "$OutputBundleTar" ]; then
 		rm -rf "$OutputBundleTar"
@@ -143,16 +176,23 @@ function RunNpmBuild()
 		cp -r "." "$TempDir/App"
 		cp "$ScriptDir/Malterlib_WebApp_ContainerNpmInstall.sh" "$TempDir/"
 
-		if [[ `container inspect "$ContainerName"` == "[]" ]]; then
+		if ! ContainerInfo="$(InspectContainerIfExists "$ContainerName")"; then
 			ContainerArchitecture="$Architecture"
 			if [[ "$Architecture" == "x64" ]]; then
 				ContainerArchitecture="amd64"
 			fi
 
-			container create --name "$ContainerName" -m 1G -c 4 -a $ContainerArchitecture -v "$TempDir:/opt/work" ubuntu:24.04 --entrypoint /bin/bash -- -c "trap : TERM INT; sleep infinity & wait"
+			ContainerCreateArgs=(--name "$ContainerName" -m 1G -c 4 -a "$ContainerArchitecture" -v "$TempDir:/opt/work")
+			if [[ "$(uname -m)" == "arm64" ]] && [[ "$ContainerArchitecture" == "amd64" ]] && ContainerCreateSupportsOption "--rosetta"; then
+				ContainerCreateArgs+=(--rosetta)
+			fi
+
+			container create "${ContainerCreateArgs[@]}" --entrypoint /bin/sleep ubuntu:24.04 infinity
+
+			ContainerInfo="$(InspectContainerIfExists "$ContainerName")"
 		fi
 
-		if [[ `container inspect "$ContainerName" | jq -r '.[0].["status"]'` != "running" ]]; then
+		if [[ "$(GetContainerStatus "$ContainerInfo")" != "running" ]]; then
 			container start "$ContainerName"
 		fi
 
