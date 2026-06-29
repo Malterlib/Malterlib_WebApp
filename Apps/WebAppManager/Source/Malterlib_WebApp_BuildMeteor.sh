@@ -62,6 +62,38 @@ function LockFile
 	return 0
 }
 
+function GetTargetNpmOS()
+{
+	if [[ "$PlatformFamily" == "Linux" ]]; then
+		echo "linux"
+	elif [[ "$PlatformFamily" == "macOS" ]]; then
+		echo "darwin"
+	elif [[ "$PlatformFamily" == "Windows" ]]; then
+		echo "win32"
+	fi
+}
+
+function InstallTargetOptionalNpmDependencies()
+{
+	if ! [ -f package.json ] || ! [ -f package-lock.json ]; then
+		return
+	fi
+
+	TargetNpmOS="`GetTargetNpmOS`"
+	if [[ "$TargetNpmOS" == "" ]] || [[ "$Architecture" == "" ]]; then
+		return
+	fi
+
+	echo "Installing optional npm dependencies for $TargetNpmOS/$Architecture"
+	PackageLockChecksumBefore="$(shasum -a 512 package-lock.json)"
+	$MeteorCommand npm install --os="$TargetNpmOS" --cpu="$Architecture" --include=optional
+	PackageLockChecksumAfter="$(shasum -a 512 package-lock.json)"
+	if [[ "$PackageLockChecksumBefore" != "$PackageLockChecksumAfter" ]]; then
+		echo "error: target optional npm install changed package-lock.json"
+		exit 1
+	fi
+}
+
 if [[ "$Action" == "Rebuild" || "$Action" == "Clean" ]]; then
 	if [ -e "$OutputBundleTar" ]; then
 		rm -rf "$OutputBundleTar"
@@ -143,6 +175,7 @@ export NPM_CONFIG_PROGRESS=false
 
 rm -rf node_modules
 $MeteorCommand npm ci
+InstallTargetOptionalNpmDependencies
 
 mkdir -p "${OutputDir}bundle"
 
