@@ -125,12 +125,16 @@ namespace NMib::NWebApp::NWebAppManager
 		{
 			auto pValue = mp_AppState.m_ConfigDatabase.m_Data.f_GetMember(_Name);
 			if (pValue)
-				return *pValue;
+				return CEJsonSorted::fs_FromCompatible(*pValue);
 			return nullptr;
 		}
 		else if (_Default.f_IsValid())
-			return mp_AppState.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, _Default);
+		{
+			if (auto pValue = mp_AppState.m_ConfigDatabase.m_Data.f_GetMember(_Name))
+				return CEJsonSorted::fs_FromCompatible(*pValue);
+			return _Default;
+		}
 		DNeverGetHere;
-		return mp_AppState.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, "");
+		return _Default;
 	}
 }
