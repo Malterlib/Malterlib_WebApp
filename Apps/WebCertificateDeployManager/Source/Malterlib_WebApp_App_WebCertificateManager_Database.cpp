@@ -178,7 +178,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		Domains.f_RemoveMember(_Domain.f_GetName());
 		auto &Domain = Domains[_Domain.f_GetName()];
-		Domain["Settings"] = fp_SaveSettings(_Domain.m_Settings);
+		Domain["Settings"] = CEJsonSortedYaml::fs_FromCompatible(fp_SaveSettings(_Domain.m_Settings));
 	}
 
 	TCFuture<void> CWebCertificateManagerActor::fp_ReadState()
@@ -198,7 +198,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 			auto &DomainJson = DomainObject.f_Value();
 
 			CDomainSettings Settings;
-			fp_ParseSettings(DomainJson["Settings"], Settings);
+			fp_ParseSettings(CEJsonSorted::fs_FromCompatible(DomainJson["Settings"]), Settings);
 
 			auto &Domain = mp_Domains[Name];
 			Domain.m_Settings = fg_Move(Settings);
