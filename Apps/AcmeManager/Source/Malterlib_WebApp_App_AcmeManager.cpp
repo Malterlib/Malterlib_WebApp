@@ -22,7 +22,10 @@ namespace NMib::NWebApp::NAcmeManager
 
 	CEJsonSorted CAcmeManagerActor::fp_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const
 	{
-		return mp_State.m_ConfigDatabase.m_Data.f_GetMemberValue(_Name, _Default);
+		if (auto pValue = mp_State.m_ConfigDatabase.m_Data.f_GetMember(_Name))
+			return CEJsonSorted::fs_FromCompatible(*pValue);
+
+		return _Default;
 	}
 
 	TCFuture<void> CAcmeManagerActor::fp_StartApp(NEncoding::CEJsonSorted const _Params)
