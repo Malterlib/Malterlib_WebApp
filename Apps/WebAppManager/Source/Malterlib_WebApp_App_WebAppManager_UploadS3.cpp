@@ -917,7 +917,7 @@ exports.handler = async (event) => {
 		Stopwatch.f_Start();
 
 		if (!mp_HttpClientActors.f_IsConstructed())
-			mp_HttpClientActors.f_Construct(fg_Construct(fg_Construct(), "S3/CloudFront curl actor"));
+			mp_HttpClientActors.f_Construct(fg_Construct());
 
 		mp_LastCloudFrontDistributions = CloudFrontDistributions;
 		mp_CloudFrontActor = fg_Construct(*mp_HttpClientActors, AWSCredentials);

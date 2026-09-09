@@ -50,7 +50,7 @@ namespace NMib::NWebApp::NAcmeManager
 		if (AWSCredentials.m_SecretKey.f_IsEmpty())
 			co_return DMibErrorInstance("AWSSecretKey value not specified in config");
 
-		mp_HttpClientActors.f_Construct(fg_Construct(fg_Construct(), "HTTP client actor"));
+		mp_HttpClientActors.f_Construct(fg_Construct());
 		mp_Route53Actor = fg_Construct(*mp_HttpClientActors, AWSCredentials);
 
 		auto AccountEmailsJson = fp_GetConfigValue("ACMEAccountEmails", _[]);
