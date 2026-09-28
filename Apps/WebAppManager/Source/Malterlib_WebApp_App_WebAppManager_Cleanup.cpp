@@ -51,6 +51,5 @@ namespace NMib::NWebApp::NWebAppManager
 		co_await BlockingActorCheckout.f_Actor().f_Bind<fg_CleanupOldProcesses>(fg_Move(Executables));
 
 		co_return {};
-
 	}
 }

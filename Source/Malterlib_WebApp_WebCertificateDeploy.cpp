@@ -19,11 +19,7 @@ namespace NMib::NWebApp
 	{
 	}
 
-	CWebCertificateDeployActor::CWebCertificateDeployActor
-		(
-			TCActor<CActorDistributionManager> const &_DistributionManager
-			, TCActor<CDistributedActorTrustManager> const &_TrustManager
-		)
+	CWebCertificateDeployActor::CWebCertificateDeployActor(TCActor<CActorDistributionManager> const &_DistributionManager, TCActor<CDistributedActorTrustManager> const &_TrustManager)
 		: mp_pInternal(fg_Construct(this, _DistributionManager, _TrustManager))
 	{
 	}
@@ -110,5 +106,4 @@ namespace NMib::NWebApp
 
 		co_return {};
 	}
-
 }

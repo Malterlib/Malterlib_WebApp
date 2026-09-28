@@ -22,13 +22,7 @@ namespace NMib::NWebApp
 
 	struct CWebCertificateDeployActor::CInternal : public CActorInternal
 	{
-		CInternal
-			(
-				CWebCertificateDeployActor *_pThis
-				, TCActor<CActorDistributionManager> const &_DistributionManager
-				, TCActor<CDistributedActorTrustManager> const &_TrustManager
-			)
-		;
+		CInternal(CWebCertificateDeployActor *_pThis, TCActor<CActorDistributionManager> const &_DistributionManager, TCActor<CDistributedActorTrustManager> const &_TrustManager);
 
 		struct CDomainState
 		{
@@ -56,7 +50,7 @@ namespace NMib::NWebApp
 		TCFuture<void> f_SecretsManagerAddedWithRetry(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info);
 		TCFuture<void> f_SecretsManagerAdded(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info);
 		TCFuture<void> f_SecretsManagerRemoved(TCWeakDistributedActor<CActor> _SecretsManager, CTrustedActorInfo _ActorInfo);
-		CExceptionPointer f_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState);
+		CExceptionPointer f_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain * &o_pDomain, CDomainState * &o_pDomainState);
 		TCFuture<void> f_UpdateDomainForSecretsManager(CStr _DomainName, TCDistributedActor<CSecretsManager> _SecretsManager, CHostInfo _SecretsManagerHostInfo);
 		TCFuture<void> f_UpdateDomainForAllSecretsManagers(CStr _DomainName);
 		TCFuture<void> f_UpdateAllDomainsForAllSecretsManagers();

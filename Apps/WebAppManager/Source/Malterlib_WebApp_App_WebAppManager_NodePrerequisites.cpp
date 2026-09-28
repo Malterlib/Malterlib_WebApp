@@ -109,15 +109,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 
 		if (CFile::fs_FileExists(NodeCertificateDirectory))
-		{
-			CFile::fs_SetUnixAttributesRecursive
-				(
-					NodeCertificateDirectory
-					, NFile::EFileAttrib_UserRead, NFile::EFileAttrib_UserRead | NFile::EFileAttrib_UserExecute
-					, false
-				)
-			;
-		}
+			CFile::fs_SetUnixAttributesRecursive(NodeCertificateDirectory, NFile::EFileAttrib_UserRead, NFile::EFileAttrib_UserRead | NFile::EFileAttrib_UserExecute, false);
 
 		CFile::fs_SetOwnerAndGroupRecursive(_Directory, _User.m_UserName, _User.m_GroupName);
 	}
@@ -143,15 +135,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 		for (auto &Package : mp_Options.m_Packages)
 		{
-			if
-				(
-					Package.m_Type != CWebAppManagerOptions::EPackageType_FastCGI
-					&& Package.m_Type != CWebAppManagerOptions::EPackageType_Websocket
-					&& !Package.f_IsStatic()
-				)
-			{
+			if (Package.m_Type != CWebAppManagerOptions::EPackageType_FastCGI && Package.m_Type != CWebAppManagerOptions::EPackageType_Websocket && !Package.f_IsStatic())
 				bNeedNode = true;
-			}
 		}
 
 		CNodeInfo NodeInfo;
@@ -159,8 +144,7 @@ namespace NMib::NWebApp::NWebAppManager
 			auto BlockingActorCheckout = fg_BlockingActor();
 			NodeInfo = co_await
 				(
-					g_Dispatch(BlockingActorCheckout)
-					/
+					g_Dispatch(BlockingActorCheckout) /
 					[
 						ProgramDirectory
 						, NodeDirectory
@@ -246,13 +230,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 						CFile::fs_RenameFile(ProgramDirectory + "/" + CFile::fs_GetFileNoExt(CFile::fs_GetFileNoExt(DistFile)), DistDirectory);
 
-						CFile::fs_SetOwnerAndGroupRecursive
-							(
-								DistDirectory
-								, NSys::fg_UserManagement_GetProcessRealUserName()
-								, NSys::fg_UserManagement_GetProcessRealGroupName()
-							)
-						;
+						CFile::fs_SetOwnerAndGroupRecursive(DistDirectory, NSys::fg_UserManagement_GetProcessRealUserName(), NSys::fg_UserManagement_GetProcessRealGroupName());
 						CFile::fs_WriteStringToFile(ChecksumFileName, NewChecksum, false);
 
 						co_return fg_Move(NodeInfo);
@@ -304,9 +282,8 @@ namespace NMib::NWebApp::NWebAppManager
 				, mp_pUniqueUserGroup->f_GetGroup("{}pkg_{}_{}"_f << mp_Options.m_UserNamePrefix << mp_Options.m_ManagerName << _PackageName)
 			}
 		;
-		auto DefaultUser = (_Type == CWebAppManagerOptions::EPackageType_FastCGI)
-			? mp_FastCGIUser
-			: (_Type == CWebAppManagerOptions::EPackageType_Websocket) ? mp_WebsocketUser : mp_NodeUser
+		auto DefaultUser
+			= (_Type == CWebAppManagerOptions::EPackageType_FastCGI) ? mp_FastCGIUser : (_Type == CWebAppManagerOptions::EPackageType_Websocket) ? mp_WebsocketUser : mp_NodeUser
 		;
 		bool bSeparateUser = PackageOptions.m_bSeparateUser;
 
@@ -355,13 +332,9 @@ namespace NMib::NWebApp::NWebAppManager
 	#endif
 
 						auto User = DefaultUser;
-						CStr UserHomePath = ProgramDirectory
-							/
-							(
-								_Type == CWebAppManagerOptions::EPackageType_FastCGI
-								? "FastCGIHome"
-								: (_Type == CWebAppManagerOptions::EPackageType_Websocket ? "WebsocketHome" : "node")
-							)
+						CStr UserHomePath
+							= ProgramDirectory
+							/ (_Type == CWebAppManagerOptions::EPackageType_FastCGI ? "FastCGIHome" : (_Type == CWebAppManagerOptions::EPackageType_Websocket ? "WebsocketHome" : "node"))
 						;
 
 						if (bSeparateUser)
@@ -381,13 +354,7 @@ namespace NMib::NWebApp::NWebAppManager
 						if (bUnixSocket && Concurrency)
 						{
 							CFile::fs_CreateDirectory(SocketRootDirectory);
-							CFile::fs_SetOwnerAndGroupRecursive
-								(
-									SocketRootDirectory
-									, User.m_UserName
-									, NginxUserGroup
-								)
-							;
+							CFile::fs_SetOwnerAndGroupRecursive(SocketRootDirectory, User.m_UserName, NginxUserGroup);
 							CFile::fs_SetUnixAttributesRecursive
 								(
 									SocketRootDirectory
@@ -469,11 +436,7 @@ namespace NMib::NWebApp::NWebAppManager
 									bool bExcluded = false;
 									for (auto &Pattern : ExcludeGzipPatterns)
 									{
-										if
-										(
-											NStr::fg_StrMatchWildcard(RelativePath.f_GetStr(), Pattern.f_GetStr())
-											== EMatchWildcardResult_WholeStringMatchedAndPatternExhausted
-										)
+										if (NStr::fg_StrMatchWildcard(RelativePath.f_GetStr(), Pattern.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
 										{
 											bExcluded = true;
 											break;
@@ -556,15 +519,7 @@ namespace NMib::NWebApp::NWebAppManager
 								CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, User.m_UserName, User.m_GroupName);
 							}
 							else
-							{
-								CFile::fs_SetOwnerAndGroupRecursive
-									(
-										PackageDirectory
-										, NSys::fg_UserManagement_GetProcessRealUserName()
-										, NSys::fg_UserManagement_GetProcessRealGroupName()
-									)
-								;
-							}
+								CFile::fs_SetOwnerAndGroupRecursive(PackageDirectory, NSys::fg_UserManagement_GetProcessRealUserName(), NSys::fg_UserManagement_GetProcessRealGroupName());
 
 							CFile::fs_WriteStringToFile(PackageChecksumFileName, NewChecksum, false);
 						}
@@ -643,14 +598,7 @@ namespace NMib::NWebApp::NWebAppManager
 		co_await fp_SetupPrerequisites_Mongo(); // This is needed first because we need the mongo certificates
 #endif
 
-		co_await
-			(
-				fp_SetupPrerequisites_OSSetup()
-				+ fp_SetupPrerequisites_NodeExtract()
-				+ fp_SetupPrerequisites_FastCGI()
-				+ fp_SetupPrerequisites_Websocket()
-			)
-		;
+		co_await (fp_SetupPrerequisites_OSSetup() + fp_SetupPrerequisites_NodeExtract() + fp_SetupPrerequisites_FastCGI() + fp_SetupPrerequisites_Websocket());
 
 		co_await fp_SetupPrerequisites_Packages();
 		co_await fp_SetupPrerequisites_UploadS3FileChangeNotifications();

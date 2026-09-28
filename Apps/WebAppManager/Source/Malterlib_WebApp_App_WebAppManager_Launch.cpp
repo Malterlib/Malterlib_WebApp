@@ -42,13 +42,7 @@ namespace NMib::NWebApp::NWebAppManager
 			(
 				CFile::fs_GetProgramDirectory() / "bin/bsdtar"
 				, _DestinationDir
-				, fg_CreateVector<CStr>
-				(
-					"--no-same-owner"
-					, "--no-xattr"
-					, "-xf"
-					, _TarFile
-				)
+				, fg_CreateVector<CStr>("--no-same-owner", "--no-xattr", "-xf", _TarFile)
 				, CStr{"ExtractArchive"}
 				, ELogVerbosity_Errors
 				, {}
@@ -80,21 +74,19 @@ namespace NMib::NWebApp::NWebAppManager
 		auto *pToolLaunch = &mp_ToolLaunches.f_Insert();
 		pToolLaunch->m_ProcessLaunch = fg_ConstructActor<CProcessLaunchActor>();
 
-		CProcessLaunchActor::CSimpleLaunch Launch{NMib::NProcess::CProcessLaunchParams::fs_LaunchExecutable(_Executable, _Params, _WorkingDir, {}), CProcessLaunchActor::ESimpleLaunchFlag_None};
+		CProcessLaunchActor::CSimpleLaunch Launch
+			{
+				NMib::NProcess::CProcessLaunchParams::fs_LaunchExecutable(_Executable, _Params, _WorkingDir, {})
+				, CProcessLaunchActor::ESimpleLaunchFlag_None
+			}
+		;
 
 		switch (_LogVerbosity)
 		{
-		case ELogVerbosity_None:
-			break;
-		case ELogVerbosity_Errors:
-			Launch.m_ToLog = CProcessLaunchActor::ELogFlag_Error;
-			break;
-		case ELogVerbosity_Messages:
-			Launch.m_ToLog = CProcessLaunchActor::ELogFlag_Error | CProcessLaunchActor::ELogFlag_Info;
-			break;
-		case ELogVerbosity_All:
-			Launch.m_ToLog = CProcessLaunchActor::ELogFlag_All;
-			break;
+		case ELogVerbosity_None: break;
+		case ELogVerbosity_Errors: Launch.m_ToLog = CProcessLaunchActor::ELogFlag_Error; break;
+		case ELogVerbosity_Messages: Launch.m_ToLog = CProcessLaunchActor::ELogFlag_Error | CProcessLaunchActor::ELogFlag_Info; break;
+		case ELogVerbosity_All: Launch.m_ToLog = CProcessLaunchActor::ELogFlag_All; break;
 		}
 		Launch.m_LogName = _LogCategory;
 		Launch.m_Params.m_bCreateNewProcessGroup = true;

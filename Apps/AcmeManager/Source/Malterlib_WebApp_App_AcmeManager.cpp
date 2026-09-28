@@ -134,7 +134,6 @@ namespace NMib::NWebApp::NAcmeManager
 
 				Domain.m_DomainState->m_OnReleaseDNSChallenge.f_Clear();
 			}
-
 		}
 
 		co_await fg_AllDoneWrapped(Destroys);

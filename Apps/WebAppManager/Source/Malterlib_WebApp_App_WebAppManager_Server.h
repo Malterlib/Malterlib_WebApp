@@ -64,28 +64,12 @@ namespace NMib::NWebApp::NWebAppManager
 
 			bool f_IsStatic() const
 			{
-				return m_Type == EPackageType_Static
-					||
-					(
-						m_Type == EPackageType_Npm
-						&&
-						(
-							m_NpmBuildType == "Compile"
-							|| m_NpmBuildType == "Build"
-						)
-					)
-				;
+				return m_Type == EPackageType_Static || (m_Type == EPackageType_Npm && (m_NpmBuildType == "Compile" || m_NpmBuildType == "Build"));
 			}
 
 			bool f_IsNpmDynamic() const
 			{
-				return
-					m_Type == EPackageType_Npm
-					&&
-					(
-						m_NpmBuildType == "Start"
-					)
-				;
+				return m_Type == EPackageType_Npm && (m_NpmBuildType == "Start");
 			}
 
 			bool f_IsDynamicServer() const
@@ -296,14 +280,7 @@ namespace NMib::NWebApp::NWebAppManager
 				, ICWebAppManager const &_WebAppManager
 			)
 		;
-		virtual void f_ManipulateNginxConfig
-			(
-				CStr &o_Config
-				, CStr const &_FastCGIFile
-				, TCMap<CStr, CStr> const &_PackageIPs
-				, ICWebAppManager const &_WebAppManager
-			)
-		;
+		virtual void f_ManipulateNginxConfig(CStr &o_Config, CStr const &_FastCGIFile, TCMap<CStr, CStr> const &_PackageIPs, ICWebAppManager const &_WebAppManager);
 		virtual CStr f_DoStringReplacements(CStr const &_Headers, ICWebAppManager const &_WebAppManager);
 		virtual TCUnsafeFuture<void> f_SetupPrerequisitesAsync(TCSet<CStr> _Tags, TCMap<CStr, CUser> _Users);
 	};
@@ -420,12 +397,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		CStr fp_GetDataPath(CStr const &_Path) const;
 		CStr fp_ConcatOutput(CStr const &_StdOut, CStr const &_StdErr) const;
-		TCFuture<CStr> fp_RunToolForVersionCheck
-			(
-				CStr const &_Tool
-				, TCVector<CStr> const &_Arguments
-			)
-		;
+		TCFuture<CStr> fp_RunToolForVersionCheck(CStr const &_Tool, TCVector<CStr> const &_Arguments);
 #ifdef DPlatformFamily_Windows
 		CStrSecure fp_GetUserPassword(CStr const &_User);
 		TCFuture<void> fp_SaveUserPassword(CStr _User, CStrSecure _Password);

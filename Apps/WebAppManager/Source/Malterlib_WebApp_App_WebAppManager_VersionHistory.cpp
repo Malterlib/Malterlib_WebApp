@@ -75,7 +75,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 					for (auto iVersion = Versions.f_GetIterator(); iVersion && nVersions < nMaxVersions; ++iVersion, ++nVersions)
 					{
-						NewHistoryRegistry.f_SetValueNoPath(iVersion->m_Version, CStr::fs_ToStr( iVersion->m_Time.f_GetSeconds()));
+						NewHistoryRegistry.f_SetValueNoPath(iVersion->m_Version, CStr::fs_ToStr(iVersion->m_Time.f_GetSeconds()));
 
 						CStr Branch;
 						CStr Version;

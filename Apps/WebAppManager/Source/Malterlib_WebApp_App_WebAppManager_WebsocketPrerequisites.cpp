@@ -26,8 +26,7 @@ namespace NMib::NWebApp::NWebAppManager
 			auto BlockingActorCheckout = fg_BlockingActor();
 			NodeInfo = co_await
 				(
-					g_Dispatch(BlockingActorCheckout)
-					/
+					g_Dispatch(BlockingActorCheckout) /
 					[
 						ProgramDirectory
 						, WebsocketDirectory
