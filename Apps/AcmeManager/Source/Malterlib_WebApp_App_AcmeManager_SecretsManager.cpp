@@ -53,12 +53,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return {};
 	}
 
-	TCFuture<void> CAcmeManagerActor::fp_SecretsManagerAdded
-		(
-			TCDistributedActor<CSecretsManager> _SecretsManager
-			, CTrustedActorInfo _Info
-			, NStr::CStr _CreatePrivateKeyForDomain
-		)
+	TCFuture<void> CAcmeManagerActor::fp_SecretsManagerAdded(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info, NStr::CStr _CreatePrivateKeyForDomain)
 	{
 		CSecretsManager::CEnumerateSecrets EnumerateSecrets;
 		EnumerateSecrets.m_SemanticID = "org.malterlib.certificate#*";
@@ -89,13 +84,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 			Domain.m_UpdateDomainSequencer.f_RunSequenced
 				(
-					g_ActorFunctorWeak /
-					[
-						this
-						, DomainName
-						, DomainState = fg_Move(DomainState)
-						, bCreatePrivateKey = Domain.f_GetName() == _CreatePrivateKeyForDomain
-					]
+					g_ActorFunctorWeak / [this, DomainName, DomainState = fg_Move(DomainState), bCreatePrivateKey = Domain.f_GetName() == _CreatePrivateKeyForDomain]
 					(CActorSubscription _Subscription) mutable -> TCFuture<void>
 					{
 						auto *pDomain = mp_Domains.f_FindEqual(DomainName);
@@ -116,12 +105,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 						Domain.m_DomainState = fg_Move(DomainState);
 
-						co_await
-							(
-								fp_UpdateDomain(Domain.f_GetName(), bCreatePrivateKey)
-								% ("Failed to update domain '{}'"_f << Domain.f_GetName())
-							)
-						;
+						co_await (fp_UpdateDomain(Domain.f_GetName(), bCreatePrivateKey) % ("Failed to update domain '{}'"_f << Domain.f_GetName()));
 
 						(void)_Subscription;
 
@@ -130,7 +114,6 @@ namespace NMib::NWebApp::NAcmeManager
 				)
 				> UpdateResults[Domain.f_GetName()]
 			;
-
 		}
 
 		auto Results = co_await fg_AllDoneWrapped(UpdateResults);

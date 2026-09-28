@@ -18,7 +18,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 				CCertificateLocation Location;
 				int32 nLocation = 0;
 
-				auto fSetLocation = [&](CStr CCertificateLocation::*_pMember, CStr const &_MemberName)
+				auto fSetLocation = [&](CStr CCertificateLocation:: *_pMember, CStr const &_MemberName)
 					{
 						if (auto pValue = _Params.f_GetMember(_MemberName, EJsonType_String))
 						{
@@ -83,12 +83,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 	{
 		CDistributedAppActor::fp_BuildCommandLine(o_CommandLine);
 
-		o_CommandLine.f_SetProgramDescription
-			(
-				"Malterlib Web Certificate Manager"
-				, "Deploys web certificates to file system."
-			)
-		;
+		o_CommandLine.f_SetProgramDescription("Malterlib Web Certificate Manager", "Deploys web certificates to file system.");
 
 		auto DomainManagement = o_CommandLine.f_AddSection("Domain Management", "Commands to manage WebCertificateManager domains");
 
@@ -185,7 +180,6 @@ namespace NMib::NWebApp::NWebCertificateManager
 				, "Description"_o= "The file attributes that should be used for key files.\n"
 			}
 		;
-
 
 		auto fStripDefault = [](auto &&_Template)
 			{

@@ -4,7 +4,7 @@
 #include <Mib/Core/Platform>
 
 #ifdef DCompiler_MSVC_Workaround
-#pragma warning(disable:4724)
+#	pragma warning(disable:4724)
 #endif
 
 #include <Mib/Encoding/JsonShortcuts>
@@ -25,7 +25,7 @@ namespace NMib::NWebApp::NAcmeManager
 		co_return {};
 	}
 
-	[[nodiscard]] NException::CExceptionPointer CAcmeManagerActor::fp_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState)
+	[[nodiscard]] NException::CExceptionPointer CAcmeManagerActor::fp_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain * &o_pDomain, CDomainState * &o_pDomainState)
 	{
 		if (mp_State.m_bStoppingApp || f_IsDestroyed())
 			return DMibErrorInstance("Shutting down");
@@ -42,12 +42,7 @@ namespace NMib::NWebApp::NAcmeManager
 		return {};
 	}
 
-	TCFuture<bool> CAcmeManagerActor::fp_UpdateDomain_HandleChallenge
-		(
-			CStr _DomainName
-			, CStr _CertificateType
-			, CAcmeClientActor::CChallenge _Challenge
-		)
+	TCFuture<bool> CAcmeManagerActor::fp_UpdateDomain_HandleChallenge(CStr _DomainName, CStr _CertificateType, CAcmeClientActor::CChallenge _Challenge)
 	{
 		CDomain *pDomain = nullptr;
 		CDomainState *pDomainState = nullptr;
@@ -83,14 +78,7 @@ namespace NMib::NWebApp::NAcmeManager
 		CTime Now = CTime::fs_NowUTC();
 		CTime ExpireDate = Now - CTimeSpanConvert::fs_CreateWeekSpan(1);
 
-		fp_UpdateDomainStatus
-			(
-				*pDomain
-				, pDomainState->m_SecretsManagerHostInfo
-				, EStatusSeverity_Info
-				, "Issuing {} certificate: Applying dns-01 challenge"_f << _CertificateType
-			)
-		;
+		fp_UpdateDomainStatus(*pDomain, pDomainState->m_SecretsManagerHostInfo, EStatusSeverity_Info, "Issuing {} certificate: Applying dns-01 challenge"_f << _CertificateType);
 
 		for (auto &Zone : Zones)
 		{
@@ -278,11 +266,7 @@ namespace NMib::NWebApp::NAcmeManager
 		CStr CertificateDescription;
 		{
 			auto CaptureScope = co_await (g_CaptureExceptions % "Exception getting certificate description");
-			CertificateDescription = CCertificate::fs_GetCertificateDescription
-				(
-					CByteVector((uint8 const *)Certificates.m_EndEntity.f_GetStr(), Certificates.m_EndEntity.f_GetLen())
-				)
-			;
+			CertificateDescription = CCertificate::fs_GetCertificateDescription(CByteVector((uint8 const *)Certificates.m_EndEntity.f_GetStr(), Certificates.m_EndEntity.f_GetLen()));
 		}
 
 		TCFutureVector<CSecretsManager::CSetSecretPropertiesResult> StoreResults;
@@ -470,16 +454,7 @@ namespace NMib::NWebApp::NAcmeManager
 		{
 			pDomainState->m_AcmeClientRSA = fg_Construct(fAcmeDependencies());
 
-			co_await fp_UpdateDomain_RunAcmeProtocol
-				(
-					_DomainName
-					, "RSA"
-					, CPublicKeySetting(DomainSettings.m_RSASettings)
-					, pDomainState->m_AcmeClientRSA
-					, DomainSettings
-					, DomainSettingsJson
-				)
-			;
+			co_await fp_UpdateDomain_RunAcmeProtocol(_DomainName, "RSA", CPublicKeySetting(DomainSettings.m_RSASettings), pDomainState->m_AcmeClientRSA, DomainSettings, DomainSettingsJson);
 		}
 
 		if (DomainSettings.m_bGenerateEC && !bEcUpToDate)
@@ -500,16 +475,7 @@ namespace NMib::NWebApp::NAcmeManager
 				}
 			;
 
-			co_await fp_UpdateDomain_RunAcmeProtocol
-				(
-					_DomainName
-					, "EC"
-					, fPublicKeySettings()
-					, pDomainState->m_AcmeClientEC
-					, DomainSettings
-					, DomainSettingsJson
-				)
-			;
+			co_await fp_UpdateDomain_RunAcmeProtocol(_DomainName, "EC", fPublicKeySettings(), pDomainState->m_AcmeClientEC, DomainSettings, DomainSettingsJson);
 		}
 
 		fp_UpdateDomainStatus(*pDomain, pDomainState->m_SecretsManagerHostInfo, EStatusSeverity_Success, "All certificates issued and up to date");

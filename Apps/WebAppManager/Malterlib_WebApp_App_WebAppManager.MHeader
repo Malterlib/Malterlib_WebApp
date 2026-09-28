@@ -27,7 +27,8 @@ Type
 
 Property
 {
-	MalterlibWebAppManagerDevDepenencesInPackage: bool = !MalterlibBuildServerBuild // User(WebAppManager)=false: Allow dev dependencies in npm package. This allows fast builds without npm ci
+	// User(WebAppManager)=false: Allow dev dependencies in npm package. This allows fast builds without npm ci
+	MalterlibWebAppManagerDevDepenencesInPackage: bool = !MalterlibBuildServerBuild
 	MalterlibWebAppManagerMongoSupport: bool = MalterlibModules->ContainsListElement("Mongo")
 }
 
@@ -273,7 +274,10 @@ Property
 			}
 		}
 
-		Target_MatchesDependencies function(string _Target) bool = MalterlibWebAppToolDependencies->ForEach(&Target_MatchesDependenciesMatchTarget, {Target_MatchesDependenciesMatchTargetToMatch: GetProperty(&TargetIdentity, _Target)})
+		Target_MatchesDependencies function(string _Target) bool = MalterlibWebAppToolDependencies->ForEach(
+			&Target_MatchesDependenciesMatchTarget
+			, {Target_MatchesDependenciesMatchTargetToMatch: GetProperty(&TargetIdentity, _Target)}
+		)
 
 		MalterlibWebAppToolDependenciesFiles_Template function(string _Dependency) [type(CFileCopyOptions)] = []
 		MalterlibWebAppToolDependenciesFiles_Template =+ GetProperty(&MalterlibCloud_VersionUploadSources, _Dependency)
@@ -288,7 +292,9 @@ Property
 		MalterlibWebAppToolDependenciesFilesGetPattern =+ _CopyOptions<Pattern>
 
 		MalterlibWebAppToolDependenciesFiles: string
-		MalterlibWebAppToolDependenciesFiles Target.DependencyTargets->ForEach(&MalterlibWebAppToolDependenciesFiles_Template)->fg_ExpandCopyOptions()->ForEach(&MalterlibWebAppToolDependenciesFilesGetPattern)->Join(";")
+		MalterlibWebAppToolDependenciesFiles Target.DependencyTargets->ForEach(&MalterlibWebAppToolDependenciesFiles_Template)->fg_ExpandCopyOptions()->ForEach(
+			&MalterlibWebAppToolDependenciesFilesGetPattern
+		)->Join(";")
 
 		FirstDependencyExecutable_Template function(string _Dependency) string?
 		FirstDependencyExecutable_Template GetProperty(&TargetExecutable, _Dependency)
@@ -788,7 +794,10 @@ Property
 
 				CustomExecutable function(string _PackageName) string?
 				CustomExecutable IsDefined(`Executable_@(_PackageName)`) ? Executable_@(_PackageName) : undefined
-				CustomExecutable GetProperty(&FirstDependencyExecutable, `Group:WebApp.Group:@(MalterlibWebAppManagerName).Group:@(_PackageName).Target:Tool_Malterlib_BuildWebApp.Target:Tool_Malterlib_BuildWebApp`)
+				CustomExecutable GetProperty(
+					&FirstDependencyExecutable
+					, `Group:WebApp.Group:@(MalterlibWebAppManagerName).Group:@(_PackageName).Target:Tool_Malterlib_BuildWebApp.Target:Tool_Malterlib_BuildWebApp`
+				)
 				{
 					&
 					{

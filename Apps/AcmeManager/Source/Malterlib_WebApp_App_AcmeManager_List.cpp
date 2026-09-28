@@ -53,15 +53,9 @@ namespace NMib::NWebApp::NAcmeManager
 			CStr AcmeDirectory;
 			switch (Domain.m_Settings.m_AcmeDirectory)
 			{
-			case CAcmeClientActor::EDefaultDirectory_LetsEncrypt:
-				AcmeDirectory = "Let's Encrypt";
-				break;
-			case CAcmeClientActor::EDefaultDirectory_LetsEncryptStaging:
-				AcmeDirectory = "Let's Encrypt Staging";
-				break;
-			case CAcmeClientActor::EDefaultDirectory_Custom:
-				AcmeDirectory = Domain.m_Settings.m_AcmeCustomDirectory;
-				break;
+			case CAcmeClientActor::EDefaultDirectory_LetsEncrypt: AcmeDirectory = "Let's Encrypt"; break;
+			case CAcmeClientActor::EDefaultDirectory_LetsEncryptStaging: AcmeDirectory = "Let's Encrypt Staging"; break;
+			case CAcmeClientActor::EDefaultDirectory_Custom: AcmeDirectory = Domain.m_Settings.m_AcmeCustomDirectory; break;
 			}
 
 			CStr AccountKeyType = "EC secp521r1";

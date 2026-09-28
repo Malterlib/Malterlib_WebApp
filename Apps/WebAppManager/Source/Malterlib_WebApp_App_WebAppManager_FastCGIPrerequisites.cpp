@@ -42,11 +42,11 @@ namespace NMib::NWebApp::NWebAppManager
 
 					try
 					{
-	#ifdef DPlatformFamily_Windows
+#ifdef DPlatformFamily_Windows
 						fsp_SetupPrerequisites_ServerUser(Info.m_User, bRunningElevated, Info.m_UserPassword, FastCGIDirectory, MongoSSLDirectory);
-	#else
+#else
 						fsp_SetupPrerequisites_ServerUser(Info.m_User, bRunningElevated, FastCGIDirectory, MongoSSLDirectory);
-	#endif
+#endif
 						co_return fg_Move(Info);
 					}
 					catch (NException::CException const &)

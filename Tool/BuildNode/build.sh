@@ -96,7 +96,10 @@ function BuildNode()
 {
 	pushd "$MalterlibRoot/External/node" > /dev/null
 
-	./configure --prefix "$IntermediateDir/node_bin" --shared-openssl --shared-openssl-includes "$MalterlibRoot/External/boringssl/include" --shared-openssl-libname crypto,ssl,decrepit --shared-openssl-libpath "$OpenSSLBuildDir/bin"
+	./configure --prefix "$IntermediateDir/node_bin" --shared-openssl \
+		--shared-openssl-includes "$MalterlibRoot/External/boringssl/include" \
+		--shared-openssl-libname crypto,ssl,decrepit \
+		--shared-openssl-libpath "$OpenSSLBuildDir/bin"
 
 	make "-j${NumCPUs}"
 	make install

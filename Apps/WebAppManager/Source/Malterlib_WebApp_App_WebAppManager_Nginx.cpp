@@ -14,7 +14,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		umint nFilesPerConnection = 2; // nginx incoming + nginx proxy -> node
 
-		return 65536*nFilesPerConnection + 8192;
+		return 65536 * nFilesPerConnection + 8192;
 	}
 
 	umint CWebAppManagerActor::fs_GetNginxFileLimits(umint _nNodes)
@@ -514,7 +514,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		if (!_bAllow)
 		{
 			return	"User-agent: *\n"
-					"Disallow: /"
+				"Disallow: /"
 			;
 		}
 
@@ -552,11 +552,11 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 						CResults Results;
 
 						Results.m_User = User;
-		#ifdef DPlatformFamily_Windows
+#ifdef DPlatformFamily_Windows
 						fsp_SetupUser(Results.m_User, bRunningEleveated, Results.m_UserPassword);
-		#else
+#else
 						fsp_SetupUser(Results.m_User, bRunningEleveated);
-		#endif
+#endif
 						return Results;
 					}
 				)
@@ -751,11 +751,11 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 
 						if (!CFile::fs_FileExists(Results.m_CertificateFile))
 						{
-		#ifdef DMibDebug
+#ifdef DMibDebug
 							CPublicKeySetting KeySettings = CPublicKeySettings_EC_secp384r1{};
-		#else
+#else
 							CPublicKeySetting KeySettings = CPublicKeySettings_RSA{8192};
-		#endif
+#endif
 
 							TCMap<CStr, CStr> RelativeDistinguishedNames;
 
@@ -786,21 +786,14 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 								Options.f_MakeCA();
 
 								CCertificateSignOptions SignOptions;
-								SignOptions.m_Days = 365*20;
+								SignOptions.m_Days = 365 * 20;
 								SignOptions.f_AddExtension_SubjectKeyIdentifier();
 
-								CCertificate::fs_GenerateSelfSignedCertAndKey
-									(
-										Options
-										, CaCertData
-										, CaKeyData
-										, SignOptions
-									)
-								;
+								CCertificate::fs_GenerateSelfSignedCertAndKey(Options, CaCertData, CaKeyData, SignOptions);
 								CFile::fs_WriteFile(CaCertData, CaCertificateFile);
-		#ifdef DPlatformFamily_Windows
+#ifdef DPlatformFamily_Windows
 								CFile::fs_WriteFile(CaCertData, NginxDirectory + "/certificates/web_ca.crt");
-		#endif
+#endif
 								CFile::fs_WriteFileSecure(CaKeyData, CaCertificateKeyFile);
 							}
 
@@ -1168,7 +1161,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					Server = Server.f_Replace("{StaticPackages}", StaticPackages);
 					if (!bIsSubPackage)
 						Server = Server.f_Replace("{SubPackages}", SubPathServers[ServerName]);
-					Server = Server.f_Replace("{PathRedirect}",  SetupResults.m_Redirects[Package.f_GetName()]);
+					Server = Server.f_Replace("{PathRedirect}", SetupResults.m_Redirects[Package.f_GetName()]);
 					auto &AlternateSource = AlternateSources[Package.f_GetName()];
 					Server = Server.f_Replace("{AlternateSources}", AlternateSource.m_Locations);
 					Server = Server.f_Replace("{DefaultSourceSubFilters}", AlternateSource.m_DefaultSourceSubFilters);
@@ -1222,16 +1215,7 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 		ConfigContents = ConfigContents.f_Replace("{WebAppManagerServers}", Servers);
 
 		if (mp_pCustomization)
-		{
-			mp_pCustomization->f_ManipulateNginxConfig
-				(
-					ConfigContents
-					, FastCGIFile
-					, PackageIPs
-					, fp_GetImpl()
-				)
-			;
-		}
+			mp_pCustomization->f_ManipulateNginxConfig(ConfigContents, FastCGIFile, PackageIPs, fp_GetImpl());
 
 		for (auto &ToRemove : VariablesToRemove)
 			ConfigContents = ConfigContents.f_Replace(ToRemove, "");
@@ -1298,7 +1282,6 @@ ch8 const *g_pServerSeparateStaticRootTemplate = R"---(
 					ContentTypesContents += " {}"_f << Extension;
 
 				ContentTypesContents += ";\n";
-
 			}
 			ConfigContents = ConfigContents.f_Replace("{ContentTypes}", ContentTypesContents);
 		}
