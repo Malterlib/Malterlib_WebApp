@@ -109,15 +109,9 @@ namespace NMib::NWebApp::NAcmeManager
 		Domain["RSAKeyLength"] = _Settings.m_RSASettings.m_KeyLength;
 		switch (_Settings.m_AcmeDirectory)
 		{
-		case CAcmeClientActor::EDefaultDirectory_Custom:
-			Domain["AcmeDirectory"] = _Settings.m_AcmeCustomDirectory;
-			break;
-		case CAcmeClientActor::EDefaultDirectory_LetsEncrypt:
-			Domain["AcmeDirectory"] = "LetsEncrypt";
-			break;
-		case CAcmeClientActor::EDefaultDirectory_LetsEncryptStaging:
-			Domain["AcmeDirectory"] = "LetsEncryptStaging";
-			break;
+		case CAcmeClientActor::EDefaultDirectory_Custom: Domain["AcmeDirectory"] = _Settings.m_AcmeCustomDirectory; break;
+		case CAcmeClientActor::EDefaultDirectory_LetsEncrypt: Domain["AcmeDirectory"] = "LetsEncrypt"; break;
+		case CAcmeClientActor::EDefaultDirectory_LetsEncryptStaging: Domain["AcmeDirectory"] = "LetsEncryptStaging"; break;
 		}
 
 		switch (_Settings.m_AccountKeySettings.f_GetTypeID())
@@ -125,7 +119,7 @@ namespace NMib::NWebApp::NAcmeManager
 		case EPublicKeyType::mc_EC_secp256r1: Domain["AccountKeySettings"] = "secp256r1"; break;
 		case EPublicKeyType::mc_EC_secp384r1: Domain["AccountKeySettings"] = "secp384r1"; break;
 		case EPublicKeyType::mc_EC_secp521r1: Domain["AccountKeySettings"] = "secp521r1"; break;
-		case EPublicKeyType::mc_RSA: Domain["AccountKeySettings"] = _Settings.m_AccountKeySettings.f_Get<EPublicKeyType::mc_RSA>().m_KeyLength;
+		case EPublicKeyType::mc_RSA: Domain["AccountKeySettings"] = _Settings.m_AccountKeySettings.f_Get<EPublicKeyType::mc_RSA>().m_KeyLength; break;
 		default: break;
 		}
 

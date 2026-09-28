@@ -39,12 +39,8 @@ namespace NMib::NWebApp
 		co_return {};
 	}
 
-	TCFuture<void> CWebCertificateDeployActor::CInternal::f_UpdateDomainForSecretsManager
-		(
-			CStr _DomainName
-			, TCDistributedActor<CSecretsManager> _SecretsManager
-			, CHostInfo _SecretsManagerHostInfo
-		)
+	auto CWebCertificateDeployActor::CInternal::f_UpdateDomainForSecretsManager(CStr _DomainName, TCDistributedActor<CSecretsManager> _SecretsManager, CHostInfo _SecretsManagerHostInfo)
+		-> TCFuture<void>
 	{
 		CDomain *pDomain = nullptr;
 
@@ -73,13 +69,7 @@ namespace NMib::NWebApp
 
 		auto UpdateResult = co_await pDomain->m_UpdateDomainSequencer.f_RunSequenced
 			(
-				g_ActorFunctorWeak /
-				[
-					this
-					, _DomainName
-					, DomainState = fg_Move(DomainState)
-				]
-				(CActorSubscription _Subscription) mutable -> TCFuture<void>
+				g_ActorFunctorWeak / [this, _DomainName, DomainState = fg_Move(DomainState)](CActorSubscription _Subscription) mutable -> TCFuture<void>
 				{
 					auto *pDomain = m_Domains.f_FindEqual(_DomainName);
 
@@ -102,12 +92,7 @@ namespace NMib::NWebApp
 
 					Domain.m_DomainState = fg_Move(DomainState);
 
-					co_await
-						(
-							f_UpdateDomain(Domain.f_GetName())
-							% ("Failed to update domain '{}'"_f << Domain.f_GetName())
-						)
-					;
+					co_await (f_UpdateDomain(Domain.f_GetName()) % ("Failed to update domain '{}'"_f << Domain.f_GetName()));
 
 					(void)_Subscription;
 
@@ -152,7 +137,7 @@ namespace NMib::NWebApp
 		co_return {};
 	}
 
-	CExceptionPointer CWebCertificateDeployActor::CInternal::f_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState)
+	CExceptionPointer CWebCertificateDeployActor::CInternal::f_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain * &o_pDomain, CDomainState * &o_pDomainState)
 	{
 		if (m_pThis->f_IsDestroyed())
 			return DMibErrorInstance("Shutting down");
@@ -232,16 +217,9 @@ namespace NMib::NWebApp
 
 		auto [PrivateKeySecret, FullChainSecret] = co_await
 			(
-				(
-					pDomainState->m_SecretsManager.f_CallActor(&CSecretsManager::f_GetSecretProperties)(PrivateKeySecretID)
-					% ("Get secret properties for {}"_f << PrivateKeySecretID)
-				)
+				(pDomainState->m_SecretsManager.f_CallActor(&CSecretsManager::f_GetSecretProperties)(PrivateKeySecretID) % ("Get secret properties for {}"_f << PrivateKeySecretID))
 				.f_Dispatch()
-				+
-				(
-					pDomainState->m_SecretsManager.f_CallActor(&CSecretsManager::f_GetSecretProperties)(FullChainSecretID)
-					% ("Get secret properties for {}"_f << FullChainSecretID)
-				)
+				+ (pDomainState->m_SecretsManager.f_CallActor(&CSecretsManager::f_GetSecretProperties)(FullChainSecretID) % ("Get secret properties for {}"_f << FullChainSecretID))
 				.f_Dispatch()
 			)
 		;

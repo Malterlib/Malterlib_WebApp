@@ -31,7 +31,8 @@ namespace NMib::NWebApp::NWebAppManager
 					return false;
 				}
 			}
-			o_Str += "	{{ pattern: new RegExp({}), destination: {}, isDefault: {} },\n"_f
+			o_Str
+				+= "	{{ pattern: new RegExp({}), destination: {}, isDefault: {} },\n"_f
 				<< CJsonSorted("^" + AlternateSource.m_Pattern + "$").f_ToString(nullptr)
 				<< CJsonSorted(Destination).f_ToString(nullptr)
 				<< CJsonSorted(Destination == "Default").f_ToString(nullptr)
@@ -56,13 +57,15 @@ namespace NMib::NWebApp::NWebAppManager
 				return false;
 			}
 
-			o_Str += "	{{ pattern: new RegExp({}), destination: {}, searchReplace: [\n"_f
+			o_Str
+				+= "	{{ pattern: new RegExp({}), destination: {}, searchReplace: [\n"_f
 				<< CJsonSorted("^" + AlternateSource.m_Pattern + "$").f_ToString(nullptr)
 				<< CJsonSorted(Destination).f_ToString(nullptr)
 			;
 			for (auto &SearchReplace : AlternateSource.m_SearchReplace)
 			{
-				o_Str += "		{{ search: new RegExp(escapeRegExp({}), \"g\"), replace: {} },\n"_f
+				o_Str
+					+= "		{{ search: new RegExp(escapeRegExp({}), \"g\"), replace: {} },\n"_f
 					<< CJsonSorted(fp_DoCustomStringReplacements(SearchReplace.m_Search.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
 					<< CJsonSorted(fp_DoCustomStringReplacements(SearchReplace.m_Replace.f_Replace("{DomainName}", mp_Domain))).f_ToString(nullptr)
 				;
@@ -271,7 +274,6 @@ exports.handler = (event, context, callback) => {
 				AccessControl += "	headers['access-control-allow-origin'] = [{{key: 'Access-Control-Allow-Origin', value: '{}'}];\n"_f << mp_Options.m_AccessControl_AllowOrigin;
 			if (!mp_Options.m_AccessControl_MaxAge.f_IsEmpty())
 				AccessControl += "	headers['access-control-max-age'] = [{{key: 'Access-Control-Max-Age', value: '{}'}];\n"_f << mp_Options.m_AccessControl_MaxAge;
-
 
 			CStr RedirectContents;
 
@@ -590,7 +592,7 @@ exports.handler = async (event) => {
 					mp_bInitialS3UploadDone = true;
 					co_await fp_SetupPrerequisites_UploadS3Perform();
 
-					(void) _Subscription;
+					(void)_Subscription;
 
 					co_return {};
 				}
@@ -1046,7 +1048,7 @@ exports.handler = async (event) => {
 				(
 					g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<CAwsS3Actor::CObjectInfoMetadata>
 					{
-						(void) _Subscription;
+						(void)_Subscription;
 						co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetadata, BucketName, DestinationFileName);
 					}
 				)
@@ -1113,11 +1115,11 @@ exports.handler = async (event) => {
 					{
 						auto &Metadata = **pMetadata;
 						if
-							(
-								Metadata.m_CacheControl.f_Get("") == PutInfo.m_CacheControl.f_Get("")
-								&& Metadata.m_ContentEncoding.f_Get("") == PutInfo.m_ContentEncoding.f_Get("")
-								&& Metadata.m_ContentType.f_Get("") == PutInfo.m_ContentType.f_Get("")
-							)
+						(
+							Metadata.m_CacheControl.f_Get("") == PutInfo.m_CacheControl.f_Get("")
+							&& Metadata.m_ContentEncoding.f_Get("") == PutInfo.m_ContentEncoding.f_Get("")
+							&& Metadata.m_ContentType.f_Get("") == PutInfo.m_ContentType.f_Get("")
+						)
 						{
 							continue; // Already up to date
 						}

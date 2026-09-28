@@ -27,7 +27,8 @@ namespace NMib::NWebApp::NWebAppManager
 				CDistributedAppInterfaceServer::CRegisterInfo &o_RegisterInfo
 				, CDistributedAppInterfaceServer::CConfigFiles &o_ConfigFiles
 				, NEncoding::CEJsonSorted const &_Params
-			) override
+			)
+			override
 		;
 
 		void fp_BuildCommandLine(CDistributedAppCommandLineSpecification &o_CommandLine) override;

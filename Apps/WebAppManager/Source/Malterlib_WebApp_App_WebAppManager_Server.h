@@ -5,28 +5,28 @@
 
 #ifdef __cplusplus
 
-#include <Mib/Core/Core>
-#include <Mib/Concurrency/ConcurrencyManager>
-#include <Mib/Concurrency/DistributedApp>
-#include <Mib/Concurrency/ActorSequencerActor>
-#include <Mib/Daemon/Daemon>
-#include <Mib/Process/ProcessLaunch>
-#include <Mib/File/ChangeNotificationActor>
-#ifdef DMibWebAppManager_SupportMongo
-#include <Mib/Mongo/Client>
-#include <Mib/Mongo/MongoCertificateDeploy>
-#endif
-#include <Mib/Storage/Optional>
-#include <Mib/Security/UniqueUserGroup>
-#include <Mib/Web/AWS/S3>
-#include <Mib/Web/AWS/CloudFront>
-#include <Mib/Web/AWS/Lambda>
-#include <Mib/Web/HttpClient>
-#include <Mib/WebApp/WebCertificateDeploy>
-#include <Mib/Cloud/NetworkTunnelsServer>
-#include <Mib/Concurrency/DistributedAppLaunchHelper>
+#	include <Mib/Core/Core>
+#	include <Mib/Concurrency/ConcurrencyManager>
+#	include <Mib/Concurrency/DistributedApp>
+#	include <Mib/Concurrency/ActorSequencerActor>
+#	include <Mib/Daemon/Daemon>
+#	include <Mib/Process/ProcessLaunch>
+#	include <Mib/File/ChangeNotificationActor>
+#	ifdef DMibWebAppManager_SupportMongo
+#		include <Mib/Mongo/Client>
+#		include <Mib/Mongo/MongoCertificateDeploy>
+#	endif
+#	include <Mib/Storage/Optional>
+#	include <Mib/Security/UniqueUserGroup>
+#	include <Mib/Web/AWS/S3>
+#	include <Mib/Web/AWS/CloudFront>
+#	include <Mib/Web/AWS/Lambda>
+#	include <Mib/Web/HttpClient>
+#	include <Mib/WebApp/WebCertificateDeploy>
+#	include <Mib/Cloud/NetworkTunnelsServer>
+#	include <Mib/Concurrency/DistributedAppLaunchHelper>
 
-#include "Malterlib_WebApp_App_WebAppManager_Helpers.h"
+#	include "Malterlib_WebApp_App_WebAppManager_Helpers.h"
 
 namespace NMib::NWebApp::NWebAppManager
 {
@@ -64,28 +64,12 @@ namespace NMib::NWebApp::NWebAppManager
 
 			bool f_IsStatic() const
 			{
-				return m_Type == EPackageType_Static
-					||
-					(
-						m_Type == EPackageType_Npm
-						&&
-						(
-							m_NpmBuildType == "Compile"
-							|| m_NpmBuildType == "Build"
-						)
-					)
-				;
+				return m_Type == EPackageType_Static || (m_Type == EPackageType_Npm && (m_NpmBuildType == "Compile" || m_NpmBuildType == "Build"));
 			}
 
 			bool f_IsNpmDynamic() const
 			{
-				return
-					m_Type == EPackageType_Npm
-					&&
-					(
-						m_NpmBuildType == "Start"
-					)
-				;
+				return m_Type == EPackageType_Npm && (m_NpmBuildType == "Start");
 			}
 
 			bool f_IsDynamicServer() const
@@ -180,7 +164,7 @@ namespace NMib::NWebApp::NWebAppManager
 			bool m_bUseSystemNode = false;
 		};
 
-#ifdef DMibWebAppManager_SupportMongo
+#	ifdef DMibWebAppManager_SupportMongo
 		struct CMongo
 		{
 			void f_SetDefaults(CWebAppManagerOptions const &_Options);
@@ -196,7 +180,7 @@ namespace NMib::NWebApp::NWebAppManager
 			CStr m_DefaultReplicaName = "DefaultReplica";
 			CStr m_DefaultMongoVersion = "6.0";
 		};
-#endif
+#	endif
 
 		CWebAppManagerOptions(CStr const &_ManagerName, CStr const &_ManagerDescription);
 		void f_ParseSettings(CStr const &_Settings, CStr const &_FileName);
@@ -209,9 +193,9 @@ namespace NMib::NWebApp::NWebAppManager
 		TCVector<CStr> m_RobotsAllow;
 		TCVector<CStr> m_RobotsDisallow;
 		TCMap<CStr, CEnvironmentVariable> m_Environment;
-#ifdef DMibWebAppManager_SupportMongo
+#	ifdef DMibWebAppManager_SupportMongo
 		CMongo m_Mongo;
-#endif
+#	endif
 		CStr m_DefaultDomain;
 		CStr m_HTTPRedirectReferrerCookie;
 		CStr m_S3BucketPrefix;
@@ -249,9 +233,9 @@ namespace NMib::NWebApp::NWebAppManager
 		bool m_bServeAllSubdomains = false;
 		bool m_bStartNginx = true;
 		bool m_bAllowRobots = false;
-#ifdef DMibWebAppManager_SupportMongo
+#	ifdef DMibWebAppManager_SupportMongo
 		bool m_bNeedsMongo = false;
-#endif
+#	endif
 		bool m_bAllowRedirectsOutsideOfDomain = true;
 		bool m_bAllowUnelevated = false;
 	};
@@ -296,14 +280,7 @@ namespace NMib::NWebApp::NWebAppManager
 				, ICWebAppManager const &_WebAppManager
 			)
 		;
-		virtual void f_ManipulateNginxConfig
-			(
-				CStr &o_Config
-				, CStr const &_FastCGIFile
-				, TCMap<CStr, CStr> const &_PackageIPs
-				, ICWebAppManager const &_WebAppManager
-			)
-		;
+		virtual void f_ManipulateNginxConfig(CStr &o_Config, CStr const &_FastCGIFile, TCMap<CStr, CStr> const &_PackageIPs, ICWebAppManager const &_WebAppManager);
 		virtual CStr f_DoStringReplacements(CStr const &_Headers, ICWebAppManager const &_WebAppManager);
 		virtual TCUnsafeFuture<void> f_SetupPrerequisitesAsync(TCSet<CStr> _Tags, TCMap<CStr, CUser> _Users);
 	};
@@ -348,9 +325,9 @@ namespace NMib::NWebApp::NWebAppManager
 				, CStr _Home = {}
 				, CStr _User = {}
 				, CStr _Group = {}
-#ifdef DPlatformFamily_Windows
+#	ifdef DPlatformFamily_Windows
 				, CStrSecure _UserPassword = {}
-#endif
+#	endif
 			)
 		;
 		TCFuture<CStr> f_ExtractTar(CStr const &_TarFile, CStr const &_DestinationDir);
@@ -420,23 +397,18 @@ namespace NMib::NWebApp::NWebAppManager
 
 		CStr fp_GetDataPath(CStr const &_Path) const;
 		CStr fp_ConcatOutput(CStr const &_StdOut, CStr const &_StdErr) const;
-		TCFuture<CStr> fp_RunToolForVersionCheck
-			(
-				CStr const &_Tool
-				, TCVector<CStr> const &_Arguments
-			)
-		;
-#ifdef DPlatformFamily_Windows
+		TCFuture<CStr> fp_RunToolForVersionCheck(CStr const &_Tool, TCVector<CStr> const &_Arguments);
+#	ifdef DPlatformFamily_Windows
 		CStrSecure fp_GetUserPassword(CStr const &_User);
 		TCFuture<void> fp_SaveUserPassword(CStr _User, CStrSecure _Password);
-#endif
+#	endif
 		static void fsp_SetupUser
 			(
 				CUser &_User
 				, bool _bRunningElevated
-#ifdef DPlatformFamily_Windows
+#	ifdef DPlatformFamily_Windows
 				, CStrSecure &o_Password
-#endif
+#	endif
 			)
 		;
 		TCFuture<void> fp_ExtractExeFS() const;
@@ -454,9 +426,9 @@ namespace NMib::NWebApp::NWebAppManager
 			(
 				CUser &_User
 				, bool _bRunningElevated
-#ifdef DPlatformFamily_Windows
+#	ifdef DPlatformFamily_Windows
 				, CStrSecure &o_Password
-#endif
+#	endif
 				, CStr const &_Directory
 				, CStr const &_SSLDirectory
 			)
@@ -469,9 +441,9 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<void> fp_SetupPrerequisites_Nginx();
 		TCFuture<void> fp_SetupPrerequisites_Customization();
 		TCFuture<void> fp_SetupPrerequisites_NodeExtract();
-#ifdef DMibWebAppManager_SupportMongo
+#	ifdef DMibWebAppManager_SupportMongo
 		TCFuture<void> fp_SetupPrerequisites_Mongo();
-#endif
+#	endif
 		TCFuture<void> fp_SetupPrerequisites_Packages();
 		TCFuture<void> fp_SetupPrerequisites_UploadS3();
 		TCFuture<void> fp_SetupPrerequisites_UploadS3Perform();
@@ -486,14 +458,14 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr fp_GetAllowRobots(bool _bAllow);
 
 		CStr fp_GetMongoSSLDirectory() const;
-#ifdef DMibWebAppManager_SupportMongo
+#	ifdef DMibWebAppManager_SupportMongo
 		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
 		NWeb::NHTTP::CURL fp_GetDBAddressURL(CStr _Database, CStr _HomePath);
 		CStr fp_GetDBAddress(CStr _Database, CStr _HomePath);
 		TCFuture<void> fp_RunNodeMongoScript(CStr _ScriptName, CStr _Script, TCVector<CStr> _Params, CStr _Database, fp32 _Timeout);
 
 		TCFuture<void> fp_SetupMongo();
-#endif
+#	endif
 
 		static CStr fsp_GetVersionString();
 		TCFuture<void> fp_UpdateVersionHistory();
@@ -588,9 +560,9 @@ namespace NMib::NWebApp::NWebAppManager
 		TCActor<CAwsCloudFrontActor> mp_CloudFrontActor;
 		TCActor<CAwsLambdaActor> mp_LambdaActor;
 
-#ifdef DPlatformFamily_Windows
+#	ifdef DPlatformFamily_Windows
 		TCMap<CStr, CStrSecure> mp_UserPasswords;
-#endif
+#	endif
 		TCActor<CNetworkTunnelsServer> mp_NetworkTunnelsServer;
 
 		TCActor<CWebCertificateDeployActor> mp_CertificateDeployActor;
@@ -602,7 +574,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr mp_DomainCookie;
 		CStr mp_DDPSelf;
 
-#ifdef DMibWebAppManager_SupportMongo
+#	ifdef DMibWebAppManager_SupportMongo
 		CStr mp_MongoDirectory;
 		CStr mp_MongoHost;
 		uint16 mp_MongoPort;
@@ -620,7 +592,7 @@ namespace NMib::NWebApp::NWebAppManager
 		// Mongo certificate deploy
 		TCActor<CMongoCertificateDeployActor> mp_MongoCertificateDeployActor;
 		CActorSubscription mp_MongoCertificateDeploySubscription_Admin;
-#endif
+#	endif
 
 		CStr mp_BindTo;
 
@@ -641,10 +613,10 @@ namespace NMib::NWebApp::NWebAppManager
 	};
 }
 
-#ifndef DMibPNoShortCuts
+#	ifndef DMibPNoShortCuts
 using namespace NMib::NWebApp::NWebAppManager;
-#endif
+#	endif
 
 #else
-#include <stdlib.h>
+#	include <stdlib.h>
 #endif

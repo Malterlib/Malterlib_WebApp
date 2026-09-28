@@ -12,12 +12,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		CDistributedAppActor::fp_BuildCommandLine(o_CommandLine);
 
-		o_CommandLine.f_SetProgramDescription
-			(
-				mp_Options.m_ManagerDescription
-				, "Manages web applications."
-			)
-		;
+		o_CommandLine.f_SetProgramDescription(mp_Options.m_ManagerDescription, "Manages web applications.");
 
 		auto DefaultSection = o_CommandLine.f_GetDefaultSection();
 
@@ -27,7 +22,7 @@ namespace NMib::NWebApp::NWebAppManager
 					"Names"_o= _o["--invalidate-cloud-front-caches"]
 					, "Description"_o= "Invalidate all CloudFront caches.\n"
 				}
-				, [this] (NEncoding::CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine) -> TCFuture<uint32>
+				, [this](NEncoding::CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine) -> TCFuture<uint32>
 				{
 					co_await fp_WaitForAppStartup();
 
@@ -71,8 +66,7 @@ namespace NMib::NWebApp::NWebAppManager
 							"Default"_o= ""
 							, "Description"_o= "The executable to launch."
 						}
-						,
-						"Params...?"_o=
+						, "Params...?"_o=
 						{
 							"Type"_o= _o[""]
 							, "Default"_o= _o[]
@@ -80,7 +74,7 @@ namespace NMib::NWebApp::NWebAppManager
 						}
 					}
 				}
-				, [this] (NEncoding::CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine) -> TCFuture<uint32>
+				, [this](NEncoding::CEJsonSorted const _Params, NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine) -> TCFuture<uint32>
 				{
 					co_await fp_WaitForAppStartup();
 
