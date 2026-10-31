@@ -27,7 +27,8 @@ Type
 
 Property
 {
-	MalterlibWebAppManagerDevDepenencesInPackage: bool = !MalterlibBuildServerBuild // User(WebAppManager)=false: Allow dev dependencies in npm package. This allows fast builds without npm ci
+	// User(WebAppManager)=false: Allow dev dependencies in npm package. This allows fast builds without npm ci
+	MalterlibWebAppManagerDevDepenencesInPackage: bool = !MalterlibBuildServerBuild
 	MalterlibWebAppManagerMongoSupport: bool = MalterlibModules->ContainsListElement("Mongo")
 }
 
