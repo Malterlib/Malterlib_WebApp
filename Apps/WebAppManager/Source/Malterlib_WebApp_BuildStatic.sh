@@ -82,6 +82,10 @@ fi
 ExcludePatterns="*/bin;*/node_modules"
 ExcludePatterns="$ExcludePatterns;*/.DS_Store"
 
-MTool BuildDependencies "OutputFile=`ConvertPath \"$ScriptDependencyFile\"`" "Output:`ConvertPath \"$OutputBundleTar\"`" "Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" "Find:`ConvertPath \"$AppDir\"`/*;RIF;33;$ExcludePatterns"
+MTool BuildDependencies \
+	"OutputFile=`ConvertPath \"$ScriptDependencyFile\"`" \
+	"Output:`ConvertPath \"$OutputBundleTar\"`" \
+	"Input:`ConvertPath \"${BASH_SOURCE[0]}\"`" \
+	"Find:`ConvertPath \"$AppDir\"`/*;RIF;33;$ExcludePatterns"
 
 exit 0
