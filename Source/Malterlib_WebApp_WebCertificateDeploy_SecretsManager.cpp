@@ -21,15 +21,7 @@ namespace NMib::NWebApp
 
 		if (Error != LastError)
 		{
-			DMibLogWithCategory
-				(
-					Mib/WebApp/WebCertificateDeploy
-					, Error
-					, "Failed to handle secrets manager added for '{}' (will retry every 10 seconds): {}"
-					, _Info.m_HostInfo
-					, Error
-				)
-			;
+			DMibLogWithCategory(Mib/WebApp/WebCertificateDeploy, Error, "Failed to handle secrets manager added for '{}' (will retry every 10 seconds): {}", _Info.m_HostInfo, Error);
 			LastError = Error;
 			for (auto &Domain : m_Domains)
 				f_UpdateDomainStatus(Domain, _Info.m_HostInfo, EStatusSeverity_Error, Error);
@@ -47,9 +39,7 @@ namespace NMib::NWebApp
 					if (!m_SecretsManagerSubscription.m_Actors.f_FindEqual(_SecretsManager))
 						co_return {};
 
-					f_SecretsManagerAddedWithRetry(_SecretsManager, _Info)
-						> fg_LogError("Mib/WebApp/WebCertificateDeploy", "Failed to handle secret manager added (retry)")
-					;
+					f_SecretsManagerAddedWithRetry(_SecretsManager, _Info) > fg_LogError("Mib/WebApp/WebCertificateDeploy", "Failed to handle secret manager added (retry)");
 
 					co_return {};
 				}
@@ -58,7 +48,6 @@ namespace NMib::NWebApp
 
 		co_return {};
 	}
-
 
 	TCFuture<void> CWebCertificateDeployActor::CInternal::f_SecretsManagerAdded(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info)
 	{

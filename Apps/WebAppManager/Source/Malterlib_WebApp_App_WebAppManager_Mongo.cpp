@@ -101,15 +101,7 @@ namespace NMib::NWebApp::NWebAppManager
 						return SetupResult;
 
 					if (CFile::fs_FileExists(MongoSSLDirectory) && MongoSSLDirectory.f_StartsWith(CFile::fs_GetProgramDirectory() + "/"))
-					{
-						CFile::fs_SetUnixAttributesRecursive
-							(
-								MongoSSLDirectory
-								, EFileAttrib_UserRead
-								, EFileAttrib_UserRead | EFileAttrib_UserExecute
-							)
-						;
-					}
+						CFile::fs_SetUnixAttributesRecursive(MongoSSLDirectory, EFileAttrib_UserRead, EFileAttrib_UserRead | EFileAttrib_UserExecute);
 
 					CStr ClientCertificatePath = MongoSSLDirectory / "admin.pem";
 
@@ -240,16 +232,16 @@ namespace NMib::NWebApp::NWebAppManager
 			if (!StdOutResult)
 			{
 				if
+				(
 					(
-						(
-							StdOutResult.f_GetExceptionStr().f_Find("MongoNetworkError: connect") >= 0
-							|| StdOutResult.f_GetExceptionStr().f_Find("MongoPoolClearedError:") >= 0
-							|| StdOutResult.f_GetExceptionStr().f_Find("The OS returned an error from execve") >= 0
-							|| StdOutResult.f_GetExceptionStr().f_Find("not master and slaveOk=false") >= 0
-						)
-						&& _Timeout != 0.0f
-						&& Stopwatch.f_GetTime() < _Timeout
+						StdOutResult.f_GetExceptionStr().f_Find("MongoNetworkError: connect") >= 0
+						|| StdOutResult.f_GetExceptionStr().f_Find("MongoPoolClearedError:") >= 0
+						|| StdOutResult.f_GetExceptionStr().f_Find("The OS returned an error from execve") >= 0
+						|| StdOutResult.f_GetExceptionStr().f_Find("not master and slaveOk=false") >= 0
 					)
+					&& _Timeout != 0.0f
+					&& Stopwatch.f_GetTime() < _Timeout
+				)
 				{
 					co_await fg_Timeout(0.1);
 					continue;

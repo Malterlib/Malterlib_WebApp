@@ -18,14 +18,12 @@ namespace NMib::NWebApp::NWebCertificateManager
 		~CWebCertificateManagerActor();
 
 	private:
-
 		struct CCertificateLocation
 		{
 			auto operator <=> (CCertificateLocation const &_Right) const noexcept = default;
 
 			CStr m_Key;
 			CStr m_FullChain;
-
 		};
 
 		struct CCertificateFileSettings

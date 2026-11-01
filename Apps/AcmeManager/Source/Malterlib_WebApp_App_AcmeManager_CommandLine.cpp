@@ -13,12 +13,7 @@ namespace NMib::NWebApp::NAcmeManager
 	{
 		CDistributedAppActor::fp_BuildCommandLine(o_CommandLine);
 
-		o_CommandLine.f_SetProgramDescription
-			(
-				"Malterlib ACME Manager"
-				, "Manages domain certificates through ACME service."
-			)
-		;
+		o_CommandLine.f_SetProgramDescription("Malterlib ACME Manager", "Manages domain certificates through ACME service.");
 
 		auto DomainManagement = o_CommandLine.f_AddSection("Domain Management", "Commands to manage AcmeManager domains");
 

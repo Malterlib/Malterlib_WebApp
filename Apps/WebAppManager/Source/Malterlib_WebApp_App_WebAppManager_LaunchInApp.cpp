@@ -8,14 +8,8 @@
 
 namespace NMib::NWebApp::NWebAppManager
 {
-	TCFuture<uint32> CWebAppManagerActor::f_LaunchAsApp
-		(
-			NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine
-			, CStr _Application
-			, CStr _Executable
-			, TCVector<CStr> _Params
-			, CStr _WorkingDir
-		)
+	auto CWebAppManagerActor::f_LaunchAsApp(NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine, CStr _Application, CStr _Executable, TCVector<CStr> _Params, CStr _WorkingDir)
+		-> TCFuture<uint32>
 	{
 		CAppLaunch const *pAppLaunch = nullptr;
 		TCSet<CStr> AllLaunches;
@@ -45,14 +39,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		auto &LaunchEnvironment = *pAppLaunch->m_LaunchEnvironment;
 
-		CProcessLaunchActor::CLaunch Launch = CProcessLaunchParams::fs_LaunchExecutable
-			(
-				_Executable
-				, _Params
-				, _WorkingDir
-				, {}
-			)
-		;
+		CProcessLaunchActor::CLaunch Launch = CProcessLaunchParams::fs_LaunchExecutable(_Executable, _Params, _WorkingDir, {});
 
 		Launch.m_Params.m_Environment = LaunchEnvironment.m_Environment;
 		Launch.m_Params.m_RunAsUser = LaunchEnvironment.m_RunAsUser;
@@ -144,7 +131,7 @@ namespace NMib::NWebApp::NWebAppManager
 						break;
 					case EStdInReaderOutputType_EndOfFile:
 						{
-						if (!bEOFReceived)
+							if (!bEOFReceived)
 							{
 								bEOFReceived = true;
 								co_await ProcessLaunchActor(&CProcessLaunchActor::f_CloseStdIn).f_Wrap() > fg_LogError("", "Failed to close stdin");

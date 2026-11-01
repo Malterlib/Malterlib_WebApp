@@ -123,7 +123,7 @@ namespace NMib::NWebApp::NWebAppManager
 			fg_Move(ToolLaunch.m_ProcessLaunch).f_Destroy() > Destroys;
 		mp_ToolLaunches.f_Clear();
 
-		co_await fg_AllDone(Destroys).f_Wrap() > LogError.f_Warning("Failed to destroy tool launches");;
+		co_await fg_AllDone(Destroys).f_Wrap() > LogError.f_Warning("Failed to destroy tool launches");
 		co_await fp_DestroyApps().f_Wrap() > fg_LogWarning("", "Failed to destroy apps");
 
 		if (mp_NginxLaunch)
@@ -331,12 +331,7 @@ namespace NMib::NWebApp::NWebAppManager
 		else if (o_Password.f_IsEmpty())
 		{
 			o_Password = fg_HighEntropyRandomID("23456789ABCDEFGHJKLMNPQRSTWXYZabcdefghijkmnopqrstuvwxyz&=*!@~^") + "2Dg&";
-			NSys::fg_UserManagement_SetUserPassword
-				(
-					_User.m_UserName
-					, o_Password
-				)
-			;
+			NSys::fg_UserManagement_SetUserPassword(_User.m_UserName, o_Password);
 		}
 #endif
 	}
@@ -468,7 +463,7 @@ namespace NMib::NWebApp::NWebAppManager
 			else if (auto *pValue = PackageSettings.f_GetMember("Concurrency", EJsonType_String))
 			{
 				CStr Expression = pValue->f_String();
-				Expression = Expression.f_Replace("{PhysicalMemoryGB}", fg_Format("{}", fp64(NProcess::NPlatform::fg_Process_GetPhysicalMemory()) / (1024.0*1024.0*1024.0)));
+				Expression = Expression.f_Replace("{PhysicalMemoryGB}", fg_Format("{}", fp64(NProcess::NPlatform::fg_Process_GetPhysicalMemory()) / (1024.0 * 1024.0 * 1024.0)));
 				Expression = Expression.f_Replace("{MemoryPerNode}", fg_Format("{}", Package.m_MemoryPerNode));
 
 				Expression = fg_Format("{{xpr({})}", Expression);
@@ -847,14 +842,7 @@ namespace NMib::NWebApp::NWebAppManager
 								}
 
 								if (Tag.f_StartsWith("!"))
-								{
-									DMibError
-										(
-											"You cannot specify forbidden tags `{}` in a tag set"_f
-											<< Tag
-										)
-									;
-								}
+									DMibError("You cannot specify forbidden tags `{}` in a tag set"_f << Tag);
 
 								TagSet[Tag];
 							}
@@ -892,13 +880,7 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 	}
 
-	void ICWebAppManagerCustomization::f_ManipulateNginxConfig
-		(
-			CStr &o_Config
-			, CStr const &_FastCGIFile
-			, TCMap<CStr, CStr> const &_PackageIPs
-			, ICWebAppManager const &_WebAppManager
-		)
+	void ICWebAppManagerCustomization::f_ManipulateNginxConfig(CStr &o_Config, CStr const &_FastCGIFile, TCMap<CStr, CStr> const &_PackageIPs, ICWebAppManager const &_WebAppManager)
 	{
 	}
 

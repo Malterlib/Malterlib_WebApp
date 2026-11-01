@@ -67,7 +67,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 					CStr Description;
 					if (ColorPrefix)
-						Description = "{}{}{}"_f << ColorPrefix<< DomainStatus.m_Description << AnsiEncoding.f_Default();
+						Description = "{}{}{}"_f << ColorPrefix << DomainStatus.m_Description << AnsiEncoding.f_Default();
 					else
 						Description = DomainStatus.m_Description;
 

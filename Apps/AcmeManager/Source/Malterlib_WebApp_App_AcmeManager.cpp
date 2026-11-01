@@ -4,7 +4,7 @@
 #include <Mib/Core/Platform>
 
 #ifdef DCompiler_MSVC_Workaround
-#pragma warning(disable:4724)
+#	pragma warning(disable:4724)
 #endif
 
 #include <Mib/Encoding/JsonShortcuts>
@@ -134,7 +134,6 @@ namespace NMib::NWebApp::NAcmeManager
 
 				Domain.m_DomainState->m_OnReleaseDNSChallenge.f_Clear();
 			}
-
 		}
 
 		co_await fg_AllDoneWrapped(Destroys);

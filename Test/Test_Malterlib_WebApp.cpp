@@ -7,7 +7,6 @@
 class CWebApp_Tests : public NMib::NTest::CTest
 {
 public:
-
 	void f_DoTests()
 	{
 	}

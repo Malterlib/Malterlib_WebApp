@@ -70,6 +70,7 @@ namespace NMib::NWebApp::NAcmeManager
 			{
 				return TCMap<CStr, CDomain>::fs_GetKey(*this);
 			}
+
 			CStr f_GetSecretFolder() const;
 			CDomainStatus const *f_GetCurrentStatus() const;
 
@@ -110,15 +111,9 @@ namespace NMib::NWebApp::NAcmeManager
 
 		CEJsonSorted fp_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const;
 
-		[[nodiscard]] NException::CExceptionPointer fp_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain *&o_pDomain, CDomainState *&o_pDomainState);
-		TCFuture<bool> fp_UpdateDomain_HandleChallenge
-			(
-				CStr _DomainName
-				, CStr _CertificateType
-				, CAcmeClientActor::CChallenge _Challenge
-			)
-		;
-		TCFuture<void> fp_UpdateDomain_RunAcmeProtocol
+		[[nodiscard]] NException::CExceptionPointer fp_UpdateDomain_CheckPreconditions(CStr const &_DomainName, CDomain * &o_pDomain, CDomainState * &o_pDomainState);
+		TCFuture<bool> fp_UpdateDomain_HandleChallenge(CStr _DomainName, CStr _CertificateType, CAcmeClientActor::CChallenge _Challenge);
+		auto fp_UpdateDomain_RunAcmeProtocol
 			(
 				CStr _DomainName
 				, CStr _CertificateType
@@ -127,6 +122,7 @@ namespace NMib::NWebApp::NAcmeManager
 				, CDomainSettings _DomainSettings
 				, CEJsonSorted _DomainSettingsJson
 			)
+			-> TCFuture<void>
 		;
 		TCFuture<bool> fp_UpdateDomain_IsAlreadyUpToDate(CStr _DomainName, CEJsonSorted _DomainSettingsJson, CStr _CertificateType);
 		TCFuture<void> fp_UpdateDomain(CStr _DomainName, bool _bCreateAccountKey);

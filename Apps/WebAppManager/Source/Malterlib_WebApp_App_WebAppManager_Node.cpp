@@ -236,9 +236,7 @@ namespace NMib::NWebApp::NWebAppManager
 					return;
 				}
 				if (*pOutstanding)
-				{
 					bPrevented = true;
-				}
 			}
 			if (bPrevented)
 				continue;
@@ -265,7 +263,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 	void CWebAppManagerActor::fp_SetupNodeArguments(TCVector<CStr> &o_Arguments, CAppLaunch const &_AppLaunch, CWebAppManagerOptions::CPackage const &_PackageOptions)
 	{
-		o_Arguments.f_Insert(fg_Format("--max_old_space_size={}", (_PackageOptions.m_MemoryPerNode*1024.0).f_ToInt()));
+		o_Arguments.f_Insert(fg_Format("--max_old_space_size={}", (_PackageOptions.m_MemoryPerNode * 1024.0).f_ToInt()));
 
 		o_Arguments.f_Insert("--trace-deprecation");
 		o_Arguments.f_Insert("--trace-warnings");
@@ -294,7 +292,7 @@ namespace NMib::NWebApp::NWebAppManager
 		AvailableTags[_PackageOptions.f_GetName()];
 		AvailableTags[fg_Format("{}_{}", _PackageOptions.f_GetName(), _AppLaunch.f_GetKey().m_iAppSequence)];
 
-		switch(_PackageOptions.m_Type)
+		switch (_PackageOptions.m_Type)
 		{
 		case CWebAppManagerOptions::EPackageType_Meteor: AvailableTags["Meteor"]; break;
 		case CWebAppManagerOptions::EPackageType_FastCGI: AvailableTags["FastCGI"]; break;
@@ -377,14 +375,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 			fg_Move(OldSubscriptionDestroy) > [this, pAppLaunch = &_AppLaunch, Metadata = fg_Move(Metadata)](TCAsyncResult<void> &&) mutable
 				{
-					mp_NetworkTunnelsServer
-						(
-							&CNetworkTunnelsServer::f_PublishNetworkTunnel
-							, pAppLaunch->m_LogCategory
-							, fp_GetAppIPAddress(*pAppLaunch, false)
-							, 5599
-							, fg_Move(Metadata)
-						)
+					mp_NetworkTunnelsServer(&CNetworkTunnelsServer::f_PublishNetworkTunnel, pAppLaunch->m_LogCategory, fp_GetAppIPAddress(*pAppLaunch, false), 5599, fg_Move(Metadata))
 						> fg_LogError("Network Tunnel", "Publish network tunnel") / [pAppLaunch](CActorSubscription &&_Subscription)
 						{
 							pAppLaunch->m_TunnelSubscription = fg_Move(_Subscription);
@@ -723,17 +714,7 @@ namespace NMib::NWebApp::NWebAppManager
 			}
 
 			if (mp_pCustomization)
-			{
-				mp_pCustomization->f_CalculateSettings
-					(
-						CalculatedSettings
-						, MeteorSettings
-						, _AppLaunch.f_GetKey().m_PackageName
-						, PackageOptions
-						, fp_GetImpl()
-					)
-				;
-			}
+				mp_pCustomization->f_CalculateSettings(CalculatedSettings, MeteorSettings, _AppLaunch.f_GetKey().m_PackageName, PackageOptions, fp_GetImpl());
 
 			fp_PopulateNodeEnvironment(Params.m_Environment, CalculatedSettings, _AppLaunch, PackageOptions);
 
@@ -771,8 +752,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 			_AppLaunch.m_Launch.f_Set<2>();
 
-			mp_AppLaunchHelper(&CDistributedApp_LaunchHelper::f_LaunchWithLaunch, _AppLaunch.m_LogCategory, fg_Move(Launch), fg_ThisActor(this))
-				> [this, pAppLaunch, _bInitialLaunch](TCAsyncResult<CDistributedApp_LaunchInfo> &&_LaunchInfo) mutable
+			mp_AppLaunchHelper(&CDistributedApp_LaunchHelper::f_LaunchWithLaunch, _AppLaunch.m_LogCategory, fg_Move(Launch), fg_ThisActor(this)) > [this, pAppLaunch, _bInitialLaunch]
+				(TCAsyncResult<CDistributedApp_LaunchInfo> &&_LaunchInfo) mutable
 				{
 					auto &AppLaunch = *pAppLaunch;
 
@@ -817,8 +798,7 @@ namespace NMib::NWebApp::NWebAppManager
 		auto &NormalLaunch = _AppLaunch.m_Launch.f_Set<1>();
 
 		NormalLaunch.m_Launch = fg_ConstructActor<CProcessLaunchActor>();
-		NormalLaunch.m_Launch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this))
-			> [this, pAppLaunch, _bInitialLaunch](TCAsyncResult<CActorSubscription> &&_Subscription)
+		NormalLaunch.m_Launch(&CProcessLaunchActor::f_Launch, fg_Move(Launch), fg_ThisActor(this)) > [this, pAppLaunch, _bInitialLaunch](TCAsyncResult<CActorSubscription> &&_Subscription)
 			{
 				auto &AppLaunch = *pAppLaunch;
 

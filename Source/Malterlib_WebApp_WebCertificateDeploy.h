@@ -81,5 +81,5 @@ namespace NMib::NWebApp
 }
 
 #ifndef DMibPNoShortCuts
-	using namespace NMib::NWebApp;
+using namespace NMib::NWebApp;
 #endif

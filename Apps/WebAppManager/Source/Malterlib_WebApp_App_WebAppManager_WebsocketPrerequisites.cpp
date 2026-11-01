@@ -26,8 +26,7 @@ namespace NMib::NWebApp::NWebAppManager
 			auto BlockingActorCheckout = fg_BlockingActor();
 			NodeInfo = co_await
 				(
-					g_Dispatch(BlockingActorCheckout)
-					/
+					g_Dispatch(BlockingActorCheckout) /
 					[
 						ProgramDirectory
 						, WebsocketDirectory
@@ -45,11 +44,11 @@ namespace NMib::NWebApp::NWebAppManager
 
 						try
 						{
-		#ifdef DPlatformFamily_Windows
+#ifdef DPlatformFamily_Windows
 							fsp_SetupPrerequisites_ServerUser(Info.m_User, bRunningElevated, Info.m_UserPassword, WebsocketDirectory, MongoSSLDirectory);
-		#else
+#else
 							fsp_SetupPrerequisites_ServerUser(Info.m_User, bRunningElevated, WebsocketDirectory, MongoSSLDirectory);
-		#endif
+#endif
 							co_return fg_Move(Info);
 						}
 						catch (NException::CException const &)
