@@ -17,6 +17,10 @@ Repository
 
 %Group "{Malterlib}/{Lib_Malterlib_WebApp}"
 {
+	Property
+	{
+		MalterlibConcurrency_DistributedAppPrefixHeader true
+	}
 	%Group "WebApp"
 	{
 		%Group "Include"

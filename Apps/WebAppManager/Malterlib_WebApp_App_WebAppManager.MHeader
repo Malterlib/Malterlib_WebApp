@@ -386,6 +386,7 @@ Property
 {
 	Property
 	{
+		MalterlibConcurrency_DistributedAppPrefixHeader true
 		MalterlibPostCopyProject undefined
 		MalterlibTargetNameType "Normal"
 	}
