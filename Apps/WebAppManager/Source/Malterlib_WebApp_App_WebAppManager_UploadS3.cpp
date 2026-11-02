@@ -1069,7 +1069,7 @@ exports.handler = async (event) => {
 		for (auto &Object : Bucket.m_Objects)
 			FilesToDelete[Object.m_Key];
 
-		TCMap<int64, TCVector<TCFunctionMutable<TCFuture<void> (CActorSubscription &&_Subscription)>>> ToUpload;
+		TCMap<int64, TCVector<TCActorFunctorWeak<TCFuture<void> (CActorSubscription _Subscription)>>> ToUpload;
 
 		for (auto &NewFile : SourceCheckResults.m_DirectoryManifest.m_Files)
 		{
@@ -1180,7 +1180,7 @@ exports.handler = async (event) => {
 			// Limit the number of files held in memory to limit memory usage
 			ToUpload[Priority].f_Insert
 				(
-					[=, this, ExpectedChecksum = *NewFile.m_Digest, FileContents = fg_Move(FileContents)](CActorSubscription _Subscription) mutable -> TCFuture<void>
+					g_ActorFunctorWeak / [=, this, ExpectedChecksum = *NewFile.m_Digest, FileContents = fg_Move(FileContents)](CActorSubscription _Subscription) mutable -> TCFuture<void>
 					{
 						auto OnResume = co_await f_CheckDestroyedOnResume();
 
@@ -1230,14 +1230,14 @@ exports.handler = async (event) => {
 		{
 			mp_S3PrioritySequencer.f_RunSequenced
 				(
-					g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) mutable -> TCFuture<void>
+					g_ActorFunctorWeak / [=, this, PriorityUploadList = fg_Move(PriorityUploadList)](CActorSubscription _Subscription) mutable -> TCFuture<void>
 					{
 						auto OnResume = co_await f_CheckDestroyedOnResume();
 
 						TCFutureVector<void> UploadResults;
 
 						for (auto &fUpload : PriorityUploadList)
-							mp_S3FileReadSequencer.f_RunSequenced(g_ActorFunctorWeak / fg_Move(fUpload)) > UploadResults;
+							mp_S3FileReadSequencer.f_RunSequenced(fg_Move(fUpload)) > UploadResults;
 
 						co_await fg_AllDone(UploadResults);
 
