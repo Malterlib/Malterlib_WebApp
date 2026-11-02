@@ -94,8 +94,6 @@ namespace NMib::NWebApp
 
 					co_await (f_UpdateDomain(Domain.f_GetName()) % ("Failed to update domain '{}'"_f << Domain.f_GetName()));
 
-					(void)_Subscription;
-
 					co_return {};
 				}
 			)

@@ -552,8 +552,6 @@ exports.handler = async (event) => {
 											DMibLogWithCategory(WebAppManager, Info, "Updating S3 upload due to file changes");
 											co_await fp_SetupPrerequisites_UploadS3Perform();
 
-											(void)_Subscription;
-
 											co_return {};
 										}
 									)
@@ -591,8 +589,6 @@ exports.handler = async (event) => {
 				{
 					mp_bInitialS3UploadDone = true;
 					co_await fp_SetupPrerequisites_UploadS3Perform();
-
-					(void)_Subscription;
 
 					co_return {};
 				}
@@ -1048,7 +1044,6 @@ exports.handler = async (event) => {
 				(
 					g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<CAwsS3Actor::CObjectInfoMetadata>
 					{
-						(void)_Subscription;
 						co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_GetObjectMetadata, BucketName, DestinationFileName);
 					}
 				)
@@ -1216,8 +1211,6 @@ exports.handler = async (event) => {
 
 						co_await ((*mp_S3Actors)(&CAwsS3Actor::f_PutObject, BucketName, FileName, PutInfo, fg_Move(ReadData)) % ("Failed to upload '{}'"_f << FileName));
 
-						(void)_Subscription;
-
 						co_return {};
 					}
 				)
@@ -1240,8 +1233,6 @@ exports.handler = async (event) => {
 							mp_S3FileReadSequencer.f_RunSequenced(fg_Move(fUpload)) > UploadResults;
 
 						co_await fg_AllDone(UploadResults);
-
-						(void)_Subscription;
 
 						co_return {};
 					}
@@ -1270,7 +1261,6 @@ exports.handler = async (event) => {
 				(
 					g_ActorFunctorWeak / [=, this](CActorSubscription _Subscription) -> TCFuture<void>
 					{
-						(void)_Subscription;
 						co_return co_await (*mp_S3Actors)(&CAwsS3Actor::f_DeleteObject, BucketName, File);
 					}
 				)
@@ -1408,8 +1398,6 @@ exports.handler = async (event) => {
 					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache out of band");
 					co_await fp_InvalidateCloudfrontDistributionsWithRetry(mp_LastCloudFrontDistributions);
 					DMibLogWithCategory(S3Upload, Info, "Invalidating CloudFront cache {fe2} s", Stopwatch.f_GetTime());
-
-					(void)_Subscription;
 
 					co_return {};
 				}

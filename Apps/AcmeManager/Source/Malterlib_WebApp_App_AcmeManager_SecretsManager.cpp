@@ -107,8 +107,6 @@ namespace NMib::NWebApp::NAcmeManager
 
 						co_await (fp_UpdateDomain(Domain.f_GetName(), bCreatePrivateKey) % ("Failed to update domain '{}'"_f << Domain.f_GetName()));
 
-						(void)_Subscription;
-
 						co_return {};
 					}
 				)
