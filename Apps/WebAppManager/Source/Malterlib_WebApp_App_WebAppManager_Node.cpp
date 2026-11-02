@@ -507,10 +507,13 @@ namespace NMib::NWebApp::NWebAppManager
 									fp_UpdateAppLaunch(fg_MakeException(DMibErrorInstance(fg_Format("Unexpected exit {}", _Change.f_Get<EProcessLaunchState_Exited>()))));
 
 								DLog(Info, "Unexpected exit {}, scheduling relaunch in 10 seconds", _Change.f_Get<EProcessLaunchState_Exited>());
-								fg_Timeout(10.0) > [this, pAppLaunch]() -> TCFuture<void>
+								fg_Timeout(10.0) > [this, LaunchKey = AppLaunch.f_GetKey()]() -> TCFuture<void>
 									{
 										if (!f_IsDestroyed() && !mp_bStopped)
-											fp_LaunchApp(*pAppLaunch, false);
+										{
+											if (auto *pAppLaunch = mp_AppLaunches.f_FindEqual(LaunchKey))
+												fp_LaunchApp(*pAppLaunch, false);
+										}
 
 										co_return {};
 									}
