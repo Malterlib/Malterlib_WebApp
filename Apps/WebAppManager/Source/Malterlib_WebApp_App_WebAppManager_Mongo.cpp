@@ -140,7 +140,7 @@ namespace NMib::NWebApp::NWebAppManager
 	}
 
 #ifdef DMibWebAppManager_SupportMongo
-	NWeb::NHTTP::CURL CWebAppManagerActor::fp_GetDBAddressURL(CStr _Database, CStr _HomePath)
+	NWeb::NHTTP::CURL CWebAppManagerActor::fp_GetDBAddressURL(CStr const &_Database, CStr const &_HomePath)
 	{
 		if (mp_bConnectToExternalMongo)
 		{
@@ -187,7 +187,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 	}
 
-	CStr CWebAppManagerActor::fp_GetDBAddress(CStr _Database, CStr _HomePath)
+	CStr CWebAppManagerActor::fp_GetDBAddress(CStr const &_Database, CStr const &_HomePath)
 	{
 		return fp_GetDBAddressURL(_Database, _HomePath).f_Encode();
 	}

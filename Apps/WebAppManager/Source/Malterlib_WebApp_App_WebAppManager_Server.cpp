@@ -242,7 +242,7 @@ namespace NMib::NWebApp::NWebAppManager
 		return mp_pThis->fp_GetConfigValue(_Name, _Default);
 	}
 
-	NWeb::NHTTP::CURL CWebAppManagerImpl::f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const
+	NWeb::NHTTP::CURL CWebAppManagerImpl::f_GetMongoAddressURL(CStr const &_Database, CStr const &_HomePath) const
 	{
 #ifdef DMibWebAppManager_SupportMongo
 		return mp_pThis->fp_GetDBAddressURL(_Database, _HomePath);

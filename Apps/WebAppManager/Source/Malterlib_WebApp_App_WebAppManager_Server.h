@@ -246,7 +246,7 @@ namespace NMib::NWebApp::NWebAppManager
 		virtual ~ICWebAppManager();
 
 		virtual CEJsonSorted f_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const = 0;
-		virtual NWeb::NHTTP::CURL f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const = 0;
+		virtual NWeb::NHTTP::CURL f_GetMongoAddressURL(CStr const &_Database, CStr const &_HomePath) const = 0;
 
 		CDistributedAppState const &m_AppState;
 		CWebAppManagerOptions const &m_Options;
@@ -260,7 +260,7 @@ namespace NMib::NWebApp::NWebAppManager
 		CWebAppManagerImpl(CWebAppManagerActor *_pThis);
 
 		CEJsonSorted f_GetConfigValue(CStr const &_Name, CEJsonSorted const &_Default) const;
-		NWeb::NHTTP::CURL f_GetMongoAddressURL(CStr _Database, CStr _HomePath) const;
+		NWeb::NHTTP::CURL f_GetMongoAddressURL(CStr const &_Database, CStr const &_HomePath) const;
 
 	private:
 		CWebAppManagerActor *mp_pThis = nullptr;
@@ -460,8 +460,8 @@ namespace NMib::NWebApp::NWebAppManager
 		CStr fp_GetMongoSSLDirectory() const;
 #	ifdef DMibWebAppManager_SupportMongo
 		CStr fp_GetMongoExecutable(CStr const &_ExecutableName) const;
-		NWeb::NHTTP::CURL fp_GetDBAddressURL(CStr _Database, CStr _HomePath);
-		CStr fp_GetDBAddress(CStr _Database, CStr _HomePath);
+		NWeb::NHTTP::CURL fp_GetDBAddressURL(CStr const &_Database, CStr const &_HomePath);
+		CStr fp_GetDBAddress(CStr const &_Database, CStr const &_HomePath);
 		TCFuture<void> fp_RunNodeMongoScript(CStr _ScriptName, CStr _Script, TCVector<CStr> _Params, CStr _Database, fp32 _Timeout);
 
 		TCFuture<void> fp_SetupMongo();
