@@ -373,7 +373,7 @@ namespace NMib::NWebApp::NWebAppManager
 			else
 				OldSubscriptionDestroy = g_Void;
 
-			fg_Move(OldSubscriptionDestroy) > [this, pAppLaunch = &_AppLaunch, Metadata = fg_Move(Metadata)](TCAsyncResult<void> &&) mutable
+			fg_Move(OldSubscriptionDestroy) > [this, pAppLaunch = &_AppLaunch, Metadata = fg_Move(Metadata)](TCAsyncResult<void> &&_Result) mutable
 				{
 					mp_NetworkTunnelsServer(&CNetworkTunnelsServer::f_PublishNetworkTunnel, pAppLaunch->m_LogCategory, fp_GetAppIPAddress(*pAppLaunch, false), 5599, fg_Move(Metadata))
 						> fg_LogError("Network Tunnel", "Publish network tunnel") / [pAppLaunch](CActorSubscription &&_Subscription)
