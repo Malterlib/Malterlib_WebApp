@@ -72,8 +72,8 @@ namespace NMib::NWebApp::NWebCertificateManager
 		TCFuture<void> fp_ReadState();
 		void fp_ParseSettings(CEJsonSorted const &_Params, CDomainSettings &o_Settings);
 		void fp_ParseCommandLineSettings(CEJsonSorted const &_Params, CDomainSettings &o_Settings);
-		EFileAttrib fsp_ParseAttributes(CEJsonSorted const &_Json, EFileAttrib _OriginalAttribs);
-		CEJsonSorted fsp_GenerateAttributes(EFileAttrib _Attributes);
+		static EFileAttrib fsp_ParseAttributes(CEJsonSorted const &_Json, EFileAttrib _OriginalAttribs);
+		static CEJsonSorted fsp_GenerateAttributes(EFileAttrib _Attributes);
 		CEJsonSorted fp_SaveSettings(CDomainSettings const &_Settings);
 		void fp_SaveState(CDomain const &_Domain);
 
