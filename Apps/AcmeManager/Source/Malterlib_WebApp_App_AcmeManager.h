@@ -66,11 +66,7 @@ namespace NMib::NWebApp::NAcmeManager
 
 		struct CDomain
 		{
-			CStr const &f_GetName() const
-			{
-				return TCMap<CStr, CDomain>::fs_GetKey(*this);
-			}
-
+			CStr const &f_GetName() const;
 			CStr f_GetSecretFolder() const;
 			CDomainStatus const *f_GetCurrentStatus() const;
 

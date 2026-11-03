@@ -44,10 +44,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		struct CEnvironmentVariable
 		{
-			CStr const &f_GetName() const
-			{
-				return TCMap<CStr, CEnvironmentVariable>::fs_GetKey(*this);
-			}
+			CStr const &f_GetName() const;
 
 			CStr m_Setting;
 			TCOptional<CStr> m_Default;
@@ -57,44 +54,17 @@ namespace NMib::NWebApp::NWebAppManager
 
 		struct CPackage
 		{
-			CStr const &f_GetName() const
-			{
-				return TCMap<CStr, CPackage>::fs_GetKey(*this);
-			}
-
-			bool f_IsStatic() const
-			{
-				return m_Type == EPackageType_Static || (m_Type == EPackageType_Npm && (m_NpmBuildType == "Compile" || m_NpmBuildType == "Build"));
-			}
-
-			bool f_IsNpmDynamic() const
-			{
-				return m_Type == EPackageType_Npm && (m_NpmBuildType == "Start");
-			}
-
-			bool f_IsDynamicServer() const
-			{
-				return m_Concurrency && (m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket || f_IsNpmDynamic());
-			}
-
-			bool f_HasCustomExecutable() const
-			{
-				return m_Type == EPackageType_Custom || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket;
-			}
-
-			bool f_IsServer() const
-			{
-				return f_IsDynamicServer() || f_IsStatic();
-			}
+			CStr const &f_GetName() const;
+			bool f_IsStatic() const;
+			bool f_IsNpmDynamic() const;
+			bool f_IsDynamicServer() const;
+			bool f_HasCustomExecutable() const;
+			bool f_IsServer() const;
 
 			struct CRedirect
 			{
 				template <typename tf_CStream>
-				void f_Stream(tf_CStream &_Stream)
-				{
-					_Stream % m_From;
-					_Stream % m_To;
-				}
+				void f_Stream(tf_CStream &_Stream);
 
 				CStr m_From;
 				CStr m_To;
@@ -103,11 +73,7 @@ namespace NMib::NWebApp::NWebAppManager
 			struct CSearchReplace
 			{
 				template <typename tf_CStream>
-				void f_Stream(tf_CStream &_Stream)
-				{
-					_Stream % m_Search;
-					_Stream % m_Replace;
-				}
+				void f_Stream(tf_CStream &_Stream);
 
 				CStr m_Search;
 				CStr m_Replace;
@@ -116,12 +82,7 @@ namespace NMib::NWebApp::NWebAppManager
 			struct CAlternateSource
 			{
 				template <typename tf_CStream>
-				void f_Stream(tf_CStream &_Stream)
-				{
-					_Stream % m_Pattern;
-					_Stream % m_Destination;
-					_Stream % m_SearchReplace;
-				}
+				void f_Stream(tf_CStream &_Stream);
 
 				CStr m_Pattern;
 				CStr m_Destination;
@@ -366,15 +327,8 @@ namespace NMib::NWebApp::NWebAppManager
 
 		struct CAppLaunch
 		{
-			CAppLaunchKey const &f_GetKey() const
-			{
-				return TCMap<CAppLaunchKey, CAppLaunch>::fs_GetKey(*this);
-			}
-
-			ch8 const *f_PortDelim() const
-			{
-				return m_bUnixSocket ? "." : ":";
-			}
+			CAppLaunchKey const &f_GetKey() const;
+			ch8 const *f_PortDelim() const;
 
 			TCVariant<void, CNormalProcessLaunch, TCUniquePointer<CDistributedApp_LaunchInfo>> m_Launch;
 			TCOptional<CLaunchEnvironment> m_LaunchEnvironment;
@@ -615,6 +569,8 @@ namespace NMib::NWebApp::NWebAppManager
 #	ifndef DMibPNoShortCuts
 using namespace NMib::NWebApp::NWebAppManager;
 #	endif
+
+#	include "Malterlib_WebApp_App_WebAppManager_Server.hpp"
 
 #else
 #	include <stdlib.h>

@@ -49,10 +49,7 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		struct CDomain
 		{
-			CStr const &f_GetName() const
-			{
-				return TCMap<CStr, CDomain>::fs_GetKey(*this);
-			}
+			CStr const &f_GetName() const;
 
 			CDomainSettings m_Settings;
 			TCMap<CHostInfo, CWebCertificateDeployActor::CDomainStatus> m_Statuses;

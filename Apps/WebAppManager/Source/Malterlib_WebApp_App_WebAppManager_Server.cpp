@@ -858,6 +858,51 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 	}
 
+	CStr const &CWebAppManagerOptions::CEnvironmentVariable::f_GetName() const
+	{
+		return TCMap<CStr, CEnvironmentVariable>::fs_GetKey(*this);
+	}
+
+	CStr const &CWebAppManagerOptions::CPackage::f_GetName() const
+	{
+		return TCMap<CStr, CPackage>::fs_GetKey(*this);
+	}
+
+	bool CWebAppManagerOptions::CPackage::f_IsStatic() const
+	{
+		return m_Type == EPackageType_Static || (m_Type == EPackageType_Npm && (m_NpmBuildType == "Compile" || m_NpmBuildType == "Build"));
+	}
+
+	bool CWebAppManagerOptions::CPackage::f_IsNpmDynamic() const
+	{
+		return m_Type == EPackageType_Npm && (m_NpmBuildType == "Start");
+	}
+
+	bool CWebAppManagerOptions::CPackage::f_IsDynamicServer() const
+	{
+		return m_Concurrency && (m_Type == EPackageType_Meteor || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket || f_IsNpmDynamic());
+	}
+
+	bool CWebAppManagerOptions::CPackage::f_HasCustomExecutable() const
+	{
+		return m_Type == EPackageType_Custom || m_Type == EPackageType_FastCGI || m_Type == EPackageType_Websocket;
+	}
+
+	bool CWebAppManagerOptions::CPackage::f_IsServer() const
+	{
+		return f_IsDynamicServer() || f_IsStatic();
+	}
+
+	CWebAppManagerActor::CAppLaunchKey const &CWebAppManagerActor::CAppLaunch::f_GetKey() const
+	{
+		return TCMap<CAppLaunchKey, CAppLaunch>::fs_GetKey(*this);
+	}
+
+	ch8 const *CWebAppManagerActor::CAppLaunch::f_PortDelim() const
+	{
+		return m_bUnixSocket ? "." : ":";
+	}
+
 	CStr CWebAppManagerActor::fp_DoCustomStringReplacements(CStr const &_String)
 	{
 		if (!mp_pCustomization)

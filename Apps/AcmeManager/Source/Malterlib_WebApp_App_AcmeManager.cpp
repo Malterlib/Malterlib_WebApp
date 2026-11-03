@@ -150,6 +150,11 @@ namespace NMib::NWebApp::NAcmeManager
 		Status.m_Severity = _Severity;
 	}
 
+	CStr const &CAcmeManagerActor::CDomain::f_GetName() const
+	{
+		return TCMap<CStr, CDomain>::fs_GetKey(*this);
+	}
+
 	CStr CAcmeManagerActor::CDomain::f_GetSecretFolder() const
 	{
 		return "org.malterlib.certificate/{}"_f << f_GetName();

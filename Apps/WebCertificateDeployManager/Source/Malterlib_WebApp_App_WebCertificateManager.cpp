@@ -61,6 +61,11 @@ namespace NMib::NWebApp::NWebCertificateManager
 
 		co_return {};
 	}
+
+	CStr const &CWebCertificateManagerActor::CDomain::f_GetName() const
+	{
+		return TCMap<CStr, CDomain>::fs_GetKey(*this);
+	}
 }
 
 namespace NMib::NWebApp
