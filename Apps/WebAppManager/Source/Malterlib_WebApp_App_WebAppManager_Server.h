@@ -289,7 +289,6 @@ namespace NMib::NWebApp::NWebAppManager
 
 	struct CWebAppManagerActor : public CActor
 	{
-	public:
 		using CActorHolder = CDelegatedActorHolder;
 
 		friend struct CWebAppManagerImpl;

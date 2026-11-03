@@ -15,8 +15,9 @@ ch8 g_Settings[] =
 #include DMibWebAppManager_SettingsPath
 ;
 
-class CWebAppManagerApp : public CApplication
+struct CWebAppManagerApp : public CApplication
 {
+private:
 	aint f_Main()
 	{
 		CWebAppManagerOptions Options{DMibWebAppManager_ManagerName, DMibWebAppManager_ManagerDescription};

@@ -13,8 +13,9 @@
 using namespace NMib;
 using namespace NMib::NWebApp::NAcmeManager;
 
-class CAcmeManager : public CApplication
+struct CAcmeManager : public CApplication
 {
+private:
 	aint f_Main()
 	{
 		NConcurrency::CDistributedDaemon Daemon

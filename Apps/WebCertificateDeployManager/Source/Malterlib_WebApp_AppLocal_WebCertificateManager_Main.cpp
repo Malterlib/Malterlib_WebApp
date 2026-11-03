@@ -13,8 +13,9 @@
 using namespace NMib;
 using namespace NMib::NWebApp::NWebCertificateManager;
 
-class CWebCertificateManager : public CApplication
+struct CWebCertificateManager : public CApplication
 {
+private:
 	aint f_Main()
 	{
 		NConcurrency::CDistributedDaemon Daemon
