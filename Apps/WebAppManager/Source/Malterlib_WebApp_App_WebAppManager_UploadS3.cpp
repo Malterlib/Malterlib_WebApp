@@ -13,7 +13,7 @@ namespace NMib::NWebApp::NWebAppManager
 {
 	namespace
 	{
-		uint32 gc_UpdateVersion = 42;
+		constexpr uint32 gc_UpdateVersion = 42;
 	}
 
 	bool CWebAppManagerActor::fp_FormatAlternateSources(CStr &o_Str, TCVector<CWebAppManagerOptions::CPackage::CAlternateSource> const &_AlternateSources)

@@ -143,13 +143,13 @@ namespace NMib::NWebApp::NWebAppManager
 
 			CAppLaunchKey LaunchKey;
 			LaunchKey.m_PackageName = Package.f_GetName();
-			for (umint i = 0; i < Package.m_Concurrency; ++i)
+			for (umint iInstance = 0; iInstance < Package.m_Concurrency; ++iInstance)
 			{
 				LaunchKey.m_iAppSequence = mp_AppSequence++;
 				auto &AppLaunch = mp_AppLaunches[LaunchKey];
 				++mp_OutstandingLaunches[Package.f_GetName()];
 				if (Package.m_Concurrency > 1)
-					AppLaunch.m_LogCategory = fg_Format("{}-{}", LaunchKey.m_PackageName, i);
+					AppLaunch.m_LogCategory = fg_Format("{}-{}", LaunchKey.m_PackageName, iInstance);
 				else
 					AppLaunch.m_LogCategory = LaunchKey.m_PackageName;
 
@@ -157,8 +157,8 @@ namespace NMib::NWebApp::NWebAppManager
 				AppLaunch.m_bMalterlibDistributedApp = Package.m_bMalterlibDistributedApp;
 				AppLaunch.m_bUnixSocket = Package.m_bUnixSocket;
 
-				for (umint i = 0; i < Package.m_PortConcurrency; ++i)
-					mp_PackageLocalURLs[LaunchKey.m_PackageName].f_Insert(fp_GetAppLocalURL(AppLaunch, i));
+				for (umint iPort = 0; iPort < Package.m_PortConcurrency; ++iPort)
+					mp_PackageLocalURLs[LaunchKey.m_PackageName].f_Insert(fp_GetAppLocalURL(AppLaunch, iPort));
 			}
 		}
 	}

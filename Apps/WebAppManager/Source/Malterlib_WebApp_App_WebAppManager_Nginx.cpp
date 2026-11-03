@@ -1039,9 +1039,9 @@ namespace NMib::NWebApp::NWebAppManager
 		bool bHasDefaultServer = false;
 		{
 			TCMap<CStr, CStr> SubPathServers;
-			for (int i = 0; i < 2; ++i)
+			for (int iPass = 0; iPass < 2; ++iPass)
 			{
-				bool bIsSubPackage = i == 0;
+				bool bIsSubPackage = iPass == 0;
 
 				for (auto &Package : FilteredPackages)
 				{
@@ -1062,13 +1062,13 @@ namespace NMib::NWebApp::NWebAppManager
 
 					CStr Server;
 					if (bIsStatic)
-						Server = g_pStaticServerTemplate[i];
+						Server = g_pStaticServerTemplate[iPass];
 					else if (bIsFastCGI)
-						Server = g_pFastCGIServerTemplate[i];
+						Server = g_pFastCGIServerTemplate[iPass];
 					else if (bIsWebsocket)
-						Server = g_pWebsocketServerTemplate[i];
+						Server = g_pWebsocketServerTemplate[iPass];
 					else
-						Server = g_pServerTemplate[i];
+						Server = g_pServerTemplate[iPass];
 
 					if (!bIsSubPackage && bEnableSeparateStaticRoot && Package.m_Type == CWebAppManagerOptions::EPackageType_Meteor)
 					{
