@@ -68,17 +68,17 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerDaemonActor::fp_StartApp(NEncoding::CEJsonSorted const _Params)
 	{
-		mp_pManager = fg_ConstructActor<CWebAppManagerActor>(fg_Construct(self), mp_State, mp_Options);
+		mp_Manager = fg_ConstructActor<CWebAppManagerActor>(fg_Construct(self), mp_State, mp_Options);
 
-		co_return co_await mp_pManager(&CWebAppManagerActor::f_Startup);
+		co_return co_await mp_Manager(&CWebAppManagerActor::f_Startup);
 	}
 
 	TCFuture<void> CWebAppManagerDaemonActor::fp_StopApp()
 	{
-		if (mp_pManager)
+		if (mp_Manager)
 		{
 			DMibLogWithCategory(Daemon, Info, "Shutting down");
-			co_await (fg_Move(mp_pManager).f_Destroy() % "Failed to shut down server");
+			co_await (fg_Move(mp_Manager).f_Destroy() % "Failed to shut down server");
 		}
 
 		co_return {};
@@ -86,12 +86,12 @@ namespace NMib::NWebApp::NWebAppManager
 
 	TCFuture<void> CWebAppManagerDaemonActor::fp_PreStop()
 	{
-		if (!mp_pManager)
+		if (!mp_Manager)
 			co_return  {};
 
 		DMibLogWithCategory(Daemon, Info, "Running pre-stop");
 
-		co_await (mp_pManager(&CWebAppManagerActor::f_PreStop) % "Failed to pre-stop down server");
+		co_await (mp_Manager(&CWebAppManagerActor::f_PreStop) % "Failed to pre-stop down server");
 
 		co_return {};
 	}

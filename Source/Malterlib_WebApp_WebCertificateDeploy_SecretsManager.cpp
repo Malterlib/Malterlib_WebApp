@@ -84,15 +84,15 @@ namespace NMib::NWebApp
 					if (!Change.m_SemanticID)
 						continue;
 
-					auto CertificateSemanticPrefix = "org.malterlib.certificate#";
+					auto pCertificateSemanticPrefix = "org.malterlib.certificate#";
 
-					if (!Change.m_SemanticID->f_StartsWith(CertificateSemanticPrefix))
+					if (!Change.m_SemanticID->f_StartsWith(pCertificateSemanticPrefix))
 					{
 						DMibLogWithCategory(Mib/WebApp/WebCertificateDeploy, Warning, "Invalid semantic ID received from secrets manager '{}': {}", _Info.m_HostInfo, *Change.m_SemanticID);
 						continue;
 					}
 
-					CStr DomainName = Change.m_SemanticID->f_RemovePrefix(CertificateSemanticPrefix);
+					CStr DomainName = Change.m_SemanticID->f_RemovePrefix(pCertificateSemanticPrefix);
 
 					if (!fg_IsValidHostname(DomainName))
 					{
@@ -128,6 +128,7 @@ namespace NMib::NWebApp
 			}
 		;
 
+		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		auto ChangesSubscription = co_await (_SecretsManager.f_CallActor(&CSecretsManager::f_SubscribeToChanges)(fg_Move(SubscribeToChanges)) % "Subscribe to secret changes");
 
 		m_SecretsManagerStates[_SecretsManager].m_ChangesSubscription = fg_Move(ChangesSubscription);

@@ -33,7 +33,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		void fp_BuildCommandLine(CDistributedAppCommandLineSpecification &o_CommandLine) override;
 
-		TCActor<CWebAppManagerActor> mp_pManager;
+		TCActor<CWebAppManagerActor> mp_Manager;
 		CWebAppManagerOptions mp_Options;
 	};
 }

@@ -28,7 +28,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 					*_pCommandLine %= "Invalidating\n";
 
-					co_await mp_pManager(&CWebAppManagerActor::f_InvalidateCloudFrontCaches);
+					co_await mp_Manager(&CWebAppManagerActor::f_InvalidateCloudFrontCaches);
 
 					*_pCommandLine %= "Done\n";
 
@@ -78,7 +78,7 @@ namespace NMib::NWebApp::NWebAppManager
 				{
 					co_await fp_WaitForAppStartup();
 
-					co_await mp_pManager
+					co_await mp_Manager
 						(
 							&CWebAppManagerActor::f_LaunchAsApp
 							, _pCommandLine

@@ -143,7 +143,7 @@ namespace NMib::NWebApp::NWebAppManager
 			OriginRequestConfig.m_Role = AWSLambdaRole;
 			OriginRequestConfig.m_MemorySizeMB = 128;
 			OriginRequestConfig.m_TimeoutSeconds = 15;
-			OriginRequestConfig.m_bPublish = true;
+			OriginRequestConfig.m_Publish = true;
 
 			CStr AlternateSourcesString;
 			if (!fp_FormatAlternateSources(AlternateSourcesString, AlternateSources))
@@ -229,7 +229,7 @@ exports.handler = (event, context, callback) => {
 			OriginResponseConfig.m_Role = AWSLambdaRole;
 			OriginResponseConfig.m_MemorySizeMB = 128;
 			OriginResponseConfig.m_TimeoutSeconds = 15;
-			OriginResponseConfig.m_bPublish = true;
+			OriginResponseConfig.m_Publish = true;
 
 			CStr AlternateSourcesString;
 			if (!fp_FormatAlternateSourcesSearchReplace(AlternateSourcesString, AlternateSources))
@@ -464,7 +464,7 @@ exports.handler = async (event) => {
 				ViewerResponseConfig.m_Role = AWSLambdaRole;
 				ViewerResponseConfig.m_MemorySizeMB = 128;
 				ViewerResponseConfig.m_TimeoutSeconds = 15;
-				ViewerResponseConfig.m_bPublish = true;
+				ViewerResponseConfig.m_Publish = true;
 
 				ViewerResponseFiles["index.js"] = CStr(R"----(
 	'use strict';

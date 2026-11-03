@@ -90,6 +90,7 @@ namespace NMib::NWebApp::NWebAppManager
 		TCActor<CProcessLaunchActor> ProcessLaunchActor(fg_Construct());
 		auto DestroyLaunch = co_await fg_AsyncDestroy(ProcessLaunchActor);
 
+		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		auto CancellationSubscription = co_await _pCommandLine->f_RegisterForCancellation
 			(
 				g_ActorFunctor / [ProcessLaunchActor] -> TCFuture<bool>
@@ -104,6 +105,7 @@ namespace NMib::NWebApp::NWebAppManager
 
 		co_await fg_Move(LaunchedPromise.m_Future);
 
+		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		auto StdInSubscription = co_await _pCommandLine->f_RegisterForStdInBinary
 			(
 				g_ActorFunctor / [ProcessLaunchActor, _pCommandLine, bEOFReceived = false](EStdInReaderOutputType _Type, CIOByteVector _Input, CStr _Error) mutable -> TCFuture<void>

@@ -41,7 +41,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 )---";
 
-	ch8 const *g_pServerTemplate[2] =
+	ch8 const *g_ServerTemplate[2] =
 		{
 			R"---(
 {AlternateSources}
@@ -170,7 +170,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 	;
 
-	ch8 const *g_pStaticServerTemplate[2] =
+	ch8 const *g_StaticServerTemplate[2] =
 		{
 			R"---(
 		location ~ ^/{SubPath}({DefaultLocation})?$
@@ -240,7 +240,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 	;
 
-	ch8 const *g_pFastCGIServerTemplate[2] =
+	ch8 const *g_FastCGIServerTemplate[2] =
 		{
 			R"---(
 		location ~ "^/{SubPath}(/[A-Za-z0-9]{40}\.(css|js))$"
@@ -360,7 +360,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 	;
 
-	ch8 const *g_pWebsocketServerTemplate[2] =
+	ch8 const *g_WebsocketServerTemplate[2] =
 		{
 			R"---(
 		# pass all requests to Websocket
@@ -1062,13 +1062,13 @@ namespace NMib::NWebApp::NWebAppManager
 
 					CStr Server;
 					if (bIsStatic)
-						Server = g_pStaticServerTemplate[iPass];
+						Server = g_StaticServerTemplate[iPass];
 					else if (bIsFastCGI)
-						Server = g_pFastCGIServerTemplate[iPass];
+						Server = g_FastCGIServerTemplate[iPass];
 					else if (bIsWebsocket)
-						Server = g_pWebsocketServerTemplate[iPass];
+						Server = g_WebsocketServerTemplate[iPass];
 					else
-						Server = g_pServerTemplate[iPass];
+						Server = g_ServerTemplate[iPass];
 
 					if (!bIsSubPackage && bEnableSeparateStaticRoot && Package.m_Type == CWebAppManagerOptions::EPackageType_Meteor)
 					{
