@@ -61,9 +61,9 @@ namespace NMib::NWebApp::NAcmeManager
 			CStr AccountKeyType = "EC secp521r1";
 			switch (Domain.m_Settings.m_AccountKeySettings.f_GetTypeID())
 			{
-			case EPublicKeyType::mc_EC_secp256r1: AccountKeyType = "EC secp256r1"; break;
-			case EPublicKeyType::mc_EC_secp384r1: AccountKeyType = "EC secp384r1"; break;
-			case EPublicKeyType::mc_EC_secp521r1: AccountKeyType = "EC secp521r1"; break;
+			case EPublicKeyType::mc_EC_Secp256r1: AccountKeyType = "EC secp256r1"; break;
+			case EPublicKeyType::mc_EC_Secp384r1: AccountKeyType = "EC secp384r1"; break;
+			case EPublicKeyType::mc_EC_Secp521r1: AccountKeyType = "EC secp521r1"; break;
 			case EPublicKeyType::mc_RSA: AccountKeyType = "RSA {}"_f << Domain.m_Settings.m_AccountKeySettings.f_Get<EPublicKeyType::mc_RSA>().m_KeyLength; break;
 			default: break;
 			}

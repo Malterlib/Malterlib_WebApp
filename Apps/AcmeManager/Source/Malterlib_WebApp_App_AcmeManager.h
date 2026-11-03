@@ -37,7 +37,7 @@ namespace NMib::NWebApp::NAcmeManager
 			CStr m_AlternateChain;
 			CAcmeClientActor::EDefaultDirectory m_AcmeDirectory = CAcmeClientActor::EDefaultDirectory_LetsEncryptStaging;
 			CStr m_AcmeCustomDirectory;
-			CPublicKeySetting m_AccountKeySettings = CPublicKeySettings_EC_secp521r1{};
+			CPublicKeySetting m_AccountKeySettings = CPublicKeySettings_EC_Secp521r1{};
 		};
 
 		struct CDomainState

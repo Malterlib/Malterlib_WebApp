@@ -9,11 +9,11 @@ namespace NMib::NWebApp::NAcmeManager
 	EPublicKeyType CAcmeManagerActor::fsp_EllipticCurveTypeFromStr(CStr const &_String)
 	{
 		if (_String == "secp256r1")
-			return EPublicKeyType::mc_EC_secp256r1;
+			return EPublicKeyType::mc_EC_Secp256r1;
 		else if (_String == "secp384r1")
-			return EPublicKeyType::mc_EC_secp384r1;
+			return EPublicKeyType::mc_EC_Secp384r1;
 		else if (_String == "secp521r1")
-			return EPublicKeyType::mc_EC_secp521r1;
+			return EPublicKeyType::mc_EC_Secp521r1;
 		else if (_String == "X25519")
 			return EPublicKeyType::mc_EC_X25519;
 		else
@@ -24,9 +24,9 @@ namespace NMib::NWebApp::NAcmeManager
 	{
 		switch (_Type)
 		{
-		case EPublicKeyType::mc_EC_secp256r1: return "secp256r1";
-		case EPublicKeyType::mc_EC_secp384r1: return "secp384r1";
-		case EPublicKeyType::mc_EC_secp521r1: return "secp521r1";
+		case EPublicKeyType::mc_EC_Secp256r1: return "secp256r1";
+		case EPublicKeyType::mc_EC_Secp384r1: return "secp384r1";
+		case EPublicKeyType::mc_EC_Secp521r1: return "secp521r1";
 		case EPublicKeyType::mc_EC_X25519: return "X25519";
 		default: break;
 		}
@@ -82,15 +82,15 @@ namespace NMib::NWebApp::NAcmeManager
 			else if (pValue->f_IsString())
 			{
 				if (pValue->f_String() == "secp521r1")
-					o_Settings.m_AccountKeySettings = CPublicKeySettings_EC_secp521r1{};
+					o_Settings.m_AccountKeySettings = CPublicKeySettings_EC_Secp521r1{};
 				else if (pValue->f_String() == "secp384r1")
-					o_Settings.m_AccountKeySettings = CPublicKeySettings_EC_secp384r1{};
+					o_Settings.m_AccountKeySettings = CPublicKeySettings_EC_Secp384r1{};
 				else if (pValue->f_String() == "secp256r1")
-					o_Settings.m_AccountKeySettings = CPublicKeySettings_EC_secp256r1{};
+					o_Settings.m_AccountKeySettings = CPublicKeySettings_EC_Secp256r1{};
 				else if (pValue->f_String() == "default")
 				{
 					if (o_Settings.m_AcmeDirectory == CAcmeClientActor::EDefaultDirectory_LetsEncryptStaging || o_Settings.m_AcmeDirectory == CAcmeClientActor::EDefaultDirectory_LetsEncrypt)
-						o_Settings.m_AccountKeySettings = CPublicKeySettings_EC_secp384r1{};
+						o_Settings.m_AccountKeySettings = CPublicKeySettings_EC_Secp384r1{};
 				}
 			}
 		}
@@ -116,9 +116,9 @@ namespace NMib::NWebApp::NAcmeManager
 
 		switch (_Settings.m_AccountKeySettings.f_GetTypeID())
 		{
-		case EPublicKeyType::mc_EC_secp256r1: Domain["AccountKeySettings"] = "secp256r1"; break;
-		case EPublicKeyType::mc_EC_secp384r1: Domain["AccountKeySettings"] = "secp384r1"; break;
-		case EPublicKeyType::mc_EC_secp521r1: Domain["AccountKeySettings"] = "secp521r1"; break;
+		case EPublicKeyType::mc_EC_Secp256r1: Domain["AccountKeySettings"] = "secp256r1"; break;
+		case EPublicKeyType::mc_EC_Secp384r1: Domain["AccountKeySettings"] = "secp384r1"; break;
+		case EPublicKeyType::mc_EC_Secp521r1: Domain["AccountKeySettings"] = "secp521r1"; break;
 		case EPublicKeyType::mc_RSA: Domain["AccountKeySettings"] = _Settings.m_AccountKeySettings.f_Get<EPublicKeyType::mc_RSA>().m_KeyLength; break;
 		default: break;
 		}

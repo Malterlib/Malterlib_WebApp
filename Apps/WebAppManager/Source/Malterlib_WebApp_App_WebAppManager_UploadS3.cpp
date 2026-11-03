@@ -820,7 +820,7 @@ exports.handler = async (event) => {
 							CFile::fs_AtomicReplaceFile(PreviousManifestFile + ".tmp", PreviousManifestFile);
 						}
 
-						CBinaryStreamMemory<> Stream;
+						TCBinaryStreamMemory<> Stream;
 						Stream << gc_UpdateVersion; // Version
 						Stream << bAllowRobots;
 						Stream << CloudFrontDistributions;

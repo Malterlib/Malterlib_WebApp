@@ -752,7 +752,7 @@ namespace NMib::NWebApp::NWebAppManager
 						if (!CFile::fs_FileExists(Results.m_CertificateFile))
 						{
 #ifdef DMibDebug
-							CPublicKeySetting KeySettings = CPublicKeySettings_EC_secp384r1{};
+							CPublicKeySetting KeySettings = CPublicKeySettings_EC_Secp384r1{};
 #else
 							CPublicKeySetting KeySettings = CPublicKeySettings_RSA{8192};
 #endif

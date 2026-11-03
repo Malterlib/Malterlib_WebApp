@@ -466,13 +466,13 @@ namespace NMib::NWebApp::NAcmeManager
 				{
 					switch (DomainSettings.m_EllipticCurveType)
 					{
-					case EPublicKeyType::mc_EC_secp256r1: return CPublicKeySettings_EC_secp256r1{};
-					case EPublicKeyType::mc_EC_secp384r1: return CPublicKeySettings_EC_secp384r1{};
-					case EPublicKeyType::mc_EC_secp521r1: return CPublicKeySettings_EC_secp521r1{};
+					case EPublicKeyType::mc_EC_Secp256r1: return CPublicKeySettings_EC_Secp256r1{};
+					case EPublicKeyType::mc_EC_Secp384r1: return CPublicKeySettings_EC_Secp384r1{};
+					case EPublicKeyType::mc_EC_Secp521r1: return CPublicKeySettings_EC_Secp521r1{};
 					case EPublicKeyType::mc_EC_X25519: return CPublicKeySettings_EC_X25519{};
 					case EPublicKeyType::mc_RSA: break;
 					}
-					return CPublicKeySettings_EC_secp521r1{};
+					return CPublicKeySettings_EC_Secp521r1{};
 				}
 			;
 
