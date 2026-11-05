@@ -18,35 +18,37 @@ ch8 g_Settings[] =
 struct CWebAppManagerApp : public CApplication
 {
 private:
-	aint f_Main()
-	{
-		CWebAppManagerOptions Options{DMibWebAppManager_ManagerName, DMibWebAppManager_ManagerDescription};
-#ifdef DMibWebAppManager_UseInternalNode
-		Options.m_bUseInternalNode = true;
-#endif
-		try
-		{
-			Options.f_ParseSettings(g_Settings, DMibWebAppManager_SettingsPath);
-		}
-		catch (NException::CException const &_Exception)
-		{
-			DMibConErrOut("Error parsing settings: {}\n", _Exception);
-			return 1;
-		}
-
-		NConcurrency::CDistributedDaemon Daemon
-			{
-				DMibWebAppManager_ManagerDaemonName
-				, DMibWebAppManager_ManagerDescription
-				, "Manages web applications"
-				, [Options]
-				{
-					return fg_ConstructActor<CWebAppManagerDaemonActor>(Options);
-				}
-			}
-		;
-		return Daemon.f_Run();
-	}
+	aint f_Main();
 };
+
+aint CWebAppManagerApp::f_Main()
+{
+	CWebAppManagerOptions Options{DMibWebAppManager_ManagerName, DMibWebAppManager_ManagerDescription};
+#ifdef DMibWebAppManager_UseInternalNode
+	Options.m_bUseInternalNode = true;
+#endif
+	try
+	{
+		Options.f_ParseSettings(g_Settings, DMibWebAppManager_SettingsPath);
+	}
+	catch (NException::CException const &_Exception)
+	{
+		DMibConErrOut("Error parsing settings: {}\n", _Exception);
+		return 1;
+	}
+
+	NConcurrency::CDistributedDaemon Daemon
+		{
+			DMibWebAppManager_ManagerDaemonName
+			, DMibWebAppManager_ManagerDescription
+			, "Manages web applications"
+			, [Options]
+			{
+				return fg_ConstructActor<CWebAppManagerDaemonActor>(Options);
+			}
+		}
+	;
+	return Daemon.f_Run();
+}
 
 DAppImplement(CWebAppManagerApp);

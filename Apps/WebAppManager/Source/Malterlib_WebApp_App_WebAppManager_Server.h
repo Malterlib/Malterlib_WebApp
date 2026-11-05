@@ -54,13 +54,6 @@ namespace NMib::NWebApp::NWebAppManager
 
 		struct CPackage
 		{
-			CStr const &f_GetName() const;
-			bool f_IsStatic() const;
-			bool f_IsNpmDynamic() const;
-			bool f_IsDynamicServer() const;
-			bool f_HasCustomExecutable() const;
-			bool f_IsServer() const;
-
 			struct CRedirect
 			{
 				template <typename tf_CStream>
@@ -88,6 +81,13 @@ namespace NMib::NWebApp::NWebAppManager
 				CStr m_Destination;
 				TCVector<CSearchReplace> m_SearchReplace;
 			};
+
+			CStr const &f_GetName() const;
+			bool f_IsStatic() const;
+			bool f_IsNpmDynamic() const;
+			bool f_IsDynamicServer() const;
+			bool f_HasCustomExecutable() const;
+			bool f_IsServer() const;
 
 			TCVector<CStr> m_StartupDependencies;
 			CStr m_NpmBuildType;
@@ -252,8 +252,6 @@ namespace NMib::NWebApp::NWebAppManager
 	{
 		using CActorHolder = CDelegatedActorHolder;
 
-		friend struct CWebAppManagerImpl;
-
 		enum ELogVerbosity
 		{
 			ELogVerbosity_None
@@ -296,6 +294,8 @@ namespace NMib::NWebApp::NWebAppManager
 		TCFuture<uint32> f_LaunchAsApp(NStorage::TCSharedPointer<CCommandLineControl> _pCommandLine, CStr _Application, CStr _Executable, TCVector<CStr> _Params, CStr _WorkingDir);
 
 	private:
+		friend struct CWebAppManagerImpl;
+
 		enum EHostnamePrefix
 		{
 			EHostnamePrefix_None
@@ -305,10 +305,10 @@ namespace NMib::NWebApp::NWebAppManager
 
 		struct CAppLaunchKey
 		{
+			auto operator <=> (CAppLaunchKey const &_Right) const noexcept = default;
+
 			CStr m_PackageName;
 			umint m_iAppSequence = 0;
-
-			auto operator <=> (CAppLaunchKey const &_Right) const noexcept = default;
 		};
 
 		struct CNormalProcessLaunch

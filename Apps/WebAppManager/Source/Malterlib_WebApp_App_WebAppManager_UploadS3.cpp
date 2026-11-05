@@ -600,16 +600,19 @@ exports.handler = async (event) => {
 	{
 		struct CChecksums
 		{
+			template <typename tf_CStream>
+			void f_Stream(tf_CStream &_Stream);
+
 			CHashDigest_SHA256 m_SHA256;
 			CHashDigest_MD5 m_MD5;
-
-			template <typename tf_CStream>
-			void f_Stream(tf_CStream &_Stream)
-			{
-				_Stream % m_SHA256;
-				_Stream % m_MD5;
-			}
 		};
+
+		template <typename tf_CStream>
+		void CChecksums::f_Stream(tf_CStream &_Stream)
+		{
+			_Stream % m_SHA256;
+			_Stream % m_MD5;
+		}
 
 		struct CSourceCheckResults
 		{
