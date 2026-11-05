@@ -45,13 +45,13 @@ namespace NMib::NWebApp::NWebAppManager
 
 					struct CVersion
 					{
-						CTime m_Time;
-						CStr m_Version;
-
 						auto operator <=> (CVersion const &_Right) const noexcept
 						{
 							return fg_TupleReferences(_Right.m_Time, _Right.m_Version) <=> fg_TupleReferences(m_Time, m_Version);
 						}
+
+						CTime m_Time;
+						CStr m_Version;
 					};
 
 					TCVector<CVersion> Versions;

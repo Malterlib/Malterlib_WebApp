@@ -6,9 +6,11 @@
 
 struct CWebApp_Tests : public NMib::NTest::CTest
 {
-	void f_DoTests()
-	{
-	}
+	void f_DoTests();
 };
+
+void CWebApp_Tests::f_DoTests()
+{
+}
 
 DMibTestRegister(CWebApp_Tests, Malterlib::WebApp);

@@ -16,22 +16,24 @@ using namespace NMib::NWebApp::NAcmeManager;
 struct CAcmeManager : public CApplication
 {
 private:
-	aint f_Main()
-	{
-		NConcurrency::CDistributedDaemon Daemon
-			{
-				"MalterlibWebAppAcmeManager"
-				, "Malterlib ACME Manager"
-				, "Manages issues and reissues certificates through ACME"
-				, []
-				{
-					return fg_ConstructActor<CAcmeManagerActor>();
-				}
-			}
-		;
-
-		return Daemon.f_Run();
-	}
+	aint f_Main();
 };
+
+aint CAcmeManager::f_Main()
+{
+	NConcurrency::CDistributedDaemon Daemon
+		{
+			"MalterlibWebAppAcmeManager"
+			, "Malterlib ACME Manager"
+			, "Manages issues and reissues certificates through ACME"
+			, []
+			{
+				return fg_ConstructActor<CAcmeManagerActor>();
+			}
+		}
+	;
+
+	return Daemon.f_Run();
+}
 
 DAppImplement(CAcmeManager);

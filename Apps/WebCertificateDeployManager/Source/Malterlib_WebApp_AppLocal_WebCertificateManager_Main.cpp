@@ -16,22 +16,24 @@ using namespace NMib::NWebApp::NWebCertificateManager;
 struct CWebCertificateManager : public CApplication
 {
 private:
-	aint f_Main()
-	{
-		NConcurrency::CDistributedDaemon Daemon
-			{
-				"MalterlibWebAppWebCertificateManager"
-				, "Malterlib Web Certificate Manager"
-				, "Deploys certificates to file system from SecretsManager"
-				, []
-				{
-					return fg_ConstructActor<CWebCertificateManagerActor>();
-				}
-			}
-		;
-
-		return Daemon.f_Run();
-	}
+	aint f_Main();
 };
+
+aint CWebCertificateManager::f_Main()
+{
+	NConcurrency::CDistributedDaemon Daemon
+		{
+			"MalterlibWebAppWebCertificateManager"
+			, "Malterlib Web Certificate Manager"
+			, "Deploys certificates to file system from SecretsManager"
+			, []
+			{
+				return fg_ConstructActor<CWebCertificateManagerActor>();
+			}
+		}
+	;
+
+	return Daemon.f_Run();
+}
 
 DAppImplement(CWebCertificateManager);

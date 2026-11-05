@@ -22,8 +22,6 @@ namespace NMib::NWebApp
 
 	struct CWebCertificateDeployActor::CInternal : public CActorInternal
 	{
-		CInternal(CWebCertificateDeployActor *_pThis, TCActor<CActorDistributionManager> const &_DistributionManager, TCActor<CDistributedActorTrustManager> const &_TrustManager);
-
 		struct CDomainState
 		{
 			TCDistributedActor<CSecretsManager> m_SecretsManager;
@@ -46,6 +44,8 @@ namespace NMib::NWebApp
 		{
 			CActorSubscription m_ChangesSubscription;
 		};
+
+		CInternal(CWebCertificateDeployActor *_pThis, TCActor<CActorDistributionManager> const &_DistributionManager, TCActor<CDistributedActorTrustManager> const &_TrustManager);
 
 		TCFuture<void> f_SecretsManagerAddedWithRetry(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info);
 		TCFuture<void> f_SecretsManagerAdded(TCDistributedActor<CSecretsManager> _SecretsManager, CTrustedActorInfo _Info);

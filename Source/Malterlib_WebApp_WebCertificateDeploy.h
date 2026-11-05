@@ -13,16 +13,6 @@ namespace NMib::NWebApp
 {
 	struct CWebCertificateDeployActor : public NConcurrency::CActor
 	{
-		CWebCertificateDeployActor
-			(
-				NConcurrency::TCActor<NConcurrency::CActorDistributionManager> const &_DistributionManager
-				, NConcurrency::TCActor<NConcurrency::CDistributedActorTrustManager> const &_TrustManager
-			)
-		;
-		~CWebCertificateDeployActor();
-
-		NConcurrency::TCFuture<void> f_Start();
-
 		struct CCertificateFileSettings
 		{
 			NStr::CStr m_Path;
@@ -70,12 +60,22 @@ namespace NMib::NWebApp
 			NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NStr::CStr _DomainName, ECertificate _Certificate)> m_fOnCertificateUpdated;
 		};
 
+		CWebCertificateDeployActor
+			(
+				NConcurrency::TCActor<NConcurrency::CActorDistributionManager> const &_DistributionManager
+				, NConcurrency::TCActor<NConcurrency::CDistributedActorTrustManager> const &_TrustManager
+			)
+		;
+		~CWebCertificateDeployActor();
+
+		NConcurrency::TCFuture<void> f_Start();
 		NConcurrency::TCFuture<NConcurrency::CActorSubscription> f_AddDomain(CDomainSettings _DomainSettings);
 
 	private:
+		struct CInternal;
+
 		NConcurrency::TCFuture<void> fp_Destroy() override;
 
-		struct CInternal;
 		NStorage::TCUniquePointer<CInternal> mp_pInternal;
 	};
 }
