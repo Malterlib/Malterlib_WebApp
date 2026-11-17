@@ -849,7 +849,7 @@ namespace NMib::NWebApp::NWebAppManager
 											CStr Campaign = Redirect["campaign"].f_String();
 											CStr ReferrerCookie = Redirect["referrerCookie"].f_String();
 											CStr CampaignPercentEncoded;
-											CURL::fs_PercentEncode(CampaignPercentEncoded, Campaign);
+											CUrl::fs_PercentEncode(CampaignPercentEncoded, Campaign);
 											RedirectContents += fg_Format
 												(
 													"			if ($uri ~* ^/{}$) {{\n"

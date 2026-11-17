@@ -140,20 +140,20 @@ namespace NMib::NWebApp::NWebAppManager
 	}
 
 #ifdef DMibWebAppManager_SupportMongo
-	NWeb::NHTTP::CURL CWebAppManagerActor::fp_GetDBAddressURL(CStr const &_Database, CStr const &_HomePath)
+	NWeb::NHTTP::CUrl CWebAppManagerActor::fp_GetDBAddressURL(CStr const &_Database, CStr const &_HomePath)
 	{
 		if (mp_bConnectToExternalMongo)
 		{
 			CStr CaCertificatePath = _HomePath / "MongoCA.crt";
 			CStr ClientCertificatePath = _HomePath / "admin.pem";
 
-			NWeb::NHTTP::CURL Url;
+			NWeb::NHTTP::CUrl Url;
 			Url.f_SetScheme("mongodb");
 			Url.f_SetUsername(mp_MongoAdminUserName);
 			Url.f_SetHost(CMongoConnectionSettings::fs_GetConnectionString(mp_ExternalMongoHosts), true);
 			Url.f_SetPath({_Database});
 
-			NContainer::TCVector<NWeb::NHTTP::CURL::CQueryEntry> Query
+			NContainer::TCVector<NWeb::NHTTP::CUrl::CQueryEntry> Query
 				{
 					{
 						{"authMechanism", "MONGODB-X509"}
@@ -177,7 +177,7 @@ namespace NMib::NWebApp::NWebAppManager
 		}
 		else
 		{
-			NWeb::NHTTP::CURL Url;
+			NWeb::NHTTP::CUrl Url;
 			Url.f_SetScheme("mongodb");
 			Url.f_SetHost(mp_MongoHost);
 			Url.f_SetPort(mp_MongoPort);
